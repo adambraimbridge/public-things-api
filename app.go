@@ -37,7 +37,8 @@ func main() {
 		Name:"graphiteTCPAddress",
 		Value:"",
 		Desc:"Graphite TCP address, e.g. graphite.ft.com:2003. Leave as default if you do NOT want to output to graphite (e.g. if running locally)",
-		EnvVar:"GRAPHITE_TCP_ADDRESS"})
+		EnvVar:"$GRAPHITE_ADDRESS"
+	})
 	graphitePrefix := app.String(cli.StringOpt{
 		Name:   "graphite-prefix",
 		Value:  "",

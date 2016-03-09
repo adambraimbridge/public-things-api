@@ -143,7 +143,7 @@ func getExpectedFakebookThing() thing {
 			"http://www.ft.com/ontology/company/PublicCompany",
 			"http://www.ft.com/ontology/company/Company",
 		},
-		DirectType: "http://www.ft.com/ontology/organisation/Organisation",
+		DirectType: "http://www.ft.com/ontology/organisation/Organisation", //TODO this should be changed to "http://www.ft.com/ontology/company/PublicCompany"
 		PrefLabel: "Fakebook, Inc.",
 	}
 }
