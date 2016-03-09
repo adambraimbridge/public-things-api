@@ -23,24 +23,24 @@ func main() {
 	app := cli.App("public-things-api-neo4j", "A public RESTful API for accessing Things in neo4j")
 
 	neoURL := app.String(cli.StringOpt{
-		Name:"neo-url",
-		Value:"http://localhost:7474/db/data",
-		Desc:"neo4j endpoint URL",
-		EnvVar:"NEO_URL"})
+		Name:   "neo-url",
+		Value:  "http://localhost:7474/db/data",
+		Desc:   "neo4j endpoint URL",
+		EnvVar: "NEO_URL"})
 	port := app.String(cli.StringOpt{
-		Name:"port",
-		Value:"8080",
-		Desc:"Port to listen on",
-		EnvVar:"PORT",
+		Name:   "port",
+		Value:  "8080",
+		Desc:   "Port to listen on",
+		EnvVar: "PORT",
 	})
 	graphiteTCPAddress := app.String(cli.StringOpt{
-		Name:"graphiteTCPAddress",
-		Value:"",
-		Desc:"Graphite TCP address, e.g. graphite.ft.com:2003. Leave as default if you do NOT want to output to graphite (e.g. if running locally)",
-		EnvVar:"GRAPHITE_ADDRESS",
+		Name:   "graphiteTCPAddress",
+		Value:  "",
+		Desc:   "Graphite TCP address, e.g. graphite.ft.com:2003. Leave as default if you do NOT want to output to graphite (e.g. if running locally)",
+		EnvVar: "GRAPHITE_ADDRESS",
 	})
 	graphitePrefix := app.String(cli.StringOpt{
-		Name:   "graphite-prefix",
+		Name:   "graphitePrefix",
 		Value:  "",
 		Desc:   "Prefix to use. Should start with content, include the environment, and the host name. e.g. coco.pre-prod.subjects-rw-neo4j.1",
 		EnvVar: "GRAPHITE_PREFIX",
@@ -52,10 +52,10 @@ func main() {
 		EnvVar: "LOG_METRICS",
 	})
 	cacheDuration := app.String(cli.StringOpt{
-		Name:"cache-duration",
-		Value:"30s",
-		Desc:"Duration Get requests should be cached for. e.g. 2h45m would set the max-age value to '7440' seconds",
-		EnvVar:"CACHE_DURATION",
+		Name:   "cache-duration",
+		Value:  "30s",
+		Desc:   "Duration Get requests should be cached for. e.g. 2h45m would set the max-age value to '7440' seconds",
+		EnvVar: "CACHE_DURATION",
 	})
 
 	app.Action = func() {
@@ -95,7 +95,7 @@ func runServer(neoURL string, port string, cacheDuration string, env string) {
 
 	http.Handle("/", r)
 
-	if err := http.ListenAndServe(":" + port, nil); err != nil {
+	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		log.Fatalf("Unable to start server: %v", err)
 	}
 }
