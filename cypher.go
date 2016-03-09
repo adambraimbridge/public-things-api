@@ -76,13 +76,13 @@ func (cd cypherDriver) read(thingUUID string) (thing, bool, error) {
 func mapToResponseFormat(thng *thing, env string) (*thing, error) {
 	thng.APIURL = mapper.APIURL(thng.ID, thng.Types, env)
 	thng.ID = mapper.IDURL(thng.ID)
-	types := mapper.TypeURIs(thng.Types) //TODO - we should decide which types should be exposed
+	types := mapper.TypeURIs(thng.Types)
 	if types == nil {
-		log.Warnf("Could not map type URIs for ID %s with types %s", thng.ID, thng.Types)
-		return thng, errors.New("Concept not found")
+		log.Errorf("Could not map type URIs for ID %s with types %s", thng.ID, thng.Types)
+		return thng, errors.New("Thing not found")
 	}
 	thng.Types = types
-	thng.DirectType = thng.Types[0] //TODO - use mapper when the call is complete
+	thng.DirectType = types[len(types)-1]
 	return thng, nil
 }
 
