@@ -46,7 +46,7 @@ func main() {
 		EnvVar: "GRAPHITE_PREFIX",
 	})
 	logMetrics := app.Bool(cli.BoolOpt{
-		Name:   "log-metrics",
+		Name:   "logMetrics",
 		Value:  false,
 		Desc:   "Whether to log metrics. Set to true if running locally and you want metrics output",
 		EnvVar: "LOG_METRICS",
