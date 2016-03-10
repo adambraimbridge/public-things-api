@@ -15,10 +15,10 @@ import (
 )
 
 const (
-//Generate uuids so there's no clash with real data
-	FakebookConceptUUID = "eac853f5-3859-4c08-8540-55e043719400" //organization
+	//Generate uuids so there's no clash with real data
+	FakebookConceptUUID    = "eac853f5-3859-4c08-8540-55e043719400" //organization
 	MetalMickeyConceptUUID = "0483bef8-5797-40b8-9b25-b12e492f63c6" //subject
-	NonExistingThingUUID = "b2860919-4b78-44c6-a665-af9221bdefb5"
+	NonExistingThingUUID   = "b2860919-4b78-44c6-a665-af9221bdefb5"
 )
 
 func TestRetrieveOrganizationAsThing(t *testing.T) {
@@ -26,7 +26,6 @@ func TestRetrieveOrganizationAsThing(t *testing.T) {
 	expectedThing := getExpectedFakebookThing()
 	db := getDatabaseConnectionAndCheckClean(t, assert)
 	batchRunner := neoutils.NewBatchCypherRunner(neoutils.StringerDb{db}, 1)
-
 
 	organisationRW := writeOrganisation(assert, db, &batchRunner)
 
@@ -68,7 +67,6 @@ func TestRetrieveNoThingsWhenThereAreNonePresent(t *testing.T) {
 	assert.False(found, "Found thing %s", NonExistingThingUUID)
 	assert.EqualValues(thing{}, thng, "Found non-existing thing %s", NonExistingThingUUID)
 }
-
 
 func writeOrganisation(assert *assert.Assertions, db *neoism.Database, batchRunner *neoutils.CypherRunner) baseftrwapp.Service {
 	organisationRW := organisations.NewCypherOrganisationService(*batchRunner, db)
@@ -136,27 +134,31 @@ func cleanDB(db *neoism.Database, t *testing.T, assert *assert.Assertions) {
 
 func getExpectedFakebookThing() thing {
 	return thing{
-		ID:        "http://api.ft.com/things/eac853f5-3859-4c08-8540-55e043719400",
-		APIURL:    "http://api.ft.com/organisations/eac853f5-3859-4c08-8540-55e043719400",
+		ID:     "http://api.ft.com/things/eac853f5-3859-4c08-8540-55e043719400",
+		APIURL: "http://api.ft.com/organisations/eac853f5-3859-4c08-8540-55e043719400",
 		Types: []string{
+			"http://www.ft.com/ontology/core/Thing",
+			"http://www.ft.com/ontology/concept/Concept",
 			"http://www.ft.com/ontology/organisation/Organisation",
-			"http://www.ft.com/ontology/company/PublicCompany",
 			"http://www.ft.com/ontology/company/Company",
+			"http://www.ft.com/ontology/company/PublicCompany",
 		},
-		DirectType: "http://www.ft.com/ontology/organisation/Organisation", //TODO this should be changed to "http://www.ft.com/ontology/company/PublicCompany"
-		PrefLabel: "Fakebook, Inc.",
+		DirectType: "http://www.ft.com/ontology/company/PublicCompany",
+		PrefLabel:  "Fakebook, Inc.",
 	}
 }
 
-
 func getExpectedMetalMickeyThing() thing {
 	return thing{
-		ID:        "http://api.ft.com/things/0483bef8-5797-40b8-9b25-b12e492f63c6",
-		APIURL:    "http://api.ft.com/things/0483bef8-5797-40b8-9b25-b12e492f63c6",
+		ID:     "http://api.ft.com/things/0483bef8-5797-40b8-9b25-b12e492f63c6",
+		APIURL: "http://api.ft.com/things/0483bef8-5797-40b8-9b25-b12e492f63c6",
 		Types: []string{
+			"http://www.ft.com/ontology/core/Thing",
+			"http://www.ft.com/ontology/concept/Concept",
+			"http://www.ft.com/ontology/classification/Classification",
 			"http://www.ft.com/ontology/Subject",
 		},
-		DirectType:"http://www.ft.com/ontology/Subject",
-		PrefLabel: "Metal Mickey",
+		DirectType: "http://www.ft.com/ontology/Subject",
+		PrefLabel:  "Metal Mickey",
 	}
 }
