@@ -10,7 +10,7 @@ import (
 )
 
 type httpHandlers struct {
-	thingsDriver  driver
+	thingsDriver       driver
 	cacheControlHeader string
 }
 
@@ -70,13 +70,13 @@ func (hh *httpHandlers) getThings(w http.ResponseWriter, r *http.Request) {
 	thng, found, err := hh.thingsDriver.read(uuid)
 	if err != nil {
 		w.WriteHeader(http.StatusServiceUnavailable)
-		msg := fmt.Sprintf(`{"message":"Error getting things for content with uuid %s, err=%s"}`, uuid, err.Error())
+		msg := fmt.Sprintf(`{"message":"Error getting thing with uuid %s, err=%s"}`, uuid, err.Error())
 		w.Write([]byte(msg))
 		return
 	}
 	if !found {
 		w.WriteHeader(http.StatusNotFound)
-		msg := fmt.Sprintf(`{"message":"No things found for content with uuid %s."}`, uuid)
+		msg := fmt.Sprintf(`{"message":"No thing found with uuid %s."}`, uuid)
 		w.Write([]byte(msg))
 		return
 	}
@@ -86,7 +86,7 @@ func (hh *httpHandlers) getThings(w http.ResponseWriter, r *http.Request) {
 
 	if err = json.NewEncoder(w).Encode(thng); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		msg := fmt.Sprintf(`{"message":"Error parsing things for content with uuid %s, err=%s"}`, uuid, err.Error())
+		msg := fmt.Sprintf(`{"message":"Error parsing thing with uuid %s, err=%s"}`, uuid, err.Error())
 		w.Write([]byte(msg))
 	}
 }

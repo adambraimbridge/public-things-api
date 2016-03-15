@@ -42,7 +42,7 @@ func main() {
 	graphitePrefix := app.String(cli.StringOpt{
 		Name:   "graphitePrefix",
 		Value:  "",
-		Desc:   "Prefix to use. Should start with content, include the environment, and the host name. e.g. coco.pre-prod.subjects-rw-neo4j.1",
+		Desc:   "Prefix to use. Should start with content, include the environment, and the host name. e.g. coco.pre-prod.public-things-api.1",
 		EnvVar: "GRAPHITE_PREFIX",
 	})
 	logMetrics := app.Bool(cli.BoolOpt{

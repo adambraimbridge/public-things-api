@@ -26,8 +26,8 @@ func TestGetHandler(t *testing.T) {
 	assert := assert.New(t)
 	tests := []test{
 		{"Success", newRequest("GET", fmt.Sprintf("/things/%s", knownUUID), "application/json", nil), dummyService{contentUUID: knownUUID}, http.StatusOK, "", `{"id":"1234", "apiUrl":"1234", "types":[]}`},
-		{"NotFound", newRequest("GET", fmt.Sprintf("/things/%s", "99999"), "application/json", nil), dummyService{contentUUID: knownUUID}, http.StatusNotFound, "", message("No things found for content with uuid 99999.")},
-		{"ReadError", newRequest("GET", fmt.Sprintf("/things/%s", knownUUID), "application/json", nil), dummyService{contentUUID: knownUUID, failRead: true}, http.StatusServiceUnavailable, "", message("Error getting things for content with uuid 12345, err=TEST failing to READ")},
+		{"NotFound", newRequest("GET", fmt.Sprintf("/things/%s", "99999"), "application/json", nil), dummyService{contentUUID: knownUUID}, http.StatusNotFound, "", message("No thing found with uuid 99999.")},
+		{"ReadError", newRequest("GET", fmt.Sprintf("/things/%s", knownUUID), "application/json", nil), dummyService{contentUUID: knownUUID, failRead: true}, http.StatusServiceUnavailable, "", message("Error getting thing with uuid 12345, err=TEST failing to READ")},
 	}
 
 	for _, test := range tests {
@@ -61,7 +61,7 @@ func (dS dummyService) read(contentUUID string) (thing, bool, error) {
 		return thing{}, false, errors.New("TEST failing to READ")
 	}
 	if contentUUID == dS.contentUUID {
-		return thing{ID:"1234", APIURL:"1234", Types:[]string{}}, true, nil
+		return thing{ID: "1234", APIURL: "1234", Types: []string{}}, true, nil
 	}
 	return thing{}, false, nil
 }

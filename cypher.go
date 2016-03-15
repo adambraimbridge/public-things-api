@@ -46,8 +46,11 @@ func (cd cypherDriver) read(thingUUID string) (thing, bool, error) {
 	results := []thing{}
 
 	query := &neoism.CypherQuery{
+		//TODO this is for consistency with the existing Things API, which does NOT return a match for Content.
+		//SHOULD be searching for 'Thing' and return matches for Content too, but we'd need to have access to all types
+		//of content for that to be correct, i.e. Images as well as Articles
 		Statement: `
-					MATCH (c:Thing{uuid:{thingUUID}})
+					MATCH (c:Concept{uuid:{thingUUID}})
 					RETURN c.uuid as id,
 					labels(c) as types,
 					c.prefLabel as prefLabel
@@ -85,4 +88,3 @@ func mapToResponseFormat(thng *thing, env string) (*thing, error) {
 	thng.DirectType = types[len(types)-1]
 	return thng, nil
 }
-
