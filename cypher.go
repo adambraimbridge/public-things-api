@@ -46,11 +46,8 @@ func (cd cypherDriver) read(thingUUID string) (thing, bool, error) {
 	results := []thing{}
 
 	query := &neoism.CypherQuery{
-		//TODO this is for consistency with the existing Things API, which does NOT return a match for Content.
-		//SHOULD be searching for 'Thing' and return matches for Content too, but we'd need to have access to all types
-		//of content for that to be correct, i.e. Images as well as Articles
 		Statement: `
-					MATCH (c:Concept{uuid:{thingUUID}})
+					MATCH (c:Thing{uuid:{thingUUID}})
 					RETURN c.uuid as id,
 					labels(c) as types,
 					c.prefLabel as prefLabel
@@ -64,16 +61,32 @@ func (cd cypherDriver) read(thingUUID string) (thing, bool, error) {
 		return thing{}, false, fmt.Errorf("Error accessing Things datastore for uuid: %s", thingUUID)
 	}
 	log.Debugf("Found %d Things for uuid: %s", len(results), thingUUID)
-	if (len(results)) == 0 {
+	if len(results) == 0 {
 		return thing{}, false, nil
 	}
 
-	if (len(results)) > 1 {
+	if len(results) > 1 {
 		return thing{}, true, errors.New(fmt.Sprintf("Multiple things for %v", thingUUID))
+	}
+
+	//TODO this is for consistency with the existing Things API, which does NOT return a match for Content.
+	//SHOULD be returnig matches for Content too, but we'd need to have access to all types
+	//of content for that to be correct, i.e. Images as well as Articles
+	if isContent(results[0]) {
+		return thing{}, false, nil
 	}
 
 	thng, err := mapToResponseFormat(&results[0], cd.env)
 	return *thng, true, err
+}
+
+func isContent(thng thing) bool {
+	for _, label := range thng.Types {
+		if label == "Content" {
+			return true
+		}
+	}
+	return false
 }
 
 func mapToResponseFormat(thng *thing, env string) (*thing, error) {

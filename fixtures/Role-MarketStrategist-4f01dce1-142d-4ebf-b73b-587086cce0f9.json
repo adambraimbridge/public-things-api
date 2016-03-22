@@ -1,0 +1,11 @@
+{
+  "uuid": "4f01dce1-142d-4ebf-b73b-587086cce0f9",
+  "isBoardRole": false,
+  "prefLabel": "Market Strategist",
+  "identifiers": [
+    {
+      "authority": "http://api.ft.com/system/FACTSET",
+      "identifierValue": "MKTSTR"
+    }
+  ]
+}

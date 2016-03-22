@@ -2,13 +2,15 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"testing"
 
 	"github.com/Financial-Times/base-ft-rw-app-go/baseftrwapp"
+	"github.com/Financial-Times/content-rw-neo4j/content"
+	"github.com/Financial-Times/memberships-rw-neo4j/memberships"
 	"github.com/Financial-Times/neo-utils-go/neoutils"
 	"github.com/Financial-Times/organisations-rw-neo4j/organisations"
+	"github.com/Financial-Times/roles-rw-neo4j/roles"
 	"github.com/Financial-Times/subjects-rw-neo4j/subjects"
 	"github.com/jmcvetta/neoism"
 	"github.com/stretchr/testify/assert"
@@ -18,48 +20,122 @@ const (
 	//Generate uuids so there's no clash with real data
 	FakebookConceptUUID    = "eac853f5-3859-4c08-8540-55e043719400" //organization
 	MetalMickeyConceptUUID = "0483bef8-5797-40b8-9b25-b12e492f63c6" //subject
+	ContentUUID            = "3fc9fe3e-af8c-4f7f-961a-e5065392bb31"
+	RoleUUID               = "4f01dce1-142d-4ebf-b73b-587086cce0f9"
+	BoardRoleUUID          = "2f91f554-0eb0-4ee6-9856-7561bf925d74"
+	MembershipUUID         = "c8e19a44-a323-4ce0-b76b-6b23f6c7e2a5"
 	NonExistingThingUUID   = "b2860919-4b78-44c6-a665-af9221bdefb5"
 )
 
 func TestRetrieveOrganizationAsThing(t *testing.T) {
 	assert := assert.New(t)
-	expectedThing := getExpectedFakebookThing()
-	db := getDatabaseConnectionAndCheckClean(t, assert)
+
+	db := getDatabaseConnection(t, assert)
 	batchRunner := neoutils.NewBatchCypherRunner(neoutils.StringerDb{db}, 1)
 
 	organisationRW := writeOrganisation(assert, db, &batchRunner)
 
-	defer cleanDB(db, t, assert)
 	defer deleteOrganisation(organisationRW)
 
 	thingsDriver := newCypherDriver(db, "prod")
 	thng, found, err := thingsDriver.read(FakebookConceptUUID)
-	assert.NoError(err, "Unexpected error for content %s", FakebookConceptUUID)
-	assert.True(found, "Found no thing for content %s", FakebookConceptUUID)
-	assert.EqualValues(expectedThing, thng, "Didn't get the thing")
+	assert.NoError(err, "Unexpected error for organisation as thing %s", FakebookConceptUUID)
+	assert.True(found, "Found no thing for organisation as thing %s", FakebookConceptUUID)
+	validateThing(assert, "Fakebook, Inc.", FakebookConceptUUID, "http://www.ft.com/ontology/company/PublicCompany",
+		[]string{
+			"http://www.ft.com/ontology/core/Thing",
+			"http://www.ft.com/ontology/concept/Concept",
+			"http://www.ft.com/ontology/organisation/Organisation",
+			"http://www.ft.com/ontology/company/Company",
+			"http://www.ft.com/ontology/company/PublicCompany",
+		}, thng)
 }
 
 func TestRetrieveSubjectAsThing(t *testing.T) {
 	assert := assert.New(t)
-	expectedThing := getExpectedMetalMickeyThing()
-	db := getDatabaseConnectionAndCheckClean(t, assert)
+	db := getDatabaseConnection(t, assert)
 	batchRunner := neoutils.NewBatchCypherRunner(neoutils.StringerDb{db}, 1)
 	subjectRW := writeSubject(assert, db, &batchRunner)
 
-	defer cleanDB(db, t, assert)
 	defer deleteSubject(subjectRW)
 
 	thingsDriver := newCypherDriver(db, "prod")
 	thng, found, err := thingsDriver.read(MetalMickeyConceptUUID)
 	assert.NoError(err, "Unexpected error for content %s", MetalMickeyConceptUUID)
 	assert.True(found, "Found no thing for content %s", MetalMickeyConceptUUID)
-	assert.EqualValues(expectedThing, thng, "Didn't get the thing")
+	validateThing(assert, "Metal Mickey", MetalMickeyConceptUUID, "http://www.ft.com/ontology/Subject",
+		[]string{
+			"http://www.ft.com/ontology/core/Thing",
+			"http://www.ft.com/ontology/concept/Concept",
+			"http://www.ft.com/ontology/classification/Classification",
+			"http://www.ft.com/ontology/Subject",
+		}, thng)
+}
+
+func TestRetrieveMembershipAsThing(t *testing.T) {
+	assert := assert.New(t)
+	db := getDatabaseConnection(t, assert)
+	batchRunner := neoutils.NewBatchCypherRunner(neoutils.StringerDb{db}, 1)
+	membershipRW := writeMembership(assert, db, &batchRunner)
+
+	defer deleteMembership(membershipRW)
+
+	thingsDriver := newCypherDriver(db, "prod")
+	thng, found, err := thingsDriver.read(MembershipUUID)
+	assert.NoError(err, "Unexpected error for membership %s", MembershipUUID)
+	assert.True(found, "Found no thing for membership %s", MembershipUUID)
+	validateThing(assert, "Market Strategist", MembershipUUID, "http://www.ft.com/ontology/organisation/Membership", []string{
+		"http://www.ft.com/ontology/core/Thing",
+		"http://www.ft.com/ontology/concept/Concept",
+		"http://www.ft.com/ontology/organisation/Membership",
+	}, thng)
+}
+
+func TestRetrieveRolesAsThing(t *testing.T) {
+	assert := assert.New(t)
+	db := getDatabaseConnection(t, assert)
+	batchRunner := neoutils.NewBatchCypherRunner(neoutils.StringerDb{db}, 1)
+	rolesRW := writeRoles(assert, db, &batchRunner)
+
+	defer deleteRoles(rolesRW)
+
+	thingsDriver := newCypherDriver(db, "prod")
+	thng, found, err := thingsDriver.read(RoleUUID)
+	assert.NoError(err, "Unexpected error for role %s", RoleUUID)
+	assert.True(found, "Found no thing for role %s", RoleUUID)
+	validateThing(assert, "Market Strategist", RoleUUID, "http://www.ft.com/ontology/organisation/Role", []string{
+		"http://www.ft.com/ontology/core/Thing",
+		"http://www.ft.com/ontology/organisation/Role",
+	}, thng)
+
+	thng, found, err = thingsDriver.read(BoardRoleUUID)
+	assert.NoError(err, "Unexpected error for content %s", BoardRoleUUID)
+	validateThing(assert, "Chairman of the Board", BoardRoleUUID, "http://www.ft.com/ontology/organisation/BoardRole", []string{
+		"http://www.ft.com/ontology/core/Thing",
+		"http://www.ft.com/ontology/organisation/Role",
+		"http://www.ft.com/ontology/organisation/BoardRole",
+	}, thng)
+}
+
+//TODO - this is temporary, we WILL want to retrieve Content once we have more info about it available
+func TestCannotRetrieveContentAsThing(t *testing.T) {
+	assert := assert.New(t)
+	db := getDatabaseConnection(t, assert)
+	batchRunner := neoutils.NewBatchCypherRunner(neoutils.StringerDb{db}, 1)
+	contentRW := writeContent(assert, db, &batchRunner)
+
+	defer deleteContent(contentRW)
+
+	thingsDriver := newCypherDriver(db, "prod")
+	thng, found, err := thingsDriver.read(NonExistingThingUUID)
+	assert.NoError(err, "Unexpected error for thing %s", NonExistingThingUUID)
+	assert.False(found, "Found thing %s", NonExistingThingUUID)
+	assert.EqualValues(thing{}, thng, "Found non-existing thing %s", NonExistingThingUUID)
 }
 
 func TestRetrieveNoThingsWhenThereAreNonePresent(t *testing.T) {
 	assert := assert.New(t)
-	db := getDatabaseConnectionAndCheckClean(t, assert)
-	defer cleanDB(db, t, assert)
+	db := getDatabaseConnection(t, assert)
 
 	thingsDriver := newCypherDriver(db, "prod")
 	thng, found, err := thingsDriver.read(NonExistingThingUUID)
@@ -90,6 +166,41 @@ func deleteSubject(subjectsRW baseftrwapp.Service) {
 	subjectsRW.Delete(MetalMickeyConceptUUID)
 }
 
+func writeContent(assert *assert.Assertions, db *neoism.Database, batchRunner *neoutils.CypherRunner) baseftrwapp.Service {
+	contentRW := content.NewCypherDriver(*batchRunner, db)
+	assert.NoError(contentRW.Initialise())
+	writeJSONToService(contentRW, "./fixtures/Content-Bitcoin-3fc9fe3e-af8c-4f7f-961a-e5065392bb31.json", assert)
+	return contentRW
+}
+
+func deleteContent(contentRW baseftrwapp.Service) {
+	contentRW.Delete(ContentUUID)
+}
+
+func writeMembership(assert *assert.Assertions, db *neoism.Database, batchRunner *neoutils.CypherRunner) baseftrwapp.Service {
+	membershipsRW := memberships.NewCypherDriver(*batchRunner, db)
+	assert.NoError(membershipsRW.Initialise())
+	writeJSONToService(membershipsRW, "./fixtures/Membership-c8e19a44-a323-4ce0-b76b-6b23f6c7e2a5.json", assert)
+	return membershipsRW
+}
+
+func deleteMembership(membershipsRW baseftrwapp.Service) {
+	membershipsRW.Delete(MembershipUUID)
+}
+
+func writeRoles(assert *assert.Assertions, db *neoism.Database, batchRunner *neoutils.CypherRunner) baseftrwapp.Service {
+	rolesRW := roles.NewCypherDriver(*batchRunner, db)
+	assert.NoError(rolesRW.Initialise())
+	writeJSONToService(rolesRW, "./fixtures/Role-MarketStrategist-4f01dce1-142d-4ebf-b73b-587086cce0f9.json", assert)
+	writeJSONToService(rolesRW, "./fixtures/BoardRole-Chairman-2f91f554-0eb0-4ee6-9856-7561bf925d74.json", assert)
+	return rolesRW
+}
+
+func deleteRoles(rolesRW baseftrwapp.Service) {
+	rolesRW.Delete(RoleUUID)
+	rolesRW.Delete(BoardRoleUUID)
+}
+
 func writeJSONToService(service baseftrwapp.Service, pathToJSONFile string, assert *assert.Assertions) {
 	f, err := os.Open(pathToJSONFile)
 	assert.NoError(err)
@@ -98,12 +209,6 @@ func writeJSONToService(service baseftrwapp.Service, pathToJSONFile string, asse
 	assert.NoError(errr)
 	errrr := service.Write(inst)
 	assert.NoError(errrr)
-}
-
-func getDatabaseConnectionAndCheckClean(t *testing.T, assert *assert.Assertions) *neoism.Database {
-	db := getDatabaseConnection(t, assert)
-	cleanDB(db, t, assert)
-	return db
 }
 
 func getDatabaseConnection(t *testing.T, assert *assert.Assertions) *neoism.Database {
@@ -117,48 +222,9 @@ func getDatabaseConnection(t *testing.T, assert *assert.Assertions) *neoism.Data
 	return db
 }
 
-func cleanDB(db *neoism.Database, t *testing.T, assert *assert.Assertions) {
-	uuids := []string{
-		FakebookConceptUUID,
-		MetalMickeyConceptUUID,
-	}
-
-	qs := make([]*neoism.CypherQuery, len(uuids))
-	for i, uuid := range uuids {
-		qs[i] = &neoism.CypherQuery{
-			Statement: fmt.Sprintf("MATCH (a:Thing{uuid: '%s'}) DETACH DELETE a", uuid)}
-	}
-	err := db.CypherBatch(qs)
-	assert.NoError(err)
-}
-
-func getExpectedFakebookThing() thing {
-	return thing{
-		ID:     "http://api.ft.com/things/eac853f5-3859-4c08-8540-55e043719400",
-		APIURL: "http://api.ft.com/organisations/eac853f5-3859-4c08-8540-55e043719400",
-		Types: []string{
-			"http://www.ft.com/ontology/core/Thing",
-			"http://www.ft.com/ontology/concept/Concept",
-			"http://www.ft.com/ontology/organisation/Organisation",
-			"http://www.ft.com/ontology/company/Company",
-			"http://www.ft.com/ontology/company/PublicCompany",
-		},
-		DirectType: "http://www.ft.com/ontology/company/PublicCompany",
-		PrefLabel:  "Fakebook, Inc.",
-	}
-}
-
-func getExpectedMetalMickeyThing() thing {
-	return thing{
-		ID:     "http://api.ft.com/things/0483bef8-5797-40b8-9b25-b12e492f63c6",
-		APIURL: "http://api.ft.com/things/0483bef8-5797-40b8-9b25-b12e492f63c6",
-		Types: []string{
-			"http://www.ft.com/ontology/core/Thing",
-			"http://www.ft.com/ontology/concept/Concept",
-			"http://www.ft.com/ontology/classification/Classification",
-			"http://www.ft.com/ontology/Subject",
-		},
-		DirectType: "http://www.ft.com/ontology/Subject",
-		PrefLabel:  "Metal Mickey",
-	}
+func validateThing(assert *assert.Assertions, prefLabel string, UUID string, directType string, types []string, thng thing) {
+	assert.EqualValues(prefLabel, thng.PrefLabel, "PrefLabel incorrect")
+	assert.EqualValues("http://api.ft.com/things/"+UUID, thng.ID, "ID incorrect")
+	assert.EqualValues(directType, thng.DirectType, "DirectType incorrect")
+	assert.EqualValues(types, thng.Types, "Types incorrect")
 }
