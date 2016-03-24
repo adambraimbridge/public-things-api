@@ -22,6 +22,10 @@ Based on the following [google doc](https://docs.google.com/document/d/15U8DoLN8
 ## Healthchecks
 Healthchecks: [http://localhost:8080/__health](http://localhost:8080/__health)
 
+## Go To Go
+Go to go: [http://localhost:8080/__gtg](http://localhost:8080/__gtg)
+
+
 ### Logging
 The application uses logrus, the logfile is initialised in main.go.
 
