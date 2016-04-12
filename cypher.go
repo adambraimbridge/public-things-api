@@ -70,7 +70,7 @@ func (cd cypherDriver) read(thingUUID string) (thing, bool, error) {
 	}
 
 	//TODO this is for consistency with the existing Things API, which does NOT return a match for Content.
-	//SHOULD be returnig matches for Content too, but we'd need to have access to all types
+	//SHOULD be returning matches for Content too, but we'd need to have access to all types
 	//of content for that to be correct, i.e. Images as well as Articles
 	if isContent(results[0]) {
 		return thing{}, false, nil
