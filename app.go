@@ -11,6 +11,7 @@ import (
 	"github.com/Financial-Times/base-ft-rw-app-go/baseftrwapp"
 	"github.com/Financial-Times/go-fthealth/v1a"
 	"github.com/Financial-Times/http-handlers-go/httphandlers"
+	status "github.com/Financial-Times/service-status-go/httphandlers"
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
 	"github.com/jawher/mow.cli"
@@ -89,8 +90,11 @@ func runServer(neoURL string, port string, cacheDuration string, env string) {
 	// The following endpoints should not be monitored or logged (varnish calls one of these every second, depending on config)
 	// The top one of these build info endpoints feels more correct, but the lower one matches what we have in Dropwizard,
 	// so it's what apps expect currently same as ping, the content of build-info needs more definition
-	http.HandleFunc("/__build-info", httpHandlers.buildInfoHandler)
-	http.HandleFunc("/build-info", httpHandlers.buildInfoHandler)
+	// Healthchecks and standards first
+	http.HandleFunc(status.PingPath, status.PingHandler)
+	http.HandleFunc(status.PingPathDW, status.PingHandler)
+	http.HandleFunc(status.BuildInfoPath, status.BuildInfoHandler)
+	http.HandleFunc(status.BuildInfoPathDW, status.BuildInfoHandler)
 	http.HandleFunc("/__gtg", httpHandlers.goodToGo)
 
 	http.Handle("/", r)
