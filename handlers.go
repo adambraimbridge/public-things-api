@@ -16,6 +16,7 @@ type httpHandlers struct {
 }
 
 const validUUID = "([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$"
+
 //var maxAge = 24 * time.Hour
 
 func (hh *httpHandlers) healthCheck() v1a.Check {

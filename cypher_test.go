@@ -18,16 +18,16 @@ import (
 
 const (
 	//Generate uuids so there's no clash with real data
-	FakebookConceptUUID    = "eac853f5-3859-4c08-8540-55e043719400" //organization
-	MetalMickeyConceptUUID = "0483bef8-5797-40b8-9b25-b12e492f63c6" //subject
-	ContentUUID            = "3fc9fe3e-af8c-4f7f-961a-e5065392bb31"
-	RoleUUID               = "4f01dce1-142d-4ebf-b73b-587086cce0f9"
-	BoardRoleUUID          = "2f91f554-0eb0-4ee6-9856-7561bf925d74"
-	MembershipUUID         = "c8e19a44-a323-4ce0-b76b-6b23f6c7e2a5"
-	MembershipRoleUUID     = "3d7e102d-14b9-42d5-b20e-7b9fd497f405"
-	MembershipPersonUUID   = "d00dc7f6-6f40-4350-bf72-37c4253f3d7c"
+	FakebookConceptUUID        = "eac853f5-3859-4c08-8540-55e043719400" //organization
+	MetalMickeyConceptUUID     = "0483bef8-5797-40b8-9b25-b12e492f63c6" //subject
+	ContentUUID                = "3fc9fe3e-af8c-4f7f-961a-e5065392bb31"
+	RoleUUID                   = "4f01dce1-142d-4ebf-b73b-587086cce0f9"
+	BoardRoleUUID              = "2f91f554-0eb0-4ee6-9856-7561bf925d74"
+	MembershipUUID             = "c8e19a44-a323-4ce0-b76b-6b23f6c7e2a5"
+	MembershipRoleUUID         = "3d7e102d-14b9-42d5-b20e-7b9fd497f405"
+	MembershipPersonUUID       = "d00dc7f6-6f40-4350-bf72-37c4253f3d7c"
 	MembershipOrganisationUUID = "778a9149-2097-4a69-9a28-e0a782bdc1a4"
-	NonExistingThingUUID   = "b2860919-4b78-44c6-a665-af9221bdefb5"
+	NonExistingThingUUID       = "b2860919-4b78-44c6-a665-af9221bdefb5"
 )
 
 func TestRetrieveOrganizationAsThing(t *testing.T) {
