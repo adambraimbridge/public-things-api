@@ -4,7 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-
+	"strings"
+	"regexp"
 	"github.com/Financial-Times/go-fthealth/v1a"
 	"github.com/gorilla/mux"
 )
@@ -13,6 +14,8 @@ type httpHandlers struct {
 	thingsDriver       driver
 	cacheControlHeader string
 }
+
+const validUUID = "([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$"
 
 //var maxAge = 24 * time.Hour
 
@@ -78,6 +81,16 @@ func (hh *httpHandlers) getThings(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		msg := fmt.Sprintf(`{"message":"No thing found with uuid %s."}`, uuid)
 		w.Write([]byte(msg))
+		return
+	}
+
+	//if the request was not made for the canonical, but an alternate uuid: redirect
+	if !strings.Contains(thng.ID, uuid) {
+		validRegexp := regexp.MustCompile(validUUID)
+		canonicalUUID := validRegexp.FindString(thng.ID)
+		redirectURL := strings.Replace(r.URL.String(), uuid, canonicalUUID, 1)
+		w.Header().Set("Location", redirectURL)
+		w.WriteHeader(http.StatusMovedPermanently)
 		return
 	}
 

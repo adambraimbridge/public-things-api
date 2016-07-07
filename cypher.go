@@ -47,7 +47,8 @@ func (cd cypherDriver) read(thingUUID string) (thing, bool, error) {
 
 	query := &neoism.CypherQuery{
 		Statement: `
-					MATCH (c:Thing{uuid:{thingUUID}})
+					MATCH (identifier:UPPIdentifier{value:{thingUUID}})
+ 					MATCH (identifier)-[:IDENTIFIES]->(c:Thing)
 					RETURN c.uuid as id,
 					labels(c) as types,
 					c.prefLabel as prefLabel
