@@ -89,22 +89,6 @@ func runServer(neoURL string, port string, cacheDuration string, env string) {
 
 	things.ThingsDriver = things.NewCypherDriver(db, env)
 
-	servicesRouter := mux.NewRouter()
-
-	// Healthchecks and standards first
-	servicesRouter.HandleFunc("/__health", v1a.Handler("PublicThingsApi Healthchecks",
-		"Checks for accessing neo4j", things.HealthCheck()))
-	servicesRouter.HandleFunc("/ping", things.Ping)
-	servicesRouter.HandleFunc("/__ping", things.Ping)
-
-	// Then API specific ones:
-	servicesRouter.HandleFunc("/things/{uuid}", things.GetThings).Methods("GET")
-	servicesRouter.HandleFunc("/things/{uuid}", things.MethodNotAllowedHandler)
-
-	var monitoringRouter http.Handler = servicesRouter
-	monitoringRouter = httpHandlers.TransactionAwareRequestLoggingHandler(log.StandardLogger(), monitoringRouter)
-	monitoringRouter = httpHandlers.HTTPMetricsHandler(metrics.DefaultRegistry, monitoringRouter)
-
 	// The following endpoints should not be monitored or logged (varnish calls one of these every second, depending on config)
 	// The top one of these build info endpoints feels more correct, but the lower one matches what we have in Dropwizard,
 	// so it's what apps expect currently same as ping, the content of build-info needs more definition
@@ -113,31 +97,28 @@ func runServer(neoURL string, port string, cacheDuration string, env string) {
 	http.HandleFunc(status.PingPathDW, status.PingHandler)
 	http.HandleFunc(status.BuildInfoPath, status.BuildInfoHandler)
 	http.HandleFunc(status.BuildInfoPathDW, status.BuildInfoHandler)
-	http.HandleFunc("/__gtg", things.GoodToGo)
+	http.HandleFunc(status.GTGPath, things.GoodToGo)
 
-	http.Handle("/", monitoringRouter)
+	http.Handle("/", router())
 
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		log.Fatalf("Unable to start server: %v", err)
 	}
 }
 
-//func Router(things.HttpHandlers things) http.Handler {
-//	servicesRouter := mux.NewRouter()
-//
-//	// Healthchecks and standards first
-//	servicesRouter.HandleFunc("/__health", v1a.Handler("PublicThingsApi Healthchecks",
-//		"Checks for accessing neo4j", things.HealthCheck()))
-//	servicesRouter.HandleFunc("/ping", things.Ping)
-//	servicesRouter.HandleFunc("/__ping", things.Ping)
-//
-//	// Then API specific ones:
-//	servicesRouter.HandleFunc("/things/{uuid}", things.GetThings).Methods("GET")
-//	servicesRouter.HandleFunc("/things/{uuid}", things.MethodNotAllowedHandler)
-//
-//	var monitoringRouter http.Handler = servicesRouter
-//	monitoringRouter = httphandlers.TransactionAwareRequestLoggingHandler(log.StandardLogger(), monitoringRouter)
-//	monitoringRouter = httphandlers.HTTPMetricsHandler(metrics.DefaultRegistry, monitoringRouter)
-//
-//	return monitoringRouter
-//}
+func router() http.Handler {
+	servicesRouter := mux.NewRouter()
+
+	// Healthchecks and standards first
+	servicesRouter.HandleFunc("/__health", v1a.Handler("PublicThingsApi Healthchecks",
+		"Checks for accessing neo4j", things.HealthCheck()))
+
+	// Then API specific ones:
+	servicesRouter.HandleFunc("/things/{uuid}", things.GetThings).Methods("GET")
+	servicesRouter.HandleFunc("/things/{uuid}", things.MethodNotAllowedHandler)
+
+	var monitoringRouter http.Handler = servicesRouter
+	monitoringRouter = httpHandlers.TransactionAwareRequestLoggingHandler(log.StandardLogger(), monitoringRouter)
+	monitoringRouter = httpHandlers.HTTPMetricsHandler(metrics.DefaultRegistry, monitoringRouter)
+	return monitoringRouter
+}

@@ -2,9 +2,9 @@ package things
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"testing"
-	"fmt"
 
 	"github.com/Financial-Times/base-ft-rw-app-go/baseftrwapp"
 	"github.com/Financial-Times/content-rw-neo4j/content"
