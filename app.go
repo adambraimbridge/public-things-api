@@ -10,19 +10,18 @@ import (
 
 	"github.com/Financial-Times/base-ft-rw-app-go/baseftrwapp"
 	"github.com/Financial-Times/go-fthealth/v1a"
-	"github.com/Financial-Times/http-handlers-go/httphandlers"
+	httpHandlers "github.com/Financial-Times/http-handlers-go/httphandlers"
+	"github.com/Financial-Times/neo-utils-go/neoutils"
+	things "github.com/Financial-Times/public-things-api/things"
 	status "github.com/Financial-Times/service-status-go/httphandlers"
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
 	"github.com/jawher/mow.cli"
-	"github.com/jmcvetta/neoism"
 	"github.com/rcrowley/go-metrics"
 )
 
 func main() {
-	log.Infof("Application starting with args %s", os.Args)
 	app := cli.App("public-things-api-neo4j", "A public RESTful API for accessing Things in neo4j")
-
 	neoURL := app.String(cli.StringOpt{
 		Name:   "neo-url",
 		Value:  "http://localhost:7474/db/data",
@@ -52,6 +51,11 @@ func main() {
 		Desc:   "Whether to log metrics. Set to true if running locally and you want metrics output",
 		EnvVar: "LOG_METRICS",
 	})
+	env := app.String(cli.StringOpt{
+		Name:  "env",
+		Value: "local",
+		Desc:  "environment this app is running in",
+	})
 	cacheDuration := app.String(cli.StringOpt{
 		Name:   "cache-duration",
 		Value:  "30s",
@@ -62,7 +66,7 @@ func main() {
 	app.Action = func() {
 		baseftrwapp.OutputMetricsIfRequired(*graphiteTCPAddress, *graphitePrefix, *logMetrics)
 		log.Infof("public-things-api will listen on port: %s, connecting to: %s", *port, *neoURL)
-		runServer(*neoURL, *port, *cacheDuration, "local")
+		runServer(*neoURL, *port, *cacheDuration, *env)
 	}
 	log.SetLevel(log.InfoLevel)
 	log.Infof("Application started with args %s", os.Args)
@@ -70,23 +74,37 @@ func main() {
 }
 
 func runServer(neoURL string, port string, cacheDuration string, env string) {
-	var cacheControlHeader string
-
 	if duration, durationErr := time.ParseDuration(cacheDuration); durationErr != nil {
 		log.Fatalf("Failed to parse cache duration string, %v", durationErr)
 	} else {
-		cacheControlHeader = fmt.Sprintf("max-age=%s, public", strconv.FormatFloat(duration.Seconds(), 'f', 0, 64))
+		things.CacheControlHeader = fmt.Sprintf("max-age=%s, public", strconv.FormatFloat(duration.Seconds(), 'f', 0, 64))
 	}
 
-	db, err := neoism.Connect(neoURL)
-	db.Session.Client = &http.Client{Transport: &http.Transport{MaxIdleConnsPerHost: 100}}
+	conf := neoutils.DefaultConnectionConfig()
+	db, err := neoutils.Connect(neoURL, conf)
+
 	if err != nil {
 		log.Fatalf("Error connecting to neo4j %s", err)
 	}
 
-	httpHandlers := httpHandlers{newCypherDriver(db, env), cacheControlHeader}
+	things.ThingsDriver = things.NewCypherDriver(db, env)
 
-	r := router(httpHandlers)
+	servicesRouter := mux.NewRouter()
+
+	// Healthchecks and standards first
+	servicesRouter.HandleFunc("/__health", v1a.Handler("PublicThingsApi Healthchecks",
+		"Checks for accessing neo4j", things.HealthCheck()))
+	servicesRouter.HandleFunc("/ping", things.Ping)
+	servicesRouter.HandleFunc("/__ping", things.Ping)
+
+	// Then API specific ones:
+	servicesRouter.HandleFunc("/things/{uuid}", things.GetThings).Methods("GET")
+	servicesRouter.HandleFunc("/things/{uuid}", things.MethodNotAllowedHandler)
+
+	var monitoringRouter http.Handler = servicesRouter
+	monitoringRouter = httpHandlers.TransactionAwareRequestLoggingHandler(log.StandardLogger(), monitoringRouter)
+	monitoringRouter = httpHandlers.HTTPMetricsHandler(metrics.DefaultRegistry, monitoringRouter)
+
 	// The following endpoints should not be monitored or logged (varnish calls one of these every second, depending on config)
 	// The top one of these build info endpoints feels more correct, but the lower one matches what we have in Dropwizard,
 	// so it's what apps expect currently same as ping, the content of build-info needs more definition
@@ -95,31 +113,31 @@ func runServer(neoURL string, port string, cacheDuration string, env string) {
 	http.HandleFunc(status.PingPathDW, status.PingHandler)
 	http.HandleFunc(status.BuildInfoPath, status.BuildInfoHandler)
 	http.HandleFunc(status.BuildInfoPathDW, status.BuildInfoHandler)
-	http.HandleFunc("/__gtg", httpHandlers.goodToGo)
+	http.HandleFunc("/__gtg", things.GoodToGo)
 
-	http.Handle("/", r)
+	http.Handle("/", monitoringRouter)
 
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		log.Fatalf("Unable to start server: %v", err)
 	}
 }
 
-func router(hh httpHandlers) http.Handler {
-	servicesRouter := mux.NewRouter()
-
-	// Healthchecks and standards first
-	servicesRouter.HandleFunc("/__health", v1a.Handler("PublicThingsApi Healthchecks",
-		"Checks for accessing neo4j", hh.healthCheck()))
-	servicesRouter.HandleFunc("/ping", hh.ping)
-	servicesRouter.HandleFunc("/__ping", hh.ping)
-
-	// Then API specific ones:
-	servicesRouter.HandleFunc("/things/{uuid}", hh.getThings).Methods("GET")
-	servicesRouter.HandleFunc("/things/{uuid}", hh.methodNotAllowedHandler)
-
-	var monitoringRouter http.Handler = servicesRouter
-	monitoringRouter = httphandlers.TransactionAwareRequestLoggingHandler(log.StandardLogger(), monitoringRouter)
-	monitoringRouter = httphandlers.HTTPMetricsHandler(metrics.DefaultRegistry, monitoringRouter)
-
-	return monitoringRouter
-}
+//func Router(things.HttpHandlers things) http.Handler {
+//	servicesRouter := mux.NewRouter()
+//
+//	// Healthchecks and standards first
+//	servicesRouter.HandleFunc("/__health", v1a.Handler("PublicThingsApi Healthchecks",
+//		"Checks for accessing neo4j", things.HealthCheck()))
+//	servicesRouter.HandleFunc("/ping", things.Ping)
+//	servicesRouter.HandleFunc("/__ping", things.Ping)
+//
+//	// Then API specific ones:
+//	servicesRouter.HandleFunc("/things/{uuid}", things.GetThings).Methods("GET")
+//	servicesRouter.HandleFunc("/things/{uuid}", things.MethodNotAllowedHandler)
+//
+//	var monitoringRouter http.Handler = servicesRouter
+//	monitoringRouter = httphandlers.TransactionAwareRequestLoggingHandler(log.StandardLogger(), monitoringRouter)
+//	monitoringRouter = httphandlers.HTTPMetricsHandler(metrics.DefaultRegistry, monitoringRouter)
+//
+//	return monitoringRouter
+//}
