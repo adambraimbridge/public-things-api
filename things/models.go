@@ -1,4 +1,4 @@
-package main
+package things
 
 type things []thing
 

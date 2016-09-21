@@ -1,4 +1,4 @@
-package main
+package things
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 	"errors"
 
 	"github.com/Financial-Times/neo-model-utils-go/mapper"
+	"github.com/Financial-Times/neo-utils-go/neoutils"
 	log "github.com/Sirupsen/logrus"
 	"github.com/jmcvetta/neoism"
 )
@@ -18,25 +19,16 @@ type driver interface {
 
 // CypherDriver struct
 type cypherDriver struct {
-	db  *neoism.Database
-	env string
+	conn neoutils.NeoConnection
+	env  string
 }
 
-func newCypherDriver(db *neoism.Database, env string) cypherDriver {
-	return cypherDriver{db, env}
+func NewCypherDriver(conn neoutils.NeoConnection, env string) cypherDriver {
+	return cypherDriver{conn, env}
 }
 
 func (cd cypherDriver) checkConnectivity() error { //TODO - use the neo4j connectivity check library
-	results := []struct {
-		ID int
-	}{}
-	query := &neoism.CypherQuery{
-		Statement: "MATCH (x) RETURN ID(x) LIMIT 1",
-		Result:    &results,
-	}
-	err := cd.db.Cypher(query)
-	log.Debugf("CheckConnectivity results:%+v  err: %+v", results, err)
-	return err
+	return neoutils.Check(cd.conn)
 }
 
 type neoReadStruct struct {
@@ -56,29 +48,19 @@ func (cd cypherDriver) read(thingUUID string) (thing, bool, error) {
 		Parameters: neoism.Props{"thingUUID": thingUUID},
 		Result:     &results,
 	}
-	err := cd.db.Cypher(query)
-	if err != nil {
-		log.Errorf("Error looking up uuid %s with query %s from neoism: %+v", thingUUID, query.Statement, err)
-		return thing{}, false, fmt.Errorf("Error accessing Things datastore for uuid: %s", thingUUID)
-	}
-	log.Debugf("Found %d Things for uuid: %s", len(results), thingUUID)
-	if len(results) == 0 {
+
+	if err := cd.conn.CypherBatch([]*neoism.CypherQuery{query}); err != nil || len(results) == 0 || len(results[0].ID) == 0 {
+		return thing{}, false, err
+	} else if len(results) != 1 && len(results[0].ID) != 1 {
+		errMsg := fmt.Sprintf("Multiple things found with the same uuid:%s !", thingUUID)
+		log.Error(errMsg)
+		return thing{}, true, errors.New(errMsg)
+	} else if isContent(results[0]) {
 		return thing{}, false, nil
+	} else {
+		thing, err := mapToResponseFormat(&results[0], cd.env)
+		return *thing, true, err
 	}
-
-	if len(results) > 1 {
-		return thing{}, true, errors.New(fmt.Sprintf("Multiple things for %v", thingUUID))
-	}
-
-	//TODO this is for consistency with the existing Things API, which does NOT return a match for Content.
-	//SHOULD be returning matches for Content too, but we'd need to have access to all types
-	//of content for that to be correct, i.e. Images as well as Articles
-	if isContent(results[0]) {
-		return thing{}, false, nil
-	}
-
-	thng, err := mapToResponseFormat(&results[0], cd.env)
-	return *thng, true, err
 }
 
 func isContent(thng thing) bool {

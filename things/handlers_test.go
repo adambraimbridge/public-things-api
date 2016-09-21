@@ -1,13 +1,14 @@
-package main
+package things
 
 import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/gorilla/mux"
+	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -25,31 +26,35 @@ type test struct {
 }
 
 func TestGetHandler(t *testing.T) {
-	assert := assert.New(t)
 	tests := []test{
 		{"Success", newRequest("GET", fmt.Sprintf("/things/%s", canonicalUUID), "application/json", nil), dummyService{contentUUID: canonicalUUID}, http.StatusOK, "", `{"id":"` + canonicalUUID + `", "apiUrl":"` + canonicalUUID + `", "types":[]}`},
 		{"NotFound", newRequest("GET", fmt.Sprintf("/things/%s", "99999"), "application/json", nil), dummyService{contentUUID: canonicalUUID}, http.StatusNotFound, "", message("No thing found with uuid 99999.")},
 		{"ReadError", newRequest("GET", fmt.Sprintf("/things/%s", canonicalUUID), "application/json", nil), dummyService{contentUUID: canonicalUUID, failRead: true}, http.StatusServiceUnavailable, "", message("Error getting thing with uuid " + canonicalUUID + ", err=TEST failing to READ")}}
 
 	for _, test := range tests {
+		ThingsDriver = test.dummyService
 		rec := httptest.NewRecorder()
-		router(httpHandlers{test.dummyService, "max-age=360, public"}).ServeHTTP(rec, test.req)
-		assert.True(test.statusCode == rec.Code, fmt.Sprintf("%s: Wrong response code, was %d, should be %d", test.name, rec.Code, test.statusCode))
-		assert.JSONEq(test.body, rec.Body.String(), fmt.Sprintf("%s: Wrong body", test.name))
+		r := mux.NewRouter()
+		r.HandleFunc("/things/{uuid}", GetThings).Methods("GET")
+		r.ServeHTTP(rec, test.req)
+		assert.True(t, test.statusCode == rec.Code, fmt.Sprintf("%s: Wrong response code, was %d, should be %d", test.name, rec.Code, test.statusCode))
+		assert.JSONEq(t, test.body, rec.Body.String(), fmt.Sprintf("%s: Wrong body", test.name))
 	}
 }
 
 func TestGetHandlerForRedirects(t *testing.T) {
-	assert := assert.New(t)
 	tests := []test{
 		{"Redirect", newRequest("GET", fmt.Sprintf("/things/%s", alternateUUID), "application/json", nil), dummyService{contentUUID: canonicalUUID, alternateUUID: alternateUUID}, http.StatusMovedPermanently, "application/json", ""},
 	}
 
 	for _, test := range tests {
+		ThingsDriver = test.dummyService
 		rec := httptest.NewRecorder()
-		router(httpHandlers{test.dummyService, "special header"}).ServeHTTP(rec, test.req)
-		assert.True(test.statusCode == rec.Code, fmt.Sprintf("%s: Wrong response code, was %d, should be %d", test.name, rec.Code, test.statusCode))
-		assert.Equal("/things/"+canonicalUUID, rec.HeaderMap.Get("Location"), fmt.Sprintf("%s: Wrong location header", test.name))
+		r := mux.NewRouter()
+		r.HandleFunc("/things/{uuid}", GetThings).Methods("GET")
+		r.ServeHTTP(rec, test.req)
+		assert.True(t, test.statusCode == rec.Code, fmt.Sprintf("%s: Wrong response code, was %d, should be %d", test.name, rec.Code, test.statusCode))
+		assert.Equal(t, "/things/"+canonicalUUID, rec.HeaderMap.Get("Location"), fmt.Sprintf("%s: Wrong location header", test.name))
 	}
 }
 

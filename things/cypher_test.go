@@ -1,7 +1,8 @@
-package main
+package things
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"testing"
 
@@ -34,13 +35,12 @@ func TestRetrieveOrganizationAsThing(t *testing.T) {
 	assert := assert.New(t)
 
 	db := getDatabaseConnection(t, assert)
-	batchRunner := neoutils.NewBatchCypherRunner(neoutils.StringerDb{db}, 1)
 
-	organisationRW := writeOrganisation(assert, db, &batchRunner)
+	organisationRW := writeOrganisation(assert, db)
 
 	defer deleteOrganisation(organisationRW)
 
-	thingsDriver := newCypherDriver(db, "prod")
+	thingsDriver := NewCypherDriver(db, "prod")
 	thng, found, err := thingsDriver.read(FakebookConceptUUID)
 	assert.NoError(err, "Unexpected error for organisation as thing %s", FakebookConceptUUID)
 	assert.True(found, "Found no thing for organisation as thing %s", FakebookConceptUUID)
@@ -57,12 +57,11 @@ func TestRetrieveOrganizationAsThing(t *testing.T) {
 func TestRetrieveSubjectAsThing(t *testing.T) {
 	assert := assert.New(t)
 	db := getDatabaseConnection(t, assert)
-	batchRunner := neoutils.NewBatchCypherRunner(neoutils.StringerDb{db}, 1)
-	subjectRW := writeSubject(assert, db, &batchRunner)
+	subjectRW := writeSubject(assert, db)
 
 	defer deleteSubject(subjectRW)
 
-	thingsDriver := newCypherDriver(db, "prod")
+	thingsDriver := NewCypherDriver(db, "prod")
 	thng, found, err := thingsDriver.read(MetalMickeyConceptUUID)
 	assert.NoError(err, "Unexpected error for content %s", MetalMickeyConceptUUID)
 	assert.True(found, "Found no thing for content %s", MetalMickeyConceptUUID)
@@ -78,12 +77,11 @@ func TestRetrieveSubjectAsThing(t *testing.T) {
 func TestRetrieveMembershipAsThing(t *testing.T) {
 	assert := assert.New(t)
 	db := getDatabaseConnection(t, assert)
-	batchRunner := neoutils.NewBatchCypherRunner(neoutils.StringerDb{db}, 1)
-	membershipRW := writeMembership(assert, db, &batchRunner)
+	membershipRW := writeMembership(assert, db)
 
 	defer deleteMembership(membershipRW)
 
-	thingsDriver := newCypherDriver(db, "prod")
+	thingsDriver := NewCypherDriver(db, "prod")
 	thng, found, err := thingsDriver.read(MembershipUUID)
 	assert.NoError(err, "Unexpected error for membership %s", MembershipUUID)
 	assert.True(found, "Found no thing for membership %s", MembershipUUID)
@@ -97,12 +95,11 @@ func TestRetrieveMembershipAsThing(t *testing.T) {
 func TestRetrieveRolesAsThing(t *testing.T) {
 	assert := assert.New(t)
 	db := getDatabaseConnection(t, assert)
-	batchRunner := neoutils.NewBatchCypherRunner(neoutils.StringerDb{db}, 1)
-	rolesRW := writeRoles(assert, db, &batchRunner)
+	rolesRW := writeRoles(assert, db)
 
 	defer deleteRoles(rolesRW)
 
-	thingsDriver := newCypherDriver(db, "prod")
+	thingsDriver := NewCypherDriver(db, "prod")
 	thng, found, err := thingsDriver.read(RoleUUID)
 	assert.NoError(err, "Unexpected error for role %s", RoleUUID)
 	assert.True(found, "Found no thing for role %s", RoleUUID)
@@ -124,12 +121,12 @@ func TestRetrieveRolesAsThing(t *testing.T) {
 func TestCannotRetrieveContentAsThing(t *testing.T) {
 	assert := assert.New(t)
 	db := getDatabaseConnection(t, assert)
-	batchRunner := neoutils.NewBatchCypherRunner(neoutils.StringerDb{db}, 1)
-	contentRW := writeContent(assert, db, &batchRunner)
+	contentRW := writeContent(assert, db)
 
 	defer deleteContent(contentRW)
+	defer cleanUpBrandsUppIdentifier(db, t, assert)
 
-	thingsDriver := newCypherDriver(db, "prod")
+	thingsDriver := NewCypherDriver(db, "prod")
 	thng, found, err := thingsDriver.read(NonExistingThingUUID)
 	assert.NoError(err, "Unexpected error for thing %s", NonExistingThingUUID)
 	assert.False(found, "Found thing %s", NonExistingThingUUID)
@@ -140,15 +137,15 @@ func TestRetrieveNoThingsWhenThereAreNonePresent(t *testing.T) {
 	assert := assert.New(t)
 	db := getDatabaseConnection(t, assert)
 
-	thingsDriver := newCypherDriver(db, "prod")
+	thingsDriver := NewCypherDriver(db, "prod")
 	thng, found, err := thingsDriver.read(NonExistingThingUUID)
 	assert.NoError(err, "Unexpected error for thing %s", NonExistingThingUUID)
 	assert.False(found, "Found thing %s", NonExistingThingUUID)
 	assert.EqualValues(thing{}, thng, "Found non-existing thing %s", NonExistingThingUUID)
 }
 
-func writeOrganisation(assert *assert.Assertions, db *neoism.Database, batchRunner *neoutils.CypherRunner) baseftrwapp.Service {
-	organisationRW := organisations.NewCypherOrganisationService(*batchRunner, db)
+func writeOrganisation(assert *assert.Assertions, db neoutils.NeoConnection) baseftrwapp.Service {
+	organisationRW := organisations.NewCypherOrganisationService(db)
 	assert.NoError(organisationRW.Initialise())
 	writeJSONToService(organisationRW, "./fixtures/Organisation-Fakebook-eac853f5-3859-4c08-8540-55e043719400.json", assert)
 	return organisationRW
@@ -158,8 +155,8 @@ func deleteOrganisation(organisationRW baseftrwapp.Service) {
 	organisationRW.Delete(FakebookConceptUUID)
 }
 
-func writeSubject(assert *assert.Assertions, db *neoism.Database, batchRunner *neoutils.CypherRunner) baseftrwapp.Service {
-	subjectsRW := subjects.NewCypherSubjectsService(*batchRunner, db)
+func writeSubject(assert *assert.Assertions, db neoutils.NeoConnection) baseftrwapp.Service {
+	subjectsRW := subjects.NewCypherSubjectsService(db)
 	assert.NoError(subjectsRW.Initialise())
 	writeJSONToService(subjectsRW, "./fixtures/Subject-MetalMickey-0483bef8-5797-40b8-9b25-b12e492f63c6.json", assert)
 	return subjectsRW
@@ -169,19 +166,35 @@ func deleteSubject(subjectsRW baseftrwapp.Service) {
 	subjectsRW.Delete(MetalMickeyConceptUUID)
 }
 
-func writeContent(assert *assert.Assertions, db *neoism.Database, batchRunner *neoutils.CypherRunner) baseftrwapp.Service {
-	contentRW := content.NewCypherDriver(*batchRunner, db)
+func writeContent(assert *assert.Assertions, db neoutils.NeoConnection) baseftrwapp.Service {
+	contentRW := content.NewCypherContentService(db)
 	assert.NoError(contentRW.Initialise())
 	writeJSONToService(contentRW, "./fixtures/Content-Bitcoin-3fc9fe3e-af8c-4f7f-961a-e5065392bb31.json", assert)
 	return contentRW
+}
+
+func cleanUpBrandsUppIdentifier(db neoutils.NeoConnection, t *testing.T, assert *assert.Assertions) {
+	qs := []*neoism.CypherQuery{
+		{
+			//deletes parent 'org' which only has type Thing
+			Statement: fmt.Sprintf("MATCH (a:Thing {uuid: '%v'}) DETACH DELETE a", "dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54"),
+		},
+		{
+			//deletes upp identifier for the above parent 'org'
+			Statement: fmt.Sprintf("MATCH (b:Identifier {value: '%v'}) DETACH DELETE b", "dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54"),
+		},
+	}
+
+	err := db.CypherBatch(qs)
+	assert.NoError(err)
 }
 
 func deleteContent(contentRW baseftrwapp.Service) {
 	contentRW.Delete(ContentUUID)
 }
 
-func writeMembership(assert *assert.Assertions, db *neoism.Database, batchRunner *neoutils.CypherRunner) baseftrwapp.Service {
-	membershipsRW := memberships.NewCypherDriver(*batchRunner, db)
+func writeMembership(assert *assert.Assertions, db neoutils.NeoConnection) baseftrwapp.Service {
+	membershipsRW := memberships.NewCypherMembershipService(db)
 	assert.NoError(membershipsRW.Initialise())
 	writeJSONToService(membershipsRW, "./fixtures/Membership-c8e19a44-a323-4ce0-b76b-6b23f6c7e2a5.json", assert)
 	return membershipsRW
@@ -194,8 +207,8 @@ func deleteMembership(membershipsRW baseftrwapp.Service) {
 	membershipsRW.Delete(MembershipOrganisationUUID)
 }
 
-func writeRoles(assert *assert.Assertions, db *neoism.Database, batchRunner *neoutils.CypherRunner) baseftrwapp.Service {
-	rolesRW := roles.NewCypherDriver(*batchRunner, db)
+func writeRoles(assert *assert.Assertions, db neoutils.NeoConnection) baseftrwapp.Service {
+	rolesRW := roles.NewCypherDriver(db)
 	assert.NoError(rolesRW.Initialise())
 	writeJSONToService(rolesRW, "./fixtures/Role-MarketStrategist-4f01dce1-142d-4ebf-b73b-587086cce0f9.json", assert)
 	writeJSONToService(rolesRW, "./fixtures/BoardRole-Chairman-2f91f554-0eb0-4ee6-9856-7561bf925d74.json", assert)
@@ -217,13 +230,15 @@ func writeJSONToService(service baseftrwapp.Service, pathToJSONFile string, asse
 	assert.NoError(errrr)
 }
 
-func getDatabaseConnection(t *testing.T, assert *assert.Assertions) *neoism.Database {
+func getDatabaseConnection(t *testing.T, assert *assert.Assertions) neoutils.NeoConnection {
 	url := os.Getenv("NEO4J_TEST_URL")
 	if url == "" {
 		url = "http://localhost:7474/db/data"
 	}
 
-	db, err := neoism.Connect(url)
+	conf := neoutils.DefaultConnectionConfig()
+	conf.Transactional = false
+	db, err := neoutils.Connect(url, conf)
 	assert.NoError(err, "Failed to connect to Neo4j")
 	return db
 }
