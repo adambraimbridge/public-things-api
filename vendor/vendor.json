@@ -1,0 +1,241 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"path": "appengine",
+			"revision": ""
+		},
+		{
+			"path": "appengine/aetest",
+			"revision": ""
+		},
+		{
+			"path": "appengine/urlfetch",
+			"revision": ""
+		},
+		{
+			"checksumSHA1": "qKDYaqwE0+Ulc1tiICBINAeutkg=",
+			"path": "github.com/Financial-Times/annotations-rw-neo4j/annotations",
+			"revision": "5e93af968065d5879b3c1846893dd36e5f8a5768",
+			"revisionTime": "2017-04-26T07:48:24Z",
+			"version": "=0.2.0",
+			"versionExact": "0.2.0"
+		},
+		{
+			"checksumSHA1": "fg1dZ/MIpnMKoW0vJE2y5HpHXXc=",
+			"path": "github.com/Financial-Times/base-ft-rw-app-go/baseftrwapp",
+			"revision": "01975d9da464dc2b864f1a5cf603827fdaa8e661",
+			"revisionTime": "2016-09-09T09:52:18Z"
+		},
+		{
+			"checksumSHA1": "ft2GrORzOZ/m/m39SyGJs41O2dQ=",
+			"path": "github.com/Financial-Times/concepts-rw-neo4j/concepts",
+			"revision": "ba026d3cec30e89a404465cb8e4263f4c4819b2e",
+			"revisionTime": "2017-05-02T07:47:59Z",
+			"version": "=1.0.1",
+			"versionExact": "1.0.1"
+		},
+		{
+			"checksumSHA1": "f5PLNbM4ArrWPrxgMr9Y9uAN5Y4=",
+			"path": "github.com/Financial-Times/content-rw-neo4j/content",
+			"revision": "29b84c94eb1badaac751ea4bfeb01b69d3ef38a3",
+			"revisionTime": "2017-04-18T07:07:24Z",
+			"version": "=1.0.3",
+			"versionExact": "1.0.3"
+		},
+		{
+			"checksumSHA1": "FUhczVSvt/VQAlWfzATo1YLez2E=",
+			"path": "github.com/Financial-Times/go-fthealth/v1a",
+			"revision": "f9074331b3ab48bca0e6d0afc211a673d88ac925",
+			"revisionTime": "2016-06-16T09:04:59Z",
+			"version": "=0.1.0",
+			"versionExact": "0.1.0"
+		},
+		{
+			"checksumSHA1": "zUpINnstJChGK0LAtkt7jBc3RY0=",
+			"path": "github.com/Financial-Times/http-handlers-go/httphandlers",
+			"revision": "bb69c454da9050fe1c4b92fe1345a01583ee70be",
+			"revisionTime": "2016-08-03T10:40:03Z",
+			"version": "=0.1.0",
+			"versionExact": "0.1.0"
+		},
+		{
+			"checksumSHA1": "TmMqUmvD/onCj5Q5l9Fo+m9Xvuw=",
+			"path": "github.com/Financial-Times/memberships-rw-neo4j/memberships",
+			"revision": "693f013ff9fb97a3505e7b35527b84b34449b781",
+			"revisionTime": "2017-02-15T08:47:17Z",
+			"version": "=1.1.6",
+			"versionExact": "1.1.6"
+		},
+		{
+			"checksumSHA1": "ZmT6PPQSF7C4aHQ2HO8QsKtYStg=",
+			"path": "github.com/Financial-Times/neo-model-utils-go/mapper",
+			"revision": "1a5407658c842183647f4799bb66ecac73af97a8",
+			"revisionTime": "2017-04-05T08:23:10Z",
+			"version": "=0.2.0",
+			"versionExact": "0.2.0"
+		},
+		{
+			"checksumSHA1": "IDKJ/mqVeFl91y07EpjO6Kbnwnc=",
+			"path": "github.com/Financial-Times/neo-utils-go/neoutils",
+			"revision": "aed125896a5ac0b50296fde5faefed1ebfa7fae3",
+			"revisionTime": "2017-01-04T12:16:44Z"
+		},
+		{
+			"checksumSHA1": "RD+FYKV2mErGsNvqPVZId9NiBd8=",
+			"path": "github.com/Financial-Times/organisations-rw-neo4j/organisations",
+			"revision": "b36f756fd042ab4ab06ae8b896c0f1f9a8b3db85",
+			"revisionTime": "2017-02-14T11:11:53Z",
+			"version": "=0.5.2",
+			"versionExact": "0.5.2"
+		},
+		{
+			"checksumSHA1": "sm+3HRUl24JDAp+guwpTJ1B+Apc=",
+			"path": "github.com/Financial-Times/roles-rw-neo4j/roles",
+			"revision": "fa121a3a182e4ac233cdeba18c05d4443a03ac73",
+			"revisionTime": "2017-02-14T13:45:48Z",
+			"version": "=0.1.6",
+			"versionExact": "0.1.6"
+		},
+		{
+			"checksumSHA1": "fqpohN7Qp2qj7TLMbUxh/cK4oH0=",
+			"path": "github.com/Financial-Times/service-status-go/buildinfo",
+			"revision": "3f5199736a3d7ae52394c63aac36834786825e21",
+			"revisionTime": "2016-03-23T11:15:42Z"
+		},
+		{
+			"checksumSHA1": "2rGNLXdRC3qr5n5ll7BpYt8HCK8=",
+			"path": "github.com/Financial-Times/service-status-go/gtg",
+			"revision": "3f5199736a3d7ae52394c63aac36834786825e21",
+			"revisionTime": "2016-03-23T11:15:42Z"
+		},
+		{
+			"checksumSHA1": "973POGyMCoyaKQuIYX2f7EKFwlQ=",
+			"path": "github.com/Financial-Times/service-status-go/httphandlers",
+			"revision": "3f5199736a3d7ae52394c63aac36834786825e21",
+			"revisionTime": "2016-03-23T11:15:42Z"
+		},
+		{
+			"checksumSHA1": "+sjiZBzrsk91W1A3Md1azCkZadg=",
+			"path": "github.com/Financial-Times/transactionid-utils-go",
+			"revision": "df2f00c734957c9dd651ce23ab0e0902504c7636",
+			"revisionTime": "2017-03-28T16:39:54Z"
+		},
+		{
+			"checksumSHA1": "TC6pkBrqs0MYZEbikQcrloZw4Ec=",
+			"path": "github.com/Financial-Times/up-rw-app-api-go/rwapi",
+			"revision": "c7976a0b575e3cad95ec10ebca53798567b39845",
+			"revisionTime": "2016-08-24T12:50:00Z"
+		},
+		{
+			"checksumSHA1": "m+iiamnbukzE8kFPfBche6D0FmQ=",
+			"path": "github.com/Sirupsen/logrus",
+			"revision": "5b60b3d3ee017ed00bcd0225fcca7acab767844b",
+			"revisionTime": "2017-05-04T07:10:19Z"
+		},
+		{
+			"checksumSHA1": "/6H1rhQmbq8mEP29pnmLmdwBKUE=",
+			"path": "github.com/cyberdelia/go-metrics-graphite",
+			"revision": "39f87cc3b432bbb898d7c643c0e93cac2bc865ad",
+			"revisionTime": "2016-12-19T23:08:53Z"
+		},
+		{
+			"checksumSHA1": "dvabztWVQX8f6oMLRyv4dLH+TGY=",
+			"path": "github.com/davecgh/go-spew/spew",
+			"revision": "346938d642f2ec3594ed81d874461961cd0faa76",
+			"revisionTime": "2016-10-29T20:57:26Z"
+		},
+		{
+			"checksumSHA1": "g/V4qrXjUGG9B+e3hB+4NAYJ5Gs=",
+			"path": "github.com/gorilla/context",
+			"revision": "08b5f424b9271eedf6f9f0ce86cb9396ed337a42",
+			"revisionTime": "2016-08-17T18:46:32Z"
+		},
+		{
+			"checksumSHA1": "zmCk+lgIeiOf0Ng9aFP9aFy8ksE=",
+			"path": "github.com/gorilla/mux",
+			"revision": "4c1c3952b7d9d0a061a3fa7b36fd373ba0398ebc",
+			"revisionTime": "2017-04-27T04:12:50Z"
+		},
+		{
+			"checksumSHA1": "tUGxc7rfX0cmhOOUDhMuAZ9rWsA=",
+			"path": "github.com/hashicorp/go-version",
+			"revision": "03c5bf6be031b6dd45afec16b1cf94fc8938bc77",
+			"revisionTime": "2017-02-02T08:07:59Z"
+		},
+		{
+			"checksumSHA1": "NK3DaezXmT5QyDImKH+qqI2Xa7c=",
+			"path": "github.com/jawher/mow.cli",
+			"revision": "8327d12beb75e6471b7f045588acc318d1147146",
+			"revisionTime": "2017-04-30T13:52:12Z"
+		},
+		{
+			"checksumSHA1": "nMm7xgpbpYYWy/zdKttNSoo1HAE=",
+			"path": "github.com/jmcvetta/neoism",
+			"revision": "4674154f870d19b356581843f481dccd6792dcc0",
+			"revisionTime": "2017-03-06T10:41:37Z"
+		},
+		{
+			"checksumSHA1": "khL6oKjx81rAZKW+36050b7f5As=",
+			"path": "github.com/jmcvetta/randutil",
+			"revision": "2bb1b664bcff821e02b2a0644cd29c7e824d54f8",
+			"revisionTime": "2015-08-17T12:26:01Z"
+		},
+		{
+			"checksumSHA1": "eOXF2PEvYLMeD8DSzLZJWbjYzco=",
+			"path": "github.com/kr/pretty",
+			"revision": "cfb55aafdaf3ec08f0db22699ab822c50091b1c4",
+			"revisionTime": "2016-08-23T17:07:15Z"
+		},
+		{
+			"checksumSHA1": "uulQHQ7IsRKqDudBC8Go9J0gtAc=",
+			"path": "github.com/kr/text",
+			"revision": "7cafcd837844e784b526369c9bce262804aebc60",
+			"revisionTime": "2016-05-04T02:26:26Z"
+		},
+		{
+			"checksumSHA1": "LuFv4/jlrmFNnDb/5SCSEPAM9vU=",
+			"path": "github.com/pmezard/go-difflib/difflib",
+			"revision": "792786c7400a136282c1664665ae0a8db921c6c2",
+			"revisionTime": "2016-01-10T10:55:54Z"
+		},
+		{
+			"checksumSHA1": "KAzbLjI9MzW2tjfcAsK75lVRp6I=",
+			"path": "github.com/rcrowley/go-metrics",
+			"revision": "1f30fe9094a513ce4c700b9a54458bbb0c96996c",
+			"revisionTime": "2016-11-28T21:05:44Z"
+		},
+		{
+			"checksumSHA1": "JXUVA1jky8ZX8w09p2t5KLs97Nc=",
+			"path": "github.com/stretchr/testify/assert",
+			"revision": "4d4bfba8f1d1027c4fdbe371823030df51419987",
+			"revisionTime": "2017-01-30T11:31:45Z"
+		},
+		{
+			"checksumSHA1": "dBmk68coq8umF51FL23vNXOOS7o=",
+			"path": "go4.org/osutil",
+			"revision": "16ace784e4b16df1d51c3435223b1d602cd43bfa",
+			"revisionTime": "2017-05-05T14:57:44Z"
+		},
+		{
+			"checksumSHA1": "Y+HGqEkYM15ir+J93MEaHdyFy0c=",
+			"path": "golang.org/x/net/context",
+			"revision": "feeb485667d1fdabe727840fe00adc22431bc86e",
+			"revisionTime": "2017-05-02T17:39:58Z"
+		},
+		{
+			"checksumSHA1": "oS0UZOGWVVsVciOQ8nZJ582mFF8=",
+			"path": "golang.org/x/sys/unix",
+			"revision": "9ccfe848b9db8435a24c424abbc07a921adf1df5",
+			"revisionTime": "2017-04-27T03:54:25Z"
+		},
+		{
+			"checksumSHA1": "k3L1Q7anlDsX2njPAE5Dd2SWVlw=",
+			"path": "gopkg.in/jmcvetta/napping.v3",
+			"revision": "4c7b4b235c63152afa9a1c6384e708e0fbfd77ca",
+			"revisionTime": "2017-03-11T05:32:04Z"
+		}
+	],
+	"rootPath": "github.com/Financial-Times/public-things-api"
+}

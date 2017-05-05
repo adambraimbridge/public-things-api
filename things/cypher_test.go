@@ -7,12 +7,12 @@ import (
 	"testing"
 
 	"github.com/Financial-Times/base-ft-rw-app-go/baseftrwapp"
+	"github.com/Financial-Times/concepts-rw-neo4j/concepts"
 	"github.com/Financial-Times/content-rw-neo4j/content"
 	"github.com/Financial-Times/memberships-rw-neo4j/memberships"
 	"github.com/Financial-Times/neo-utils-go/neoutils"
 	"github.com/Financial-Times/organisations-rw-neo4j/organisations"
 	"github.com/Financial-Times/roles-rw-neo4j/roles"
-	"github.com/Financial-Times/subjects-rw-neo4j/subjects"
 	"github.com/jmcvetta/neoism"
 	"github.com/stretchr/testify/assert"
 )
@@ -156,7 +156,7 @@ func deleteOrganisation(organisationRW baseftrwapp.Service) {
 }
 
 func writeSubject(assert *assert.Assertions, db neoutils.NeoConnection) baseftrwapp.Service {
-	subjectsRW := subjects.NewCypherSubjectsService(db)
+	subjectsRW := concepts.NewConceptService(db)
 	assert.NoError(subjectsRW.Initialise())
 	writeJSONToService(subjectsRW, "./fixtures/Subject-MetalMickey-0483bef8-5797-40b8-9b25-b12e492f63c6.json", assert)
 	return subjectsRW
