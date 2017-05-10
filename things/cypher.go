@@ -1,9 +1,8 @@
 package things
 
 import (
-	"fmt"
-
 	"errors"
+	"fmt"
 
 	"github.com/Financial-Times/neo-model-utils-go/mapper"
 	"github.com/Financial-Times/neo-utils-go/neoutils"
