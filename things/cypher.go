@@ -56,7 +56,7 @@ func (cd cypherDriver) read(thingUUID string) (thing, bool, error) {
 		return thing{}, false, err
 	} else if len(results) != 1 && len(results[0].LeafUUID) != 1 {
 		errMsg := fmt.Sprintf("Multiple things found with the same uuid:%s !", thingUUID)
-		log.Error(errMsg)
+		log.WithFields(log.Fields{"UUID": thingUUID}).Error("Multiple things found with the same uuid")
 		return thing{}, true, errors.New(errMsg)
 	} else if isContent(results[0]) {
 		return thing{}, false, nil
@@ -84,7 +84,7 @@ func mapToResponseFormat(thng neoThing, env string) (thing, error) {
 		thing.ID = mapper.IDURL(thng.CanonicalUUID)
 		types := mapper.TypeURIs(thng.CanonicalTypes)
 		if types == nil {
-			log.Errorf("Could not map type URIs for ID %s with types %s", thng.CanonicalUUID, thng.CanonicalTypes)
+			log.WithFields(log.Fields{"UUID": thng.CanonicalUUID}).Errorf("Could not map type URIs for ID %s with types %s", thng.CanonicalUUID, thng.CanonicalTypes)
 			return thing, errors.New("Thing not found")
 		}
 		thing.Types = types
@@ -95,7 +95,7 @@ func mapToResponseFormat(thng neoThing, env string) (thing, error) {
 		thing.ID = mapper.IDURL(thng.LeafUUID)
 		types := mapper.TypeURIs(thng.LeafTypes)
 		if types == nil {
-			log.Errorf("Could not map type URIs for ID %s with types %s", thng.LeafUUID, thng.LeafTypes)
+			log.WithFields(log.Fields{"UUID": thng.LeafUUID}).Errorf("Could not map type URIs for ID %s with types %s", thng.LeafUUID, thng.LeafTypes)
 			return thing, errors.New("Thing not found")
 		}
 		thing.Types = types
