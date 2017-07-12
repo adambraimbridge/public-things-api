@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"log"
 )
 
 var ThingsDriver driver
@@ -83,6 +84,8 @@ func GetThings(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//if the request was not made for the canonical, but an alternate uuid: redirect
+
+	log.Printf("Url: %v Param: %v", uuid, thng.ID)
 	if !strings.Contains(thng.ID, uuid) {
 		validRegexp := regexp.MustCompile(validUUID)
 		canonicalUUID := validRegexp.FindString(thng.ID)

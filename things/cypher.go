@@ -31,12 +31,12 @@ func (cd cypherDriver) checkConnectivity() error { //TODO - use the neo4j connec
 }
 
 type neoThing struct {
-	LeafUUID         string   `json:"leafUUID"`
-	LeafPrefLabel  string   `json:"leafPrefLabel,omitempty"`
-	LeafTypes      []string `json:"leafTypes"`
-	CanonicalUUID         string   `json:"canonicalUUID"`
-	CanonicalPrefLabel  string   `json:"canonicalPrefLabel,omitempty"`
-	CanonicalTypes      []string `json:"canonicalTypes"`
+	LeafUUID           string   `json:"leafUUID"`
+	LeafPrefLabel      string   `json:"leafPrefLabel,omitempty"`
+	LeafTypes          []string `json:"leafTypes"`
+	CanonicalUUID      string   `json:"canonicalUUID"`
+	CanonicalPrefLabel string   `json:"canonicalPrefLabel,omitempty"`
+	CanonicalTypes     []string `json:"canonicalTypes"`
 }
 
 func (cd cypherDriver) read(thingUUID string) (thing, bool, error) {
@@ -55,8 +55,8 @@ func (cd cypherDriver) read(thingUUID string) (thing, bool, error) {
 	if err := cd.conn.CypherBatch([]*neoism.CypherQuery{query}); err != nil || len(results) == 0 || len(results[0].LeafUUID) == 0 {
 		return thing{}, false, err
 	} else if len(results) != 1 && len(results[0].LeafUUID) != 1 {
-		errMsg := fmt.Sprintf("Multiple things found with the same uuid:%s !", thingUUID)
-		log.WithFields(log.Fields{"UUID": thingUUID}).Error("Multiple things found with the same uuid")
+		errMsg := fmt.Sprintf("Multiple things found with the same UUID:%s !", thingUUID)
+		log.WithFields(log.Fields{"UUID": thingUUID}).Error("Multiple things found with the same UUID")
 		return thing{}, true, errors.New(errMsg)
 	} else if isContent(results[0]) {
 		return thing{}, false, nil
@@ -78,7 +78,7 @@ func isContent(thng neoThing) bool {
 func mapToResponseFormat(thng neoThing, env string) (thing, error) {
 	thing := thing{}
 	// New Concordance Model
-	if (thng.CanonicalPrefLabel != "") {
+	if thng.CanonicalPrefLabel != "" {
 		thing.PrefLabel = thng.CanonicalPrefLabel
 		thing.APIURL = mapper.APIURL(thng.CanonicalUUID, thng.CanonicalTypes, env)
 		thing.ID = mapper.IDURL(thng.CanonicalUUID)
