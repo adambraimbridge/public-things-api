@@ -6,6 +6,8 @@ import (
 	"os"
 	"testing"
 
+	"log"
+
 	"github.com/Financial-Times/base-ft-rw-app-go/baseftrwapp"
 	"github.com/Financial-Times/concepts-rw-neo4j/concepts"
 	"github.com/Financial-Times/content-rw-neo4j/content"
@@ -13,22 +15,16 @@ import (
 	"github.com/Financial-Times/organisations-rw-neo4j/organisations"
 	"github.com/jmcvetta/neoism"
 	"github.com/stretchr/testify/assert"
-	"github.com/Financial-Times/memberships-rw-neo4j/memberships"
-	"github.com/Financial-Times/roles-rw-neo4j/roles"
+	"github.com/Financial-Times/people-rw-neo4j/people"
 )
 
 const (
 	//Generate uuids so there's no clash with real data
-	FakebookConceptUUID        = "eac853f5-3859-4c08-8540-55e043719400" //organization
-	MetalMickeyConceptUUID     = "0483bef8-5797-40b8-9b25-b12e492f63c6" //subject
-	ContentUUID                = "3fc9fe3e-af8c-4f7f-961a-e5065392bb31"
-	RoleUUID                   = "4f01dce1-142d-4ebf-b73b-587086cce0f9"
-	BoardRoleUUID              = "2f91f554-0eb0-4ee6-9856-7561bf925d74"
-	MembershipUUID             = "c8e19a44-a323-4ce0-b76b-6b23f6c7e2a5"
-	MembershipRoleUUID         = "3d7e102d-14b9-42d5-b20e-7b9fd497f405"
-	MembershipPersonUUID       = "d00dc7f6-6f40-4350-bf72-37c4253f3d7c"
-	MembershipOrganisationUUID = "778a9149-2097-4a69-9a28-e0a782bdc1a4"
-	NonExistingThingUUID       = "b2860919-4b78-44c6-a665-af9221bdefb5"
+	FakebookConceptUUID    = "eac853f5-3859-4c08-8540-55e043719400" //organisation - Old concept model
+	MetalMickeyConceptUUID = "0483bef8-5797-40b8-9b25-b12e492f63c6" //subject - ie. New concept model
+	ContentUUID            = "3fc9fe3e-af8c-4f7f-961a-e5065392bb31"
+	NonExistingThingUUID   = "b2860919-4b78-44c6-a665-af9221bdefb5"
+	PersonThingUUID        = "75e2f7e9-cb5e-40a5-a074-86d69fe09f69"
 )
 
 //Reusable Neo4J connection
@@ -49,12 +45,35 @@ func init() {
 func neoUrl() string {
 	url := os.Getenv("NEO4J_TEST_URL")
 	if url == "" {
-		url = "http://localhost:7474/db/data"
+		url = "http://localhost:7777/db/data"
 	}
 	return url
 }
 
-func TestRetrieveOrganizationAsThing(t *testing.T) {
+func TestRetrievePeopleAsThing(t *testing.T) {
+	assert := assert.New(t)
+
+	personRW := people.NewCypherPeopleService(db)
+	assert.NoError(personRW.Initialise())
+
+	writeJSONToService(t, personRW, fmt.Sprintf("./fixtures/People-%s.json", PersonThingUUID))
+
+	defer cleanDB(t, PersonThingUUID)
+
+	thingsDriver := NewCypherDriver(db, "prod")
+	thng, found, err := thingsDriver.read(PersonThingUUID)
+	assert.NoError(err, "Unexpected error for person as thing %s", PersonThingUUID)
+	assert.True(found, "Found no thing for person as thing %s", PersonThingUUID)
+
+	validateThing(t, "John Smith", PersonThingUUID, "http://www.ft.com/ontology/person/Person",
+		[]string{
+			"http://www.ft.com/ontology/core/Thing",
+			"http://www.ft.com/ontology/concept/Concept",
+			"http://www.ft.com/ontology/person/Person",
+		}, thng)
+}
+
+func TestRetrieveOrganisationAsThing(t *testing.T) {
 	assert := assert.New(t)
 
 	organisationRW := organisations.NewCypherOrganisationService(db)
@@ -90,8 +109,8 @@ func TestRetrieveConceptNewModelAsThing(t *testing.T) {
 	thingsDriver := NewCypherDriver(db, "prod")
 	thng, found, err := thingsDriver.read(MetalMickeyConceptUUID)
 
-	assert.NoError(t, err, "Unexpected error for organisation as thing %s", MetalMickeyConceptUUID)
-	assert.True(t, found, "Found no thing for organisation as thing %s", MetalMickeyConceptUUID)
+	assert.NoError(t, err, "Unexpected error for concept as thing %s", MetalMickeyConceptUUID)
+	assert.True(t, found, "Found no thing for concept as thing %s", MetalMickeyConceptUUID)
 
 	validateThing(t, "Metal Mickey", MetalMickeyConceptUUID, "http://www.ft.com/ontology/Subject",
 		[]string{
@@ -101,53 +120,6 @@ func TestRetrieveConceptNewModelAsThing(t *testing.T) {
 			"http://www.ft.com/ontology/Subject",
 		}, thng)
 
-}
-
-func TestRetrieveMembershipAsThing(t *testing.T) {
-	assert := assert.New(t)
-
-	membershipsRW := memberships.NewCypherMembershipService(db)
-	assert.NoError(membershipsRW.Initialise())
-	writeJSONToService(t, membershipsRW, "./fixtures/Membership-c8e19a44-a323-4ce0-b76b-6b23f6c7e2a5.json")
-
-	defer cleanDB(t, MembershipUUID, MembershipRoleUUID, MembershipPersonUUID, MembershipOrganisationUUID)
-
-	thingsDriver := NewCypherDriver(db, "prod")
-	thng, found, err := thingsDriver.read(MembershipUUID)
-	assert.NoError(err, "Unexpected error for membership %s", MembershipUUID)
-	assert.True(found, "Found no thing for membership %s", MembershipUUID)
-	validateThing(t, "Market Strategist", MembershipUUID, "http://www.ft.com/ontology/organisation/Membership", []string{
-		"http://www.ft.com/ontology/core/Thing",
-		"http://www.ft.com/ontology/concept/Concept",
-		"http://www.ft.com/ontology/organisation/Membership",
-	}, thng)
-}
-
-func TestRetrieveRolesAsThing(t *testing.T) {
-	assert := assert.New(t)
-	rolesRW := roles.NewCypherDriver(db)
-	assert.NoError(rolesRW.Initialise())
-	writeJSONToService(t, rolesRW, "./fixtures/Role-MarketStrategist-4f01dce1-142d-4ebf-b73b-587086cce0f9.json")
-	writeJSONToService(t, rolesRW, "./fixtures/BoardRole-Chairman-2f91f554-0eb0-4ee6-9856-7561bf925d74.json")
-
-	defer cleanDB(t, RoleUUID, BoardRoleUUID)
-
-	thingsDriver := NewCypherDriver(db, "prod")
-	thng, found, err := thingsDriver.read(RoleUUID)
-	assert.NoError(err, "Unexpected error for role %s", RoleUUID)
-	assert.True(found, "Found no thing for role %s", RoleUUID)
-	validateThing(t, "Market Strategist", RoleUUID, "http://www.ft.com/ontology/organisation/Role", []string{
-		"http://www.ft.com/ontology/core/Thing",
-		"http://www.ft.com/ontology/organisation/Role",
-	}, thng)
-
-	thng, found, err = thingsDriver.read(BoardRoleUUID)
-	assert.NoError(err, "Unexpected error for content %s", BoardRoleUUID)
-	validateThing(t, "Chairman of the Board", BoardRoleUUID, "http://www.ft.com/ontology/organisation/BoardRole", []string{
-		"http://www.ft.com/ontology/core/Thing",
-		"http://www.ft.com/ontology/organisation/Role",
-		"http://www.ft.com/ontology/organisation/BoardRole",
-	}, thng)
 }
 
 //TODO - this is temporary, we WILL want to retrieve Content once we have more info about it available
@@ -196,8 +168,10 @@ func writeJSONToService(t *testing.T, service baseftrwapp.Service, pathToJSONFil
 	dec := json.NewDecoder(f)
 	inst, _, errr := service.DecodeJSON(dec)
 	assert.NoError(t, errr)
-	errrr := service.Write(inst)
-	assert.NoError(t, errrr)
+
+	errs := service.Write(inst, "TRANS_ID")
+	log.Printf("ERR: %v", errs)
+	assert.NoError(t, errs)
 }
 
 func validateThing(t *testing.T, prefLabel string, UUID string, directType string, types []string, thng thing) {

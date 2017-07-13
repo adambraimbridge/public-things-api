@@ -47,12 +47,14 @@ func (cd cypherDriver) read(thingUUID string) (thing, bool, error) {
  			MATCH (identifier)-[:IDENTIFIES]->(leaf:Thing)
  			OPTIONAL MATCH (leaf)-[:EQUIVALENT_TO]->(canonical:Thing)
 			RETURN leaf.uuid as leafUUID, labels(leaf) as leafTypes, leaf.prefLabel as leafPrefLabel,
-			canonical.prefUUID as canonicalUUID, canonical.prefLabel as canonicalPrefLabel`,
+			canonical.prefUUID as canonicalUUID, canonical.prefLabel as canonicalPrefLabel, labels(canonical) as canonicalTypes `,
 		Parameters: neoism.Props{"thingUUID": thingUUID},
 		Result:     &results,
 	}
 
-	if err := cd.conn.CypherBatch([]*neoism.CypherQuery{query}); err != nil || len(results) == 0 || len(results[0].LeafUUID) == 0 {
+	err := cd.conn.CypherBatch([]*neoism.CypherQuery{query})
+
+	if err != nil || len(results) == 0 || len(results[0].LeafUUID) == 0 {
 		return thing{}, false, err
 	} else if len(results) != 1 && len(results[0].LeafUUID) != 1 {
 		errMsg := fmt.Sprintf("Multiple things found with the same UUID:%s !", thingUUID)
