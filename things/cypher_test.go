@@ -49,7 +49,7 @@ func init() {
 func neoUrl() string {
 	url := os.Getenv("NEO4J_TEST_URL")
 	if url == "" {
-		url = "http://localhost:7777/db/data"
+		url = "http://localhost:7474/db/data"
 	}
 	return url
 }
