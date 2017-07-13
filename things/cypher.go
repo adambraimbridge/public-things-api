@@ -47,7 +47,7 @@ func (cd cypherDriver) read(thingUUID string) (thing, bool, error) {
  			MATCH (identifier)-[:IDENTIFIES]->(leaf:Thing)
  			OPTIONAL MATCH (leaf)-[:EQUIVALENT_TO]->(canonical:Thing)
 			RETURN leaf.uuid as leafUUID, labels(leaf) as leafTypes, leaf.prefLabel as leafPrefLabel,
-			canonical.prefUUID as canonicalUUID`,
+			canonical.prefUUID as canonicalUUID, canonical.prefLabel as canonicalPrefLabel`,
 		Parameters: neoism.Props{"thingUUID": thingUUID},
 		Result:     &results,
 	}

@@ -9,12 +9,12 @@ import (
 	"github.com/Financial-Times/base-ft-rw-app-go/baseftrwapp"
 	"github.com/Financial-Times/concepts-rw-neo4j/concepts"
 	"github.com/Financial-Times/content-rw-neo4j/content"
-	"github.com/Financial-Times/memberships-rw-neo4j/memberships"
 	"github.com/Financial-Times/neo-utils-go/neoutils"
 	"github.com/Financial-Times/organisations-rw-neo4j/organisations"
-	"github.com/Financial-Times/roles-rw-neo4j/roles"
 	"github.com/jmcvetta/neoism"
 	"github.com/stretchr/testify/assert"
+	"github.com/Financial-Times/memberships-rw-neo4j/memberships"
+	"github.com/Financial-Times/roles-rw-neo4j/roles"
 )
 
 const (
@@ -49,7 +49,7 @@ func init() {
 func neoUrl() string {
 	url := os.Getenv("NEO4J_TEST_URL")
 	if url == "" {
-		url = "http://localhost:7474/db/data"
+		url = "http://localhost:7777/db/data"
 	}
 	return url
 }
