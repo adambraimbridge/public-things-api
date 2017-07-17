@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"strconv"
 	"time"
-
-	"github.com/Financial-Times/base-ft-rw-app-go/baseftrwapp"
 	"github.com/Financial-Times/go-fthealth/v1a"
 	httpHandlers "github.com/Financial-Times/http-handlers-go/httphandlers"
 	"github.com/Financial-Times/neo-utils-go/neoutils"
@@ -18,13 +16,14 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/jawher/mow.cli"
 	"github.com/rcrowley/go-metrics"
+	"github.com/Financial-Times/base-ft-rw-app-go/baseftrwapp"
 )
 
 func main() {
 	app := cli.App("public-things-api-neo4j", "A public RESTful API for accessing Things in neo4j")
 	neoURL := app.String(cli.StringOpt{
 		Name:   "neo-url",
-		Value:  "http://localhost:7777/db/data",
+		Value:  "http://localhost:7474/db/data",
 		Desc:   "neo4j endpoint URL",
 		EnvVar: "NEO_URL"})
 	port := app.String(cli.StringOpt{

@@ -15,14 +15,6 @@
 			"revision": ""
 		},
 		{
-			"checksumSHA1": "qKDYaqwE0+Ulc1tiICBINAeutkg=",
-			"path": "github.com/Financial-Times/annotations-rw-neo4j/annotations",
-			"revision": "5e93af968065d5879b3c1846893dd36e5f8a5768",
-			"revisionTime": "2017-04-26T07:48:24Z",
-			"version": "=0.2.0",
-			"versionExact": "0.2.0"
-		},
-		{
 			"checksumSHA1": "uYE44WXlte37YhuJK8ED05OD5OA=",
 			"path": "github.com/Financial-Times/concepts-rw-neo4j/concepts",
 			"revision": "a26564c44bb91cfd47bc564a915fac2b3935c952",
@@ -51,14 +43,6 @@
 			"versionExact": "0.1.0"
 		},
 		{
-			"checksumSHA1": "TmMqUmvD/onCj5Q5l9Fo+m9Xvuw=",
-			"path": "github.com/Financial-Times/memberships-rw-neo4j/memberships",
-			"revision": "693f013ff9fb97a3505e7b35527b84b34449b781",
-			"revisionTime": "2017-02-15T08:47:17Z",
-			"version": "=1.1.6",
-			"versionExact": "1.1.6"
-		},
-		{
 			"checksumSHA1": "ZmT6PPQSF7C4aHQ2HO8QsKtYStg=",
 			"path": "github.com/Financial-Times/neo-model-utils-go/mapper",
 			"revision": "1a5407658c842183647f4799bb66ecac73af97a8",
@@ -83,14 +67,6 @@
 			"path": "github.com/Financial-Times/people-rw-neo4j/people",
 			"revision": "f4db16eb2060aae806fba0d27bad2a914fd5c971",
 			"revisionTime": "2017-07-11T16:01:30Z"
-		},
-		{
-			"checksumSHA1": "sm+3HRUl24JDAp+guwpTJ1B+Apc=",
-			"path": "github.com/Financial-Times/roles-rw-neo4j/roles",
-			"revision": "fa121a3a182e4ac233cdeba18c05d4443a03ac73",
-			"revisionTime": "2017-02-14T13:45:48Z",
-			"version": "=0.1.6",
-			"versionExact": "0.1.6"
 		},
 		{
 			"checksumSHA1": "fqpohN7Qp2qj7TLMbUxh/cK4oH0=",

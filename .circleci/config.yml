@@ -20,9 +20,9 @@ jobs:
       - run: |
           go get -u github.com/kardianos/govendor
       - run: |
-           govendor sync
+          govendor sync
       - run: |
-          go build -v
+          govendor build -v
       - run: |
           wget --retry-connrefused --no-check-certificate -T 60 $NEO4J_TEST_URL; curl $NEO4J_TEST_URL
       - run: |
