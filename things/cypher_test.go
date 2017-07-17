@@ -6,16 +6,19 @@ import (
 	"os"
 	"testing"
 
-	"log"
+	"reflect"
+	"sort"
 
 	"github.com/Financial-Times/base-ft-rw-app-go/baseftrwapp"
 	"github.com/Financial-Times/concepts-rw-neo4j/concepts"
 	"github.com/Financial-Times/content-rw-neo4j/content"
+	"github.com/Financial-Times/neo-model-utils-go/mapper"
 	"github.com/Financial-Times/neo-utils-go/neoutils"
 	"github.com/Financial-Times/organisations-rw-neo4j/organisations"
-	"github.com/jmcvetta/neoism"
-	"github.com/stretchr/testify/assert"
 	"github.com/Financial-Times/people-rw-neo4j/people"
+	"github.com/jmcvetta/neoism"
+	_ "github.com/joho/godotenv/autoload"
+	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -25,6 +28,7 @@ const (
 	ContentUUID            = "3fc9fe3e-af8c-4f7f-961a-e5065392bb31"
 	NonExistingThingUUID   = "b2860919-4b78-44c6-a665-af9221bdefb5"
 	PersonThingUUID        = "75e2f7e9-cb5e-40a5-a074-86d69fe09f69"
+	BrandOnyxPike          = "9a07c16f-def0-457d-a04a-57ba68ba1e00"
 )
 
 //Reusable Neo4J connection
@@ -45,81 +49,96 @@ func init() {
 func neoUrl() string {
 	url := os.Getenv("NEO4J_TEST_URL")
 	if url == "" {
-		url = "http://localhost:7777/db/data"
+		url = "http://localhost:7474/db/data"
 	}
 	return url
 }
 
 func TestRetrievePeopleAsThing(t *testing.T) {
-	assert := assert.New(t)
+	defer cleanDB(t, PersonThingUUID)
 
 	personRW := people.NewCypherPeopleService(db)
-	assert.NoError(personRW.Initialise())
+	assert.NoError(t, personRW.Initialise())
 
 	writeJSONToService(t, personRW, fmt.Sprintf("./fixtures/People-%s.json", PersonThingUUID))
+	types := []string{"Thing", "Concept", "Person"}
+	typesUris := mapper.TypeURIs(types)
 
-	defer cleanDB(t, PersonThingUUID)
 
 	thingsDriver := NewCypherDriver(db, "prod")
 	thng, found, err := thingsDriver.read(PersonThingUUID)
-	assert.NoError(err, "Unexpected error for person as thing %s", PersonThingUUID)
-	assert.True(found, "Found no thing for person as thing %s", PersonThingUUID)
+	assert.NoError(t, err, "Unexpected error for person as thing %s", PersonThingUUID)
+	assert.True(t, found, "Found no thing for person as thing %s", PersonThingUUID)
 
-	validateThing(t, "John Smith", PersonThingUUID, "http://www.ft.com/ontology/person/Person",
-		[]string{
-			"http://www.ft.com/ontology/core/Thing",
-			"http://www.ft.com/ontology/concept/Concept",
-			"http://www.ft.com/ontology/person/Person",
-		}, thng)
+	expected := thing{APIURL: mapper.APIURL(PersonThingUUID, types, "Prod"), PrefLabel: "John Smith", ID: mapper.IDURL(PersonThingUUID),
+		Types: typesUris, DirectType: typesUris[len(typesUris)-1], Aliases:[]string{"John Smith"}}
+
+	readAndCompare(t, expected, thng, "Person successful retrieval")
 }
 
 func TestRetrieveOrganisationAsThing(t *testing.T) {
-	assert := assert.New(t)
+	defer cleanDB(t, FakebookConceptUUID)
 
 	organisationRW := organisations.NewCypherOrganisationService(db)
-	assert.NoError(organisationRW.Initialise())
+	assert.NoError(t, organisationRW.Initialise())
 
-	writeJSONToService(t, organisationRW, "./fixtures/Organisation-Fakebook-eac853f5-3859-4c08-8540-55e043719400.json")
+	types := []string{"Thing", "Concept", "Organisation", "Company", "PublicCompany"}
+	typesUris := mapper.TypeURIs(types)
 
-	defer cleanDB(t, FakebookConceptUUID)
+	expected := thing{APIURL: mapper.APIURL(FakebookConceptUUID, types, "Prod"), PrefLabel: "Fakebook, Inc.", ID: mapper.IDURL(FakebookConceptUUID),
+		Types: typesUris, DirectType: typesUris[len(typesUris)-1]}
+
+	writeJSONToService(t, organisationRW, fmt.Sprintf("./fixtures/Organisation-Fakebook-%v.json", FakebookConceptUUID))
 
 	thingsDriver := NewCypherDriver(db, "prod")
 	thng, found, err := thingsDriver.read(FakebookConceptUUID)
-	assert.NoError(err, "Unexpected error for organisation as thing %s", FakebookConceptUUID)
-	assert.True(found, "Found no thing for organisation as thing %s", FakebookConceptUUID)
+	assert.NoError(t, err, "Unexpected error for organisation as thing %s", FakebookConceptUUID)
+	assert.True(t, found, "Found no thing for organisation as thing %s", FakebookConceptUUID)
 
-	validateThing(t, "Fakebook, Inc.", FakebookConceptUUID, "http://www.ft.com/ontology/company/PublicCompany",
-		[]string{
-			"http://www.ft.com/ontology/core/Thing",
-			"http://www.ft.com/ontology/concept/Concept",
-			"http://www.ft.com/ontology/organisation/Organisation",
-			"http://www.ft.com/ontology/company/Company",
-			"http://www.ft.com/ontology/company/PublicCompany",
-		}, thng)
+	readAndCompare(t, expected, thng, "Organisation successful retrieval")
 }
 
 func TestRetrieveConceptNewModelAsThing(t *testing.T) {
+	defer cleanDB(t, BrandOnyxPike)
+
 	conceptsDriver := concepts.NewConceptService(db)
-	conceptsDriver.Initialise()
+	assert.NoError(t, conceptsDriver.Initialise())
 
-	writeJSONToService(t, conceptsDriver, fmt.Sprintf("./fixtures/Concept-MetalMickey-%s.json", MetalMickeyConceptUUID))
+	types := []string{"Thing", "Concept", "Classification", "Brand"}
+	typesUris := mapper.TypeURIs(types)
 
-	defer cleanDB(t, MetalMickeyConceptUUID)
+	expected := thing{APIURL: mapper.APIURL(BrandOnyxPike, types, "Prod"), PrefLabel: "Onyx Pike", ID: mapper.IDURL(BrandOnyxPike),
+		Types: typesUris, DirectType: typesUris[len(typesUris)-1], Aliases: []string{"Bob", "BOB2"},
+		DescriptionXML: "<p>Some stuff</p>", ImageURL: "http://media.ft.com/brand.png"}
+	writeJSONToService(t, conceptsDriver, fmt.Sprintf("./fixtures/Brand-OnyxPike-%s.json", BrandOnyxPike))
 
 	thingsDriver := NewCypherDriver(db, "prod")
-	thng, found, err := thingsDriver.read(MetalMickeyConceptUUID)
+	thng, found, err := thingsDriver.read(BrandOnyxPike)
 
-	assert.NoError(t, err, "Unexpected error for concept as thing %s", MetalMickeyConceptUUID)
-	assert.True(t, found, "Found no thing for concept as thing %s", MetalMickeyConceptUUID)
+	assert.NoError(t, err, "Unexpected error for concept as thing %s", BrandOnyxPike)
+	assert.True(t, found, "Found no thing for concept as thing %s", BrandOnyxPike)
 
-	validateThing(t, "Metal Mickey", MetalMickeyConceptUUID, "http://www.ft.com/ontology/Subject",
-		[]string{
-			"http://www.ft.com/ontology/core/Thing",
-			"http://www.ft.com/ontology/concept/Concept",
-			"http://www.ft.com/ontology/classification/Classification",
-			"http://www.ft.com/ontology/Subject",
-		}, thng)
+	readAndCompare(t, expected, thng, "Retrieve concepts via new concordance model")
+}
 
+func readAndCompare(t *testing.T, expected thing, actual thing, testName string) {
+	sort.Slice(expected.Aliases, func(i, j int) bool {
+		return expected.Aliases[i] < expected.Aliases[j]
+	})
+
+	sort.Slice(actual.Aliases, func(i, j int) bool {
+		return actual.Aliases[i] < actual.Aliases[j]
+	})
+
+	sort.Slice(expected.Types, func(i, j int) bool {
+		return expected.Types[i] < expected.Types[j]
+	})
+
+	sort.Slice(actual.Types, func(i, j int) bool {
+		return actual.Types[i] < actual.Types[j]
+	})
+
+	assert.True(t, reflect.DeepEqual(expected, actual), fmt.Sprintf("Actual concept differs from expected: \n ExpectedConcept: %v \n Actual: %v", expected, actual))
 }
 
 //TODO - this is temporary, we WILL want to retrieve Content once we have more info about it available
@@ -154,9 +173,9 @@ func cleanDB(t *testing.T, uuids ...string) {
 		qs[i] = &neoism.CypherQuery{
 			Statement: fmt.Sprintf(`
 			MATCH (a:Thing {uuid: "%s"})
-			OPTIONAL MATCH (a)-[rel]-(i)
-			OPTIONAL MATCH (i)-[rel2]-(d)
-			DETACH DELETE rel, rel2, d, i, a`, uuid)}
+			OPTIONAL MATCH (a)-[rel]-(c)
+			DELETE rel
+			DETACH DELETE c, a`, uuid)}
 	}
 	err := db.CypherBatch(qs)
 	assert.NoError(t, err, "Error executing clean up cypher")
@@ -170,7 +189,6 @@ func writeJSONToService(t *testing.T, service baseftrwapp.Service, pathToJSONFil
 	assert.NoError(t, errr)
 
 	errs := service.Write(inst, "TRANS_ID")
-	log.Printf("ERR: %v", errs)
 	assert.NoError(t, errs)
 }
 

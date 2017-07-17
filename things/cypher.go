@@ -34,9 +34,16 @@ type neoThing struct {
 	LeafUUID           string   `json:"leafUUID"`
 	LeafPrefLabel      string   `json:"leafPrefLabel,omitempty"`
 	LeafTypes          []string `json:"leafTypes"`
-	CanonicalUUID      string   `json:"canonicalUUID"`
-	CanonicalPrefLabel string   `json:"canonicalPrefLabel,omitempty"`
-	CanonicalTypes     []string `json:"canonicalTypes"`
+	LeafAliases        []string `json:"leafAliases,omitempty"`
+	LeafDescriptionXML string   `json:"leafDescriptionXML,omitempty"`
+	LeafImageURL       string   `json:"leafImageUrl,omitempty"`
+
+	CanonicalUUID           string   `json:"canonicalUUID"`
+	CanonicalPrefLabel      string   `json:"canonicalPrefLabel,omitempty"`
+	CanonicalTypes          []string `json:"canonicalTypes"`
+	CanonicalAliases        []string `json:"canonicalAliases,omitempty"`
+	CanonicalDescriptionXML string   `json:"canonicalDescriptionXML,omitempty"`
+	CanonicalImageURL       string   `json:"canonicalImageUrl,omitempty"`
 }
 
 func (cd cypherDriver) read(thingUUID string) (thing, bool, error) {
@@ -47,7 +54,9 @@ func (cd cypherDriver) read(thingUUID string) (thing, bool, error) {
  			MATCH (identifier)-[:IDENTIFIES]->(leaf:Thing)
  			OPTIONAL MATCH (leaf)-[:EQUIVALENT_TO]->(canonical:Thing)
 			RETURN leaf.uuid as leafUUID, labels(leaf) as leafTypes, leaf.prefLabel as leafPrefLabel,
-			canonical.prefUUID as canonicalUUID, canonical.prefLabel as canonicalPrefLabel, labels(canonical) as canonicalTypes `,
+			leaf.descriptionXML as leafDescriptionXML, leaf.imageUrl as leafImageUrl, leaf.aliases as leafAliases,
+			canonical.prefUUID as canonicalUUID, canonical.prefLabel as canonicalPrefLabel, labels(canonical) as canonicalTypes,
+			canonical.descriptionXML as canonicalDescriptionXML, canonical.imageUrl as canonicalImageUrl, canonical.aliases as canonicalAliases `,
 		Parameters: neoism.Props{"thingUUID": thingUUID},
 		Result:     &results,
 	}
@@ -91,6 +100,9 @@ func mapToResponseFormat(thng neoThing, env string) (thing, error) {
 		}
 		thing.Types = types
 		thing.DirectType = types[len(types)-1]
+		thing.DescriptionXML = thng.CanonicalDescriptionXML
+		thing.Aliases = thng.CanonicalAliases
+		thing.ImageURL = thng.CanonicalImageURL
 	} else {
 		thing.PrefLabel = thng.LeafPrefLabel
 		thing.APIURL = mapper.APIURL(thng.LeafUUID, thng.LeafTypes, env)
@@ -102,6 +114,9 @@ func mapToResponseFormat(thng neoThing, env string) (thing, error) {
 		}
 		thing.Types = types
 		thing.DirectType = types[len(types)-1]
+		thing.DescriptionXML = thng.LeafDescriptionXML
+		thing.Aliases = thng.LeafAliases
+		thing.ImageURL = thng.CanonicalImageURL
 	}
 	return thing, nil
 }

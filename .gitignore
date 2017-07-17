@@ -1,3 +1,4 @@
 public-things-api*
 .idea
 vendor/*/
+.env
