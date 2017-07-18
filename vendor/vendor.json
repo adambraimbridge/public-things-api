@@ -18,17 +18,15 @@
 			"checksumSHA1": "59Q/nQ0hy76Vw6Ly2lPfm5ptQQs=",
 			"path": "github.com/Financial-Times/base-ft-rw-app-go",
 			"revision": "27f4c78ff5bff819fea09533b4444693bca2136b",
-			"revisionTime": "2017-07-13T11:10:17Z"
+			"revisionTime": "2017-07-13T11:10:17Z",
+			"version": "1.0.1",
+			"versionExact": "1.0.1"
 		},
 		{
 			"checksumSHA1": "5b1Y79xoNFuE/XXi5LDN3ys4OYA=",
 			"path": "github.com/Financial-Times/base-ft-rw-app-go/baseftrwapp",
 			"revision": "27f4c78ff5bff819fea09533b4444693bca2136b",
 			"revisionTime": "2017-07-13T11:10:17Z"
-		},
-		{
-			"path": "github.com/Financial-Times/base-rw-neo4j",
-			"revision": ""
 		},
 		{
 			"checksumSHA1": "7YM7aq6cdSPBLUzrL8H2/yi81BY=",
@@ -144,7 +142,9 @@
 			"checksumSHA1": "diw1KueSVzsMHPCNDvj+xQiXSTE=",
 			"path": "github.com/Financial-Times/up-rw-app-api-go/rwapi",
 			"revision": "d9d93a1f689538313d12fee6f5f10715cfe280e0",
-			"revisionTime": "2017-07-10T12:58:28Z"
+			"revisionTime": "2017-07-10T12:58:28Z",
+			"version": "1.0.0",
+			"versionExact": "1.0.0"
 		},
 		{
 			"checksumSHA1": "Cag+3Y9IpGeyM+7Li1AkHdcaTyg=",

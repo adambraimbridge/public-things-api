@@ -3,12 +3,12 @@ package things
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Financial-Times/go-fthealth/v1a"
-	"github.com/gorilla/mux"
 	"net/http"
 	"regexp"
 	"strings"
-	"log"
+
+	"github.com/Financial-Times/go-fthealth/v1a"
+	"github.com/gorilla/mux"
 )
 
 var ThingsDriver driver
@@ -84,8 +84,6 @@ func GetThings(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//if the request was not made for the canonical, but an alternate uuid: redirect
-
-	log.Printf("Url: %v Param: %v", uuid, thng.ID)
 	if !strings.Contains(thng.ID, uuid) {
 		validRegexp := regexp.MustCompile(validUUID)
 		canonicalUUID := validRegexp.FindString(thng.ID)

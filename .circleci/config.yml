@@ -44,7 +44,7 @@ jobs:
           path: /tmp/artifacts
           destination: build
   docker_build:
-    working_directory: /public-concordances-api
+    working_directory: /public-things-api
     docker:
       - image: docker:1.12.6-git
     steps:
