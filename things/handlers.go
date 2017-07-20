@@ -3,11 +3,12 @@ package things
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Financial-Times/go-fthealth/v1a"
-	"github.com/gorilla/mux"
 	"net/http"
 	"regexp"
 	"strings"
+
+	"github.com/Financial-Times/go-fthealth/v1a"
+	"github.com/gorilla/mux"
 )
 
 var ThingsDriver driver
