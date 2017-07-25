@@ -1,4 +1,4 @@
-public-things-api*
+/public-things-api*
 .idea
 vendor/*/
 .env
