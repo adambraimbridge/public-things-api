@@ -61,17 +61,17 @@ func TestRetrievePeopleAsThing(t *testing.T) {
 	assert.NoError(t, personRW.Initialise())
 
 	writeJSONToService(t, personRW, fmt.Sprintf("./fixtures/People-%s.json", PersonThingUUID))
-	types := []string{"Thing", "Concept", "Person"}
+	types := []string{"Concept", "Concept", "Person"}
 	typesUris := mapper.TypeURIs(types)
 
 
 	thingsDriver := NewCypherDriver(db, "prod")
 	thng, found, err := thingsDriver.read(PersonThingUUID)
 	assert.NoError(t, err, "Unexpected error for person as thing %s", PersonThingUUID)
-	assert.True(t, found, "Found no thing for person as thing %s", PersonThingUUID)
+	assert.True(t, found, "Found no Concept for person as Concept %s", PersonThingUUID)
 
-	expected := thing{APIURL: mapper.APIURL(PersonThingUUID, types, "Prod"), PrefLabel: "John Smith", ID: mapper.IDURL(PersonThingUUID),
-		Types: typesUris, DirectType: typesUris[len(typesUris)-1], Aliases:[]string{"John Smith"}}
+	expected := Concept{APIURL: mapper.APIURL(PersonThingUUID, types, "Prod"), PrefLabel: "John Smith", ID: mapper.IDURL(PersonThingUUID),
+		Types:                  typesUris, DirectType: typesUris[len(typesUris)-1], Aliases: []string{"John Smith"}}
 
 	readAndCompare(t, expected, thng, "Person successful retrieval")
 }
@@ -82,18 +82,18 @@ func TestRetrieveOrganisationAsThing(t *testing.T) {
 	organisationRW := organisations.NewCypherOrganisationService(db)
 	assert.NoError(t, organisationRW.Initialise())
 
-	types := []string{"Thing", "Concept", "Organisation", "Company", "PublicCompany"}
+	types := []string{"Concept", "Concept", "Organisation", "Company", "PublicCompany"}
 	typesUris := mapper.TypeURIs(types)
 
-	expected := thing{APIURL: mapper.APIURL(FakebookConceptUUID, types, "Prod"), PrefLabel: "Fakebook, Inc.", ID: mapper.IDURL(FakebookConceptUUID),
-		Types: typesUris, DirectType: typesUris[len(typesUris)-1]}
+	expected := Concept{APIURL: mapper.APIURL(FakebookConceptUUID, types, "Prod"), PrefLabel: "Fakebook, Inc.", ID: mapper.IDURL(FakebookConceptUUID),
+		Types:                  typesUris, DirectType: typesUris[len(typesUris)-1]}
 
 	writeJSONToService(t, organisationRW, fmt.Sprintf("./fixtures/Organisation-Fakebook-%v.json", FakebookConceptUUID))
 
 	thingsDriver := NewCypherDriver(db, "prod")
 	thng, found, err := thingsDriver.read(FakebookConceptUUID)
 	assert.NoError(t, err, "Unexpected error for organisation as thing %s", FakebookConceptUUID)
-	assert.True(t, found, "Found no thing for organisation as thing %s", FakebookConceptUUID)
+	assert.True(t, found, "Found no Concept for organisation as Concept %s", FakebookConceptUUID)
 
 	readAndCompare(t, expected, thng, "Organisation successful retrieval")
 }
@@ -104,24 +104,24 @@ func TestRetrieveConceptNewModelAsThing(t *testing.T) {
 	conceptsDriver := concepts.NewConceptService(db)
 	assert.NoError(t, conceptsDriver.Initialise())
 
-	types := []string{"Thing", "Concept", "Classification", "Brand"}
+	types := []string{"Concept", "Concept", "Classification", "Brand"}
 	typesUris := mapper.TypeURIs(types)
 
-	expected := thing{APIURL: mapper.APIURL(BrandOnyxPike, types, "Prod"), PrefLabel: "Onyx Pike", ID: mapper.IDURL(BrandOnyxPike),
-		Types: typesUris, DirectType: typesUris[len(typesUris)-1], Aliases: []string{"Bob", "BOB2"},
-		DescriptionXML: "<p>Some stuff</p>", ImageURL: "http://media.ft.com/brand.png"}
+	expected := Concept{APIURL: mapper.APIURL(BrandOnyxPike, types, "Prod"), PrefLabel: "Onyx Pike", ID: mapper.IDURL(BrandOnyxPike),
+		Types:                  typesUris, DirectType: typesUris[len(typesUris)-1], Aliases: []string{"Bob", "BOB2"},
+		DescriptionXML:         "<p>Some stuff</p>", ImageURL: "http://media.ft.com/brand.png"}
 	writeJSONToService(t, conceptsDriver, fmt.Sprintf("./fixtures/Brand-OnyxPike-%s.json", BrandOnyxPike))
 
 	thingsDriver := NewCypherDriver(db, "prod")
 	thng, found, err := thingsDriver.read(BrandOnyxPike)
 
 	assert.NoError(t, err, "Unexpected error for concept as thing %s", BrandOnyxPike)
-	assert.True(t, found, "Found no thing for concept as thing %s", BrandOnyxPike)
+	assert.True(t, found, "Found no Concept for concept as Concept %s", BrandOnyxPike)
 
 	readAndCompare(t, expected, thng, "Retrieve concepts via new concordance model")
 }
 
-func readAndCompare(t *testing.T, expected thing, actual thing, testName string) {
+func readAndCompare(t *testing.T, expected Concept, actual Concept, testName string) {
 	sort.Slice(expected.Aliases, func(i, j int) bool {
 		return expected.Aliases[i] < expected.Aliases[j]
 	})
@@ -155,7 +155,7 @@ func TestCannotRetrieveContentAsThing(t *testing.T) {
 	thng, found, err := thingsDriver.read(NonExistingThingUUID)
 	assert.NoError(err, "Unexpected error for thing %s", NonExistingThingUUID)
 	assert.False(found, "Found thing %s", NonExistingThingUUID)
-	assert.EqualValues(thing{}, thng, "Found non-existing thing %s", NonExistingThingUUID)
+	assert.EqualValues(Concept{}, thng, "Found non-existing thing %s", NonExistingThingUUID)
 }
 
 func TestRetrieveNoThingsWhenThereAreNonePresent(t *testing.T) {
@@ -164,7 +164,7 @@ func TestRetrieveNoThingsWhenThereAreNonePresent(t *testing.T) {
 	thng, found, err := thingsDriver.read(NonExistingThingUUID)
 	assert.NoError(err, "Unexpected error for thing %s", NonExistingThingUUID)
 	assert.False(found, "Found thing %s", NonExistingThingUUID)
-	assert.EqualValues(thing{}, thng, "Found non-existing thing %s", NonExistingThingUUID)
+	assert.EqualValues(Concept{}, thng, "Found non-existing thing %s", NonExistingThingUUID)
 }
 
 func cleanDB(t *testing.T, uuids ...string) {
@@ -172,7 +172,7 @@ func cleanDB(t *testing.T, uuids ...string) {
 	for i, uuid := range uuids {
 		qs[i] = &neoism.CypherQuery{
 			Statement: fmt.Sprintf(`
-			MATCH (a:Thing {uuid: "%s"})
+			MATCH (a:Concept {uuid: "%s"})
 			OPTIONAL MATCH (a)-[rel]-(c)
 			DELETE rel
 			DETACH DELETE c, a`, uuid)}
@@ -192,9 +192,9 @@ func writeJSONToService(t *testing.T, service baseftrwapp.Service, pathToJSONFil
 	assert.NoError(t, errs)
 }
 
-func validateThing(t *testing.T, prefLabel string, UUID string, directType string, types []string, thng thing) {
+func validateThing(t *testing.T, prefLabel string, UUID string, directType string, types []string, thng Concept) {
 	assert.EqualValues(t, prefLabel, thng.PrefLabel, "PrefLabel incorrect")
-	assert.EqualValues(t, "http://api.ft.com/things/"+UUID, thng.ID, "ID incorrect")
+	assert.EqualValues(t, "http://api.ft.com/Things/"+UUID, thng.ID, "ID incorrect")
 	assert.EqualValues(t, directType, thng.DirectType, "DirectType incorrect")
 	assert.EqualValues(t, types, thng.Types, "Types incorrect")
 }

@@ -12,7 +12,7 @@ import (
 
 // Driver interface
 type driver interface {
-	read(id string) (thng thing, found bool, err error)
+	read(id string) (thng Concept, found bool, err error)
 	checkConnectivity() error
 }
 
@@ -46,13 +46,13 @@ type neoThing struct {
 	CanonicalImageURL       string   `json:"canonicalImageUrl,omitempty"`
 }
 
-func (cd cypherDriver) read(thingUUID string) (thing, bool, error) {
+func (cd cypherDriver) read(thingUUID string) (Concept, bool, error) {
 	results := []neoThing{}
 
 	query := &neoism.CypherQuery{
 		Statement: `MATCH (identifier:UPPIdentifier{value:{thingUUID}})
- 			MATCH (identifier)-[:IDENTIFIES]->(leaf:Thing)
- 			OPTIONAL MATCH (leaf)-[:EQUIVALENT_TO]->(canonical:Thing)
+ 			MATCH (identifier)-[:IDENTIFIES]->(leaf:Concept)
+ 			OPTIONAL MATCH (leaf)-[:EQUIVALENT_TO]->(canonical:Concept)
 			RETURN leaf.uuid as leafUUID, labels(leaf) as leafTypes, leaf.prefLabel as leafPrefLabel,
 			leaf.descriptionXML as leafDescriptionXML, leaf.imageUrl as leafImageUrl, leaf.aliases as leafAliases,
 			canonical.prefUUID as canonicalUUID, canonical.prefLabel as canonicalPrefLabel, labels(canonical) as canonicalTypes,
@@ -64,13 +64,13 @@ func (cd cypherDriver) read(thingUUID string) (thing, bool, error) {
 	err := cd.conn.CypherBatch([]*neoism.CypherQuery{query})
 
 	if err != nil || len(results) == 0 || len(results[0].LeafUUID) == 0 {
-		return thing{}, false, err
+		return Concept{}, false, err
 	} else if len(results) != 1 && len(results[0].LeafUUID) != 1 {
-		errMsg := fmt.Sprintf("Multiple things found with the same UUID:%s !", thingUUID)
-		log.WithFields(log.Fields{"UUID": thingUUID}).Error("Multiple things found with the same UUID")
-		return thing{}, true, errors.New(errMsg)
+		errMsg := fmt.Sprintf("Multiple Things found with the same UUID:%s !", thingUUID)
+		log.WithFields(log.Fields{"UUID": thingUUID}).Error("Multiple Things found with the same UUID")
+		return Concept{}, true, errors.New(errMsg)
 	} else if isContent(results[0]) {
-		return thing{}, false, nil
+		return Concept{}, false, nil
 	} else {
 		thing, err := mapToResponseFormat(results[0], cd.env)
 		return thing, true, err
@@ -86,8 +86,8 @@ func isContent(thng neoThing) bool {
 	return false
 }
 
-func mapToResponseFormat(thng neoThing, env string) (thing, error) {
-	thing := thing{}
+func mapToResponseFormat(thng neoThing, env string) (Concept, error) {
+	thing := Concept{}
 	// New Concordance Model
 	if thng.CanonicalPrefLabel != "" {
 		thing.PrefLabel = thng.CanonicalPrefLabel
@@ -96,7 +96,7 @@ func mapToResponseFormat(thng neoThing, env string) (thing, error) {
 		types := mapper.TypeURIs(thng.CanonicalTypes)
 		if types == nil {
 			log.WithFields(log.Fields{"UUID": thng.CanonicalUUID}).Errorf("Could not map type URIs for ID %s with types %s", thng.CanonicalUUID, thng.CanonicalTypes)
-			return thing, errors.New("Thing not found")
+			return thing, errors.New("Concept not found")
 		}
 		thing.Types = types
 		thing.DirectType = types[len(types)-1]
@@ -110,7 +110,7 @@ func mapToResponseFormat(thng neoThing, env string) (thing, error) {
 		types := mapper.TypeURIs(thng.LeafTypes)
 		if types == nil {
 			log.WithFields(log.Fields{"UUID": thng.LeafUUID}).Errorf("Could not map type URIs for ID %s with types %s", thng.LeafUUID, thng.LeafTypes)
-			return thing, errors.New("Thing not found")
+			return thing, errors.New("Concept not found")
 		}
 		thing.Types = types
 		thing.DirectType = types[len(types)-1]
