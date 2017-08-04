@@ -67,12 +67,17 @@ func main() {
 		Desc:   "Log level of the app",
 		EnvVar: "LOG_LEVEL",
 	})
+	healthcheckInterval := app.String(cli.StringOpt{
+		Name:   "healthcheck-interval",
+		Value:  "30s",
+		Desc:   "How often the Neo4j healthcheck is called.",
+		EnvVar: "HEALTHCHECK_INTERVAL",
+	})
 	app.Action = func() {
 		baseftrwapp.OutputMetricsIfRequired(*graphiteTCPAddress, *graphitePrefix, *logMetrics)
 		log.Infof("public-things-api will listen on port: %s, connecting to: %s", *port, *neoURL)
-		runServer(*neoURL, *port, *cacheDuration, *env)
+		runServer(*neoURL, *port, *cacheDuration, *env, *healthcheckInterval)
 	}
-	log.SetLevel(log.InfoLevel)
 
 	log.SetFormatter(&log.JSONFormatter{})
 	lvl, err := log.ParseLevel(*logLevel)
@@ -82,7 +87,7 @@ func main() {
 	}
 	log.SetLevel(lvl)
 	log.WithFields(log.Fields{
-		"HEALTHCHECK_INTERVAL": 30,
+		"HEALTHCHECK_INTERVAL": *healthcheckInterval,
 		"CACHE_DURATION":       *cacheDuration,
 		"NEO_URL":              *neoURL,
 		"LOG_LEVEL":            *logLevel,
@@ -92,7 +97,7 @@ func main() {
 	app.Run(os.Args)
 }
 
-func runServer(neoURL string, port string, cacheDuration string, env string) {
+func runServer(neoURL string, port string, cacheDuration string, healthcheckInterval string, env string) {
 	if duration, durationErr := time.ParseDuration(cacheDuration); durationErr != nil {
 		log.Fatalf("Failed to parse cache duration string, %v", durationErr)
 	} else {
