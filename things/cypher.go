@@ -59,16 +59,45 @@ type neoThing struct {
 func (cd cypherDriver) read(thingUUID string) (Concept, bool, error) {
 	results := []neoThing{}
 
+	// This is just getting the broader than at the moment
+
+	//MATCH (identifier:UPPIdentifier{value:"2faae810-517d-4b6d-bb7b-1df10dcbe243"})
+	//MATCH (identifier)-[:IDENTIFIES]->(leaf:Concept)
+	//OPTIONAL MATCH (leaf)-[:EQUIVALENT_TO]->(canonical:Concept)
+	//OPTIONAL MATCH (leaf)-[:HAS_BROADER]->(broader:Concept)
+	//WITH leaf, canonical, {uuid: broader.uuid, prefLabel: broader.prefLabel, types: labels(broader)} as b
+	//OPTIONAL MATCH (leaf)<-[:HAS_BROADER]-(narrower:Concept)
+	//WITH leaf, canonical, collect(b) as broader, {uuid: narrower.uuid, prefLabel: narrower.prefLabel, types: labels(narrower)} as n
+	//RETURN leaf.uuid as leafUUID, broader, collect(n) as narrower
+
+	//MATCH (identifier:UPPIdentifier{value:"2faae810-517d-4b6d-bb7b-1df10dcbe243"})
+	//MATCH (identifier)-[:IDENTIFIES]->(leaf:Concept)
+	//OPTIONAL MATCH (leaf)-[:EQUIVALENT_TO]->(canonical:Concept)
+	//OPTIONAL MATCH (leaf)-[:HAS_BROADER]->(broader:Concept)
+	//WITH leaf, canonical, {uuid: broader.uuid, prefLabel: broader.prefLabel, types: labels(broader)} as broader
+	//RETURN leaf.uuid as leafUUID, labels(leaf) as leafTypes, leaf.prefLabel as leafPrefLabel,
+	//	leaf.descriptionXML as leafDescriptionXML, leaf.imageUrl as leafImageUrl, leaf.aliases as leafAliases, leaf.emailAddress as leafEmailAddress,
+	//	leaf.facebookPage as leafFacebookPage, leaf.twitterHandle as leafTwitterHandle, leaf.scopeNote as leafScopeNote, leaf.shortLabel as leafShortLabel,
+	//	canonical.prefUUID as canonicalUUID, canonical.prefLabel as canonicalPrefLabel, labels(canonical) as canonicalTypes,
+	//	canonical.descriptionXML as canonicalDescriptionXML, canonical.imageUrl as canonicalImageUrl, canonical.aliases as canonicalAliases, canonical.emailAddress as canonicalEmailAddress,
+	//	canonical.facebookPage as canonicalFacebookPage, canonical.twitterHandle as canonicalTwitterHandle, canonical.scopeNote as canonicalScopeNote, canonical.shortLabel as canonicalShortLabel, collect(broader) as bboo
+
 	query := &neoism.CypherQuery{
 		Statement: `MATCH (identifier:UPPIdentifier{value:{thingUUID}})
  			MATCH (identifier)-[:IDENTIFIES]->(leaf:Concept)
  			OPTIONAL MATCH (leaf)-[:EQUIVALENT_TO]->(canonical:Concept)
+ 			OPTIONAL MATCH (leaf)-[:HAS_BROADER]->(broader:Concept)
+ 			WITH leaf, canonical, {uuid: broader.uuid, prefLabel: broader.prefLabel} as broader
+ 			OPTIONAL MATCH (leaf)<-[:HAS_BROADER]-(narrower:Concept)
+ 			OPTIONAL MATCH (leaf)-[:RELATED_TO]-(relatedto:Concept)
 			RETURN leaf.uuid as leafUUID, labels(leaf) as leafTypes, leaf.prefLabel as leafPrefLabel,
 			leaf.descriptionXML as leafDescriptionXML, leaf.imageUrl as leafImageUrl, leaf.aliases as leafAliases, leaf.emailAddress as leafEmailAddress,
 			leaf.facebookPage as leafFacebookPage, leaf.twitterHandle as leafTwitterHandle, leaf.scopeNote as leafScopeNote, leaf.shortLabel as leafShortLabel,
 			canonical.prefUUID as canonicalUUID, canonical.prefLabel as canonicalPrefLabel, labels(canonical) as canonicalTypes,
 			canonical.descriptionXML as canonicalDescriptionXML, canonical.imageUrl as canonicalImageUrl, canonical.aliases as canonicalAliases, canonical.emailAddress as canonicalEmailAddress,
-			canonical.facebookPage as canonicalFacebookPage, canonical.twitterHandle as canonicalTwitterHandle, canonical.scopeNote as canonicalScopeNote, canonical.shortLabel as canonicalShortLabel`,
+			canonical.facebookPage as canonicalFacebookPage, canonical.twitterHandle as canonicalTwitterHandle, canonical.scopeNote as canonicalScopeNote, canonical.shortLabel as canonicalShortLabel
+			`,
+
 		Parameters: neoism.Props{"thingUUID": thingUUID},
 		Result:     &results,
 	}
