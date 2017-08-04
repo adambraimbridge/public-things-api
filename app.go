@@ -61,13 +61,33 @@ func main() {
 		Desc:   "Duration Get requests should be cached for. e.g. 2h45m would set the max-age value to '7440' seconds",
 		EnvVar: "CACHE_DURATION",
 	})
-
+	logLevel := app.String(cli.StringOpt{
+		Name:   "logLevel",
+		Value:  "info",
+		Desc:   "Log level of the app",
+		EnvVar: "LOG_LEVEL",
+	})
 	app.Action = func() {
 		baseftrwapp.OutputMetricsIfRequired(*graphiteTCPAddress, *graphitePrefix, *logMetrics)
 		log.Infof("public-things-api will listen on port: %s, connecting to: %s", *port, *neoURL)
 		runServer(*neoURL, *port, *cacheDuration, *env)
 	}
 	log.SetLevel(log.InfoLevel)
+
+	log.SetFormatter(&log.JSONFormatter{})
+	lvl, err := log.ParseLevel(*logLevel)
+	if err != nil {
+		log.WithField("LOG_LEVEL", *logLevel).Warn("Cannot parse log level, setting it to INFO.")
+		lvl = log.InfoLevel
+	}
+	log.SetLevel(lvl)
+	log.WithFields(log.Fields{
+		"HEALTHCHECK_INTERVAL": 30,
+		"CACHE_DURATION":       *cacheDuration,
+		"NEO_URL":              *neoURL,
+		"LOG_LEVEL":            *logLevel,
+	}).Info("Starting app with arguments")
+
 	log.Infof("Application started with args %s", os.Args)
 	app.Run(os.Args)
 }
