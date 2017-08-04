@@ -61,17 +61,25 @@ func TestRetrievePeopleAsThing(t *testing.T) {
 	assert.NoError(t, personRW.Initialise())
 
 	writeJSONToService(t, personRW, fmt.Sprintf("./fixtures/People-%s.json", PersonThingUUID))
-	types := []string{"Concept", "Concept", "Person"}
+	types := []string{"Thing", "Concept", "Person"}
 	typesUris := mapper.TypeURIs(types)
-
 
 	thingsDriver := NewCypherDriver(db, "prod")
 	thng, found, err := thingsDriver.read(PersonThingUUID)
 	assert.NoError(t, err, "Unexpected error for person as thing %s", PersonThingUUID)
 	assert.True(t, found, "Found no Concept for person as Concept %s", PersonThingUUID)
 
-	expected := Concept{APIURL: mapper.APIURL(PersonThingUUID, types, "Prod"), PrefLabel: "John Smith", ID: mapper.IDURL(PersonThingUUID),
-		Types:                  typesUris, DirectType: typesUris[len(typesUris)-1], Aliases: []string{"John Smith"}}
+	expected := Concept{
+		APIURL:         mapper.APIURL(PersonThingUUID, types, "Prod"),
+		PrefLabel:      "John Smith",
+		ID:             mapper.IDURL(PersonThingUUID),
+		Types:          typesUris,
+		DirectType:     typesUris[len(typesUris)-1],
+		Aliases:        []string{"John Smith"},
+		EmailAddress:   "john.smith@ft.com",
+		TwitterHandle:  "@johnsmith",
+		DescriptionXML: "John smith is some bloke and a beer",
+	}
 
 	readAndCompare(t, expected, thng, "Person successful retrieval")
 }
@@ -82,11 +90,11 @@ func TestRetrieveOrganisationAsThing(t *testing.T) {
 	organisationRW := organisations.NewCypherOrganisationService(db)
 	assert.NoError(t, organisationRW.Initialise())
 
-	types := []string{"Concept", "Concept", "Organisation", "Company", "PublicCompany"}
+	types := []string{"Thing", "Concept", "Organisation", "Company", "PublicCompany"}
 	typesUris := mapper.TypeURIs(types)
 
 	expected := Concept{APIURL: mapper.APIURL(FakebookConceptUUID, types, "Prod"), PrefLabel: "Fakebook, Inc.", ID: mapper.IDURL(FakebookConceptUUID),
-		Types:                  typesUris, DirectType: typesUris[len(typesUris)-1]}
+		Types: typesUris, DirectType: typesUris[len(typesUris)-1]}
 
 	writeJSONToService(t, organisationRW, fmt.Sprintf("./fixtures/Organisation-Fakebook-%v.json", FakebookConceptUUID))
 
@@ -104,12 +112,12 @@ func TestRetrieveConceptNewModelAsThing(t *testing.T) {
 	conceptsDriver := concepts.NewConceptService(db)
 	assert.NoError(t, conceptsDriver.Initialise())
 
-	types := []string{"Concept", "Concept", "Classification", "Brand"}
+	types := []string{"Thing", "Concept", "Classification", "Brand"}
 	typesUris := mapper.TypeURIs(types)
 
 	expected := Concept{APIURL: mapper.APIURL(BrandOnyxPike, types, "Prod"), PrefLabel: "Onyx Pike", ID: mapper.IDURL(BrandOnyxPike),
-		Types:                  typesUris, DirectType: typesUris[len(typesUris)-1], Aliases: []string{"Bob", "BOB2"},
-		DescriptionXML:         "<p>Some stuff</p>", ImageURL: "http://media.ft.com/brand.png"}
+		Types: typesUris, DirectType: typesUris[len(typesUris)-1], Aliases: []string{"Bob", "BOB2"},
+		DescriptionXML: "<p>Some stuff</p>", ImageURL: "http://media.ft.com/brand.png"}
 	writeJSONToService(t, conceptsDriver, fmt.Sprintf("./fixtures/Brand-OnyxPike-%s.json", BrandOnyxPike))
 
 	thingsDriver := NewCypherDriver(db, "prod")

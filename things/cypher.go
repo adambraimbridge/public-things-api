@@ -37,6 +37,11 @@ type neoThing struct {
 	LeafAliases        []string `json:"leafAliases,omitempty"`
 	LeafDescriptionXML string   `json:"leafDescriptionXML,omitempty"`
 	LeafImageURL       string   `json:"leafImageUrl,omitempty"`
+	LeafEmailAddress   string   `json:"leafEmailAddress,omitempty"`
+	LeafFacebookPage   string   `json:"leafFacebookPage,omitempty"`
+	LeafTwitterHandle  string   `json:"leafTwitterHandle,omitempty"`
+	LeafScopeNote      string   `json:"leafScopeNote,omitempty"`
+	LeafShortLabel     string   `json:"leafShortLabel,omitempty"`
 
 	CanonicalUUID           string   `json:"canonicalUUID"`
 	CanonicalPrefLabel      string   `json:"canonicalPrefLabel,omitempty"`
@@ -44,6 +49,11 @@ type neoThing struct {
 	CanonicalAliases        []string `json:"canonicalAliases,omitempty"`
 	CanonicalDescriptionXML string   `json:"canonicalDescriptionXML,omitempty"`
 	CanonicalImageURL       string   `json:"canonicalImageUrl,omitempty"`
+	CanonicalEmailAddress   string   `json:"canonicalEmailAddress,omitempty"`
+	CanonicalFacebookPage   string   `json:"canonicalFacebookPage,omitempty"`
+	CanonicalTwitterHandle  string   `json:"canonicalTwitterHandle,omitempty"`
+	CanonicalScopeNote      string   `json:"canonicalScopeNote,omitempty"`
+	CanonicalShortLabel     string   `json:"canonicalShortLabel,omitempty"`
 }
 
 func (cd cypherDriver) read(thingUUID string) (Concept, bool, error) {
@@ -54,9 +64,11 @@ func (cd cypherDriver) read(thingUUID string) (Concept, bool, error) {
  			MATCH (identifier)-[:IDENTIFIES]->(leaf:Concept)
  			OPTIONAL MATCH (leaf)-[:EQUIVALENT_TO]->(canonical:Concept)
 			RETURN leaf.uuid as leafUUID, labels(leaf) as leafTypes, leaf.prefLabel as leafPrefLabel,
-			leaf.descriptionXML as leafDescriptionXML, leaf.imageUrl as leafImageUrl, leaf.aliases as leafAliases,
+			leaf.descriptionXML as leafDescriptionXML, leaf.imageUrl as leafImageUrl, leaf.aliases as leafAliases, leaf.emailAddress as leafEmailAddress,
+			leaf.facebookPage as leafFacebookPage, leaf.twitterHandle as leafTwitterHandle, leaf.scopeNote as leafScopeNote, leaf.shortLabel as leafShortLabel,
 			canonical.prefUUID as canonicalUUID, canonical.prefLabel as canonicalPrefLabel, labels(canonical) as canonicalTypes,
-			canonical.descriptionXML as canonicalDescriptionXML, canonical.imageUrl as canonicalImageUrl, canonical.aliases as canonicalAliases `,
+			canonical.descriptionXML as canonicalDescriptionXML, canonical.imageUrl as canonicalImageUrl, canonical.aliases as canonicalAliases, canonical.emailAddress as canonicalEmailAddress,
+			canonical.facebookPage as canonicalFacebookPage, canonical.twitterHandle as canonicalTwitterHandle, canonical.scopeNote as canonicalScopeNote, canonical.shortLabel as canonicalShortLabel`,
 		Parameters: neoism.Props{"thingUUID": thingUUID},
 		Result:     &results,
 	}
@@ -103,6 +115,12 @@ func mapToResponseFormat(thng neoThing, env string) (Concept, error) {
 		thing.DescriptionXML = thng.CanonicalDescriptionXML
 		thing.Aliases = thng.CanonicalAliases
 		thing.ImageURL = thng.CanonicalImageURL
+		thing.EmailAddress = thng.CanonicalEmailAddress
+		thing.TwitterHandle = thng.CanonicalTwitterHandle
+		thing.FacebookPage = thng.CanonicalFacebookPage
+		thing.ScopeNote = thng.CanonicalScopeNote
+		thing.ShortLabel = thng.CanonicalShortLabel
+
 	} else {
 		thing.PrefLabel = thng.LeafPrefLabel
 		thing.APIURL = mapper.APIURL(thng.LeafUUID, thng.LeafTypes, env)
@@ -116,7 +134,12 @@ func mapToResponseFormat(thng neoThing, env string) (Concept, error) {
 		thing.DirectType = types[len(types)-1]
 		thing.DescriptionXML = thng.LeafDescriptionXML
 		thing.Aliases = thng.LeafAliases
-		thing.ImageURL = thng.CanonicalImageURL
+		thing.ImageURL = thng.LeafImageURL
+		thing.EmailAddress = thng.LeafEmailAddress
+		thing.TwitterHandle = thng.LeafTwitterHandle
+		thing.FacebookPage = thng.LeafFacebookPage
+		thing.ScopeNote = thng.LeafScopeNote
+		thing.ShortLabel = thng.LeafShortLabel
 	}
 	return thing, nil
 }

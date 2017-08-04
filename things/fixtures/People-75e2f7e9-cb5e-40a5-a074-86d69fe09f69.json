@@ -1,14 +1,16 @@
 {
   "uuid": "75e2f7e9-cb5e-40a5-a074-86d69fe09f69",
+  "prefLabel": "John Smith",
+  "type": "Person",
   "alternativeIdentifiers": {
+    "TME": [
+      "Q0ItMDAwMDkyMQ==-QXV0aG9ycw=="
+    ],
     "uuids": [
       "75e2f7e9-cb5e-40a5-a074-86d69fe09f69"
     ],
     "factsetIdentifier": "000ZZZ-E"
   },
-  "name": "John Smith",
-  "prefLabel": "John Smith",
-  "salutation": "Mr.",
   "aliases": [
     "John Smith"
   ],
@@ -16,5 +18,11 @@
     "Thing",
     "Concept",
     "Person"
-  ]
+  ],
+  "name": "John Smith",
+  "emailAddress": "john.smith@ft.com",
+  "twitterHandle": "@johnsmith",
+  "description": "John smith is some bloke and a beer",
+  "descriptionXML": "John smith is some bloke and a beer",
+  "_imageUrl": "https://www.ft.com/__origami/service/image/v2/images/raw/fthead:john-smith?source=next"
 }
