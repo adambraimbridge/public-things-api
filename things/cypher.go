@@ -164,8 +164,7 @@ func mapToResponseFormat(thng neoConcept, env string) (Concept, error) {
 		thing.ScopeNote = thng.LeafScopeNote
 		thing.ShortLabel = thng.LeafShortLabel
 	}
-
-	log.Infof("SIXE: %v", len(thng.BroaderThan))
+	
 	if len(thng.BroaderThan) > 0 && thng.BroaderThan[0].ID != "" {
 		tings := []Thing{}
 		for _, broadThanThing := range thng.BroaderThan {
