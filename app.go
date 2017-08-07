@@ -17,6 +17,7 @@ import (
 	"github.com/jawher/mow.cli"
 	"github.com/rcrowley/go-metrics"
 	"github.com/Financial-Times/base-ft-rw-app-go/baseftrwapp"
+	_ "github.com/joho/godotenv/autoload"
 )
 
 func main() {

@@ -55,7 +55,7 @@ func neoUrl() string {
 }
 
 func TestRetrievePeopleAsThing(t *testing.T) {
-	defer cleanDB(t, PersonThingUUID)
+	//defer cleanDB(t, PersonThingUUID)
 
 	personRW := people.NewCypherPeopleService(db)
 	assert.NoError(t, personRW.Initialise())
@@ -144,6 +144,30 @@ func readAndCompare(t *testing.T, expected Concept, actual Concept, testName str
 
 	sort.Slice(actual.Types, func(i, j int) bool {
 		return actual.Types[i] < actual.Types[j]
+	})
+
+	sort.Slice(actual.BroaderThan, func(i, j int) bool {
+		return actual.BroaderThan[i].ID < actual.BroaderThan[j].ID
+	})
+
+	sort.Slice(actual.NarrowerThan, func(i, j int) bool {
+		return actual.NarrowerThan[i].ID < actual.NarrowerThan[j].ID
+	})
+
+	sort.Slice(actual.RelatedTo, func(i, j int) bool {
+		return actual.RelatedTo[i].ID < actual.RelatedTo[j].ID
+	})
+
+	sort.Slice(expected.BroaderThan, func(i, j int) bool {
+		return expected.BroaderThan[i].ID < expected.BroaderThan[j].ID
+	})
+
+	sort.Slice(expected.NarrowerThan, func(i, j int) bool {
+		return expected.NarrowerThan[i].ID < expected.NarrowerThan[j].ID
+	})
+
+	sort.Slice(expected.RelatedTo, func(i, j int) bool {
+		return expected.RelatedTo[i].ID < expected.RelatedTo[j].ID
 	})
 
 	assert.True(t, reflect.DeepEqual(expected, actual), fmt.Sprintf("Actual concept differs from expected: \n ExpectedConcept: %v \n Actual: %v", expected, actual))

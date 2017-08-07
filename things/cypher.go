@@ -30,7 +30,7 @@ func (cd cypherDriver) checkConnectivity() error { //TODO - use the neo4j connec
 	return neoutils.Check(cd.conn)
 }
 
-type neoThing struct {
+type neoConcept struct {
 	LeafUUID           string   `json:"leafUUID"`
 	LeafPrefLabel      string   `json:"leafPrefLabel,omitempty"`
 	LeafTypes          []string `json:"leafTypes"`
@@ -54,54 +54,46 @@ type neoThing struct {
 	CanonicalTwitterHandle  string   `json:"canonicalTwitterHandle,omitempty"`
 	CanonicalScopeNote      string   `json:"canonicalScopeNote,omitempty"`
 	CanonicalShortLabel     string   `json:"canonicalShortLabel,omitempty"`
+
+	NarrowerThan []neoThing `json:"narrowerThan,omitempty"`
+	BroaderThan  []neoThing `json:"broaderThan,omitempty"`
+	RelatedTo    []neoThing `json:"relatedTo,omitempty"`
+}
+
+type neoThing struct {
+	ID        string   `json:"id,omitempty"`
+	PrefLabel string   `json:"prefLabel,omitempty"`
+	Types     []string `json:"types,omitempty"`
 }
 
 func (cd cypherDriver) read(thingUUID string) (Concept, bool, error) {
-	results := []neoThing{}
-
-	// This is just getting the broader than at the moment
-
-	//MATCH (identifier:UPPIdentifier{value:"2faae810-517d-4b6d-bb7b-1df10dcbe243"})
-	//MATCH (identifier)-[:IDENTIFIES]->(leaf:Concept)
-	//OPTIONAL MATCH (leaf)-[:EQUIVALENT_TO]->(canonical:Concept)
-	//OPTIONAL MATCH (leaf)-[:HAS_BROADER]->(broader:Concept)
-	//WITH leaf, canonical, {uuid: broader.uuid, prefLabel: broader.prefLabel, types: labels(broader)} as b
-	//OPTIONAL MATCH (leaf)<-[:HAS_BROADER]-(narrower:Concept)
-	//WITH leaf, canonical, collect(b) as broader, {uuid: narrower.uuid, prefLabel: narrower.prefLabel, types: labels(narrower)} as n
-	//RETURN leaf.uuid as leafUUID, broader, collect(n) as narrower
-
-	//MATCH (identifier:UPPIdentifier{value:"2faae810-517d-4b6d-bb7b-1df10dcbe243"})
-	//MATCH (identifier)-[:IDENTIFIES]->(leaf:Concept)
-	//OPTIONAL MATCH (leaf)-[:EQUIVALENT_TO]->(canonical:Concept)
-	//OPTIONAL MATCH (leaf)-[:HAS_BROADER]->(broader:Concept)
-	//WITH leaf, canonical, {uuid: broader.uuid, prefLabel: broader.prefLabel, types: labels(broader)} as broader
-	//RETURN leaf.uuid as leafUUID, labels(leaf) as leafTypes, leaf.prefLabel as leafPrefLabel,
-	//	leaf.descriptionXML as leafDescriptionXML, leaf.imageUrl as leafImageUrl, leaf.aliases as leafAliases, leaf.emailAddress as leafEmailAddress,
-	//	leaf.facebookPage as leafFacebookPage, leaf.twitterHandle as leafTwitterHandle, leaf.scopeNote as leafScopeNote, leaf.shortLabel as leafShortLabel,
-	//	canonical.prefUUID as canonicalUUID, canonical.prefLabel as canonicalPrefLabel, labels(canonical) as canonicalTypes,
-	//	canonical.descriptionXML as canonicalDescriptionXML, canonical.imageUrl as canonicalImageUrl, canonical.aliases as canonicalAliases, canonical.emailAddress as canonicalEmailAddress,
-	//	canonical.facebookPage as canonicalFacebookPage, canonical.twitterHandle as canonicalTwitterHandle, canonical.scopeNote as canonicalScopeNote, canonical.shortLabel as canonicalShortLabel, collect(broader) as bboo
+	results := []neoConcept{}
 
 	query := &neoism.CypherQuery{
 		Statement: `MATCH (identifier:UPPIdentifier{value:{thingUUID}})
- 			MATCH (identifier)-[:IDENTIFIES]->(leaf:Concept)
- 			OPTIONAL MATCH (leaf)-[:EQUIVALENT_TO]->(canonical:Concept)
- 			OPTIONAL MATCH (leaf)-[:HAS_BROADER]->(broader:Concept)
- 			WITH leaf, canonical, {uuid: broader.uuid, prefLabel: broader.prefLabel} as broader
- 			OPTIONAL MATCH (leaf)<-[:HAS_BROADER]-(narrower:Concept)
- 			OPTIONAL MATCH (leaf)-[:RELATED_TO]-(relatedto:Concept)
+			MATCH (identifier)-[:IDENTIFIES]->(leaf:Concept)
+			OPTIONAL MATCH (leaf)-[:EQUIVALENT_TO]->(canonical:Concept)
+			OPTIONAL MATCH (leaf)-[:HAS_BROADER]->(br:Concept)
+			OPTIONAL MATCH (br)-[:EQUIVALENT_TO]->(broaderCanonical:Concept)
+			WITH leaf, canonical, {id: broaderCanonical.prefUUID, prefLabel: broaderCanonical.prefLabel, types: labels(broaderCanonical)} as b
+			OPTIONAL MATCH (leaf)<-[:HAS_BROADER]-(nw:Concept)
+			OPTIONAL MATCH (nw)-[:EQUIVALENT_TO]->(narrowerCanonical:Concept)
+			WITH leaf, canonical, collect(b) as broaderThan, {id: narrowerCanonical.prefUUID, prefLabel: narrowerCanonical.prefLabel, types: labels(narrowerCanonical)} as n
+			OPTIONAL MATCH (leaf)-[:RELATED_TO]-(rel:Concept)
+			OPTIONAL MATCH (rel)-[:EQUIVALENT_TO]->(relatedCanonical:Concept)
+			WITH leaf, canonical, broaderThan, collect(n) as narrowerThan, {id: relatedCanonical.prefUUID, prefLabel: relatedCanonical.prefLabel, types: labels(relatedCanonical)} as r
 			RETURN leaf.uuid as leafUUID, labels(leaf) as leafTypes, leaf.prefLabel as leafPrefLabel,
 			leaf.descriptionXML as leafDescriptionXML, leaf.imageUrl as leafImageUrl, leaf.aliases as leafAliases, leaf.emailAddress as leafEmailAddress,
 			leaf.facebookPage as leafFacebookPage, leaf.twitterHandle as leafTwitterHandle, leaf.scopeNote as leafScopeNote, leaf.shortLabel as leafShortLabel,
 			canonical.prefUUID as canonicalUUID, canonical.prefLabel as canonicalPrefLabel, labels(canonical) as canonicalTypes,
 			canonical.descriptionXML as canonicalDescriptionXML, canonical.imageUrl as canonicalImageUrl, canonical.aliases as canonicalAliases, canonical.emailAddress as canonicalEmailAddress,
-			canonical.facebookPage as canonicalFacebookPage, canonical.twitterHandle as canonicalTwitterHandle, canonical.scopeNote as canonicalScopeNote, canonical.shortLabel as canonicalShortLabel
+			canonical.facebookPage as canonicalFacebookPage, canonical.twitterHandle as canonicalTwitterHandle, canonical.scopeNote as canonicalScopeNote, canonical.shortLabel as canonicalShortLabel, broaderThan, narrowerThan, collect(r) as relatedTo
 			`,
 
 		Parameters: neoism.Props{"thingUUID": thingUUID},
 		Result:     &results,
 	}
-
+	log.Debugf("Query: %v", query)
 	err := cd.conn.CypherBatch([]*neoism.CypherQuery{query})
 
 	if err != nil || len(results) == 0 || len(results[0].LeafUUID) == 0 {
@@ -116,9 +108,10 @@ func (cd cypherDriver) read(thingUUID string) (Concept, bool, error) {
 		thing, err := mapToResponseFormat(results[0], cd.env)
 		return thing, true, err
 	}
+
 }
 
-func isContent(thng neoThing) bool {
+func isContent(thng neoConcept) bool {
 	for _, label := range thng.LeafTypes {
 		if label == "Content" {
 			return true
@@ -127,7 +120,8 @@ func isContent(thng neoThing) bool {
 	return false
 }
 
-func mapToResponseFormat(thng neoThing, env string) (Concept, error) {
+func mapToResponseFormat(thng neoConcept, env string) (Concept, error) {
+	log.Debugf("NeoConcept: %v", thng)
 	thing := Concept{}
 	// New Concordance Model
 	if thng.CanonicalPrefLabel != "" {
@@ -170,5 +164,64 @@ func mapToResponseFormat(thng neoThing, env string) (Concept, error) {
 		thing.ScopeNote = thng.LeafScopeNote
 		thing.ShortLabel = thng.LeafShortLabel
 	}
+
+	log.Infof("SIXE: %v", len(thng.BroaderThan))
+	if len(thng.BroaderThan) > 0 && thng.BroaderThan[0].ID != "" {
+		tings := []Thing{}
+		for _, broadThanThing := range thng.BroaderThan {
+			ting := Thing{}
+			brTypes := mapper.TypeURIs(broadThanThing.Types)
+			if brTypes == nil {
+				log.WithFields(log.Fields{"UUID": broadThanThing.ID}).Errorf("Could not map type URIs for ID %s with types %s", broadThanThing.ID, broadThanThing.Types)
+				ting = Thing{}
+				break
+			}
+			ting.PrefLabel = broadThanThing.PrefLabel
+			ting.APIURL = mapper.APIURL(broadThanThing.ID, broadThanThing.Types, env)
+			ting.Types = brTypes
+			ting.DirectType = brTypes[len(brTypes)-1]
+			tings = append(tings, ting)
+		}
+		thing.BroaderThan = tings
+	}
+
+
+	if len(thng.NarrowerThan) > 0 && thng.NarrowerThan[0].ID != "" {
+		tings := []Thing{}
+		for _, narrowThanThing := range thng.NarrowerThan {
+			ting := Thing{}
+			brTypes := mapper.TypeURIs(narrowThanThing.Types)
+			if brTypes == nil {
+				log.WithFields(log.Fields{"UUID": narrowThanThing.ID}).Errorf("Could not map type URIs for ID %s with types %s", narrowThanThing.ID, narrowThanThing.Types)
+				ting = Thing{}
+				break
+			}
+			ting.PrefLabel = narrowThanThing.PrefLabel
+			ting.APIURL = mapper.APIURL(narrowThanThing.ID, narrowThanThing.Types, env)
+			ting.Types = brTypes
+			ting.DirectType = brTypes[len(brTypes)-1]
+			tings = append(tings, ting)
+		}
+		thing.NarrowerThan = tings
+	}
+	if len(thng.RelatedTo) > 0 && thng.RelatedTo[0].ID != "" {
+		tings := []Thing{}
+		for _, relatedToThing := range thng.RelatedTo {
+			ting := Thing{}
+			brTypes := mapper.TypeURIs(relatedToThing.Types)
+			if brTypes == nil {
+				log.WithFields(log.Fields{"UUID": relatedToThing.ID}).Errorf("Could not map type URIs for ID %s with types %s", relatedToThing.ID, relatedToThing.Types)
+				ting = Thing{}
+				break
+			}
+			ting.PrefLabel = relatedToThing.PrefLabel
+			ting.APIURL = mapper.APIURL(relatedToThing.ID, relatedToThing.Types, env)
+			ting.Types = brTypes
+			ting.DirectType = brTypes[len(brTypes)-1]
+			tings = append(tings, ting)
+		}
+		thing.RelatedTo = tings
+	}
+	log.Debugf("Mapped Concept: %v", thing)
 	return thing, nil
 }
