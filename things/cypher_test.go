@@ -28,7 +28,9 @@ const (
 	ContentUUID            = "3fc9fe3e-af8c-4f7f-961a-e5065392bb31"
 	NonExistingThingUUID   = "b2860919-4b78-44c6-a665-af9221bdefb5"
 	PersonThingUUID        = "75e2f7e9-cb5e-40a5-a074-86d69fe09f69"
-	BrandOnyxPike          = "9a07c16f-def0-457d-a04a-57ba68ba1e00"
+	TopicOnyxPike          = "9a07c16f-def0-457d-a04a-57ba68ba1e00"
+	TopicOnyxPikeRelated   = "ec20c787-8289-4cef-aee8-4d39e9563dc5"
+	TopicOnyxPikeBroader   = "ba42b8d0-844f-4f2a-856c-5cbd863bf6bd"
 )
 
 //Reusable Neo4J connection
@@ -55,7 +57,7 @@ func neoUrl() string {
 }
 
 func TestRetrievePeopleAsThing(t *testing.T) {
-	//defer cleanDB(t, PersonThingUUID)
+	defer cleanDB(t, PersonThingUUID)
 
 	personRW := people.NewCypherPeopleService(db)
 	assert.NoError(t, personRW.Initialise())
@@ -107,24 +109,32 @@ func TestRetrieveOrganisationAsThing(t *testing.T) {
 }
 
 func TestRetrieveConceptNewModelAsThing(t *testing.T) {
-	defer cleanDB(t, BrandOnyxPike)
+	defer cleanDB(t, TopicOnyxPikeRelated, TopicOnyxPikeBroader, TopicOnyxPike)
 
 	conceptsDriver := concepts.NewConceptService(db)
 	assert.NoError(t, conceptsDriver.Initialise())
 
-	types := []string{"Thing", "Concept", "Classification", "Brand"}
+	types := []string{"Thing", "Concept", "Topic"}
 	typesUris := mapper.TypeURIs(types)
 
-	expected := Concept{APIURL: mapper.APIURL(BrandOnyxPike, types, "Prod"), PrefLabel: "Onyx Pike", ID: mapper.IDURL(BrandOnyxPike),
+	expected := Concept{APIURL: mapper.APIURL(TopicOnyxPike, types, "Prod"), PrefLabel: "Onyx Pike", ID: mapper.IDURL(TopicOnyxPike),
 		Types: typesUris, DirectType: typesUris[len(typesUris)-1], Aliases: []string{"Bob", "BOB2"},
-		DescriptionXML: "<p>Some stuff</p>", ImageURL: "http://media.ft.com/brand.png"}
-	writeJSONToService(t, conceptsDriver, fmt.Sprintf("./fixtures/Brand-OnyxPike-%s.json", BrandOnyxPike))
+		DescriptionXML: "<p>Some stuff</p>", ImageURL: "http://media.ft.com/brand.png", EmailAddress:"email@email.com", ScopeNote: "bobs scopey notey", ShortLabel: "Short Label", TwitterHandle: "bob@twitter.com", FacebookPage: "bob@facebook.com",
+		BroaderThan: []Thing{{ID: mapper.IDURL(TopicOnyxPikeBroader), APIURL: mapper.APIURL(TopicOnyxPikeBroader, types, "Prod"), Types: typesUris, PrefLabel: "Onyx Pike Broader", DirectType: typesUris[len(typesUris)-1]}},
+		RelatedTo:[]Thing{{ID: mapper.IDURL(TopicOnyxPikeRelated), APIURL: mapper.APIURL(TopicOnyxPikeRelated, types, "Prod"),  Types: typesUris, PrefLabel: "Onyx Pike Related", DirectType: typesUris[len(typesUris)-1]}}}
+
+	writeJSONToService(t, conceptsDriver, fmt.Sprintf("./fixtures/Topic-OnyxPikeRelated-%s.json", TopicOnyxPikeRelated))
+	writeJSONToService(t, conceptsDriver, fmt.Sprintf("./fixtures/Topic-OnyxPikeBroader-%s.json",TopicOnyxPikeBroader))
+	writeJSONToService(t, conceptsDriver, fmt.Sprintf("./fixtures/Topic-OnyxPike-%s.json", TopicOnyxPike))
 
 	thingsDriver := NewCypherDriver(db, "prod")
-	thng, found, err := thingsDriver.read(BrandOnyxPike)
 
-	assert.NoError(t, err, "Unexpected error for concept as thing %s", BrandOnyxPike)
-	assert.True(t, found, "Found no Concept for concept as Concept %s", BrandOnyxPike)
+	thng, found, err := thingsDriver.read(TopicOnyxPike)
+
+
+
+	assert.NoError(t, err, "Unexpected error for concept as thing %s", TopicOnyxPike)
+	assert.True(t, found, "Found no Concept for concept as Concept %s", TopicOnyxPike)
 
 	readAndCompare(t, expected, thng, "Retrieve concepts via new concordance model")
 }
@@ -151,7 +161,7 @@ func readAndCompare(t *testing.T, expected Concept, actual Concept, testName str
 	})
 
 	sort.Slice(actual.NarrowerThan, func(i, j int) bool {
-		return actual.NarrowerThan[i].ID < actual.NarrowerThan[j].ID
+		return actual.NarrowerThan[i].ID< actual.NarrowerThan[j].ID
 	})
 
 	sort.Slice(actual.RelatedTo, func(i, j int) bool {
@@ -169,6 +179,38 @@ func readAndCompare(t *testing.T, expected Concept, actual Concept, testName str
 	sort.Slice(expected.RelatedTo, func(i, j int) bool {
 		return expected.RelatedTo[i].ID < expected.RelatedTo[j].ID
 	})
+
+	for _, thing := range actual.NarrowerThan {
+		sort.Slice(thing.Types, func(i, j int) bool {
+			return thing.Types[i] < thing.Types[j]
+		})
+	}
+	for _, thing := range actual.BroaderThan {
+		sort.Slice(thing.Types, func(i, j int) bool {
+			return thing.Types[i] < thing.Types[j]
+		})
+	}
+	for _, thing := range actual.RelatedTo {
+		sort.Slice(thing.Types, func(i, j int) bool {
+			return thing.Types[i] < thing.Types[j]
+		})
+	}
+
+	for _, thing := range expected.NarrowerThan {
+		sort.Slice(thing.Types, func(i, j int) bool {
+			return thing.Types[i] < thing.Types[j]
+		})
+	}
+	for _, thing := range expected.BroaderThan {
+		sort.Slice(thing.Types, func(i, j int) bool {
+			return thing.Types[i] < thing.Types[j]
+		})
+	}
+	for _, thing := range expected.RelatedTo {
+		sort.Slice(thing.Types, func(i, j int) bool {
+			return thing.Types[i] < thing.Types[j]
+		})
+	}
 
 	assert.True(t, reflect.DeepEqual(expected, actual), fmt.Sprintf("Actual concept differs from expected: \n ExpectedConcept: %v \n Actual: %v", expected, actual))
 }
@@ -204,10 +246,11 @@ func cleanDB(t *testing.T, uuids ...string) {
 	for i, uuid := range uuids {
 		qs[i] = &neoism.CypherQuery{
 			Statement: fmt.Sprintf(`
-			MATCH (a:Concept {uuid: "%s"})
-			OPTIONAL MATCH (a)-[rel]-(c)
-			DELETE rel
-			DETACH DELETE c, a`, uuid)}
+			MATCH (a:Thing {uuid: "%s"})
+			OPTIONAL MATCH (a)-[ids:IDENTIFIES]-(c)
+			OPTIONAL MATCH (related)-[rel]-(d)
+			DELETE ids, rel
+			DETACH DELETE c, d, a`, uuid)}
 	}
 	err := db.CypherBatch(qs)
 	assert.NoError(t, err, "Error executing clean up cypher")

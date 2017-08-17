@@ -79,7 +79,7 @@ func (cd cypherDriver) read(thingUUID string) (Concept, bool, error) {
 			OPTIONAL MATCH (leaf)<-[:HAS_BROADER]-(nw:Concept)
 			OPTIONAL MATCH (nw)-[:EQUIVALENT_TO]->(narrowerCanonical:Concept)
 			WITH leaf, canonical, collect(b) as broaderThan, {id: narrowerCanonical.prefUUID, prefLabel: narrowerCanonical.prefLabel, types: labels(narrowerCanonical)} as n
-			OPTIONAL MATCH (leaf)-[:RELATED_TO]-(rel:Concept)
+			OPTIONAL MATCH (leaf)-[:IS_RELATED_TO]-(rel:Concept)
 			OPTIONAL MATCH (rel)-[:EQUIVALENT_TO]->(relatedCanonical:Concept)
 			WITH leaf, canonical, broaderThan, collect(n) as narrowerThan, {id: relatedCanonical.prefUUID, prefLabel: relatedCanonical.prefLabel, types: labels(relatedCanonical)} as r
 			RETURN leaf.uuid as leafUUID, labels(leaf) as leafTypes, leaf.prefLabel as leafPrefLabel,
@@ -123,6 +123,7 @@ func isContent(thng neoConcept) bool {
 func mapToResponseFormat(thng neoConcept, env string) (Concept, error) {
 	log.Debugf("NeoConcept: %v", thng)
 	thing := Concept{}
+
 	// New Concordance Model
 	if thng.CanonicalPrefLabel != "" {
 		thing.PrefLabel = thng.CanonicalPrefLabel
@@ -164,7 +165,7 @@ func mapToResponseFormat(thng neoConcept, env string) (Concept, error) {
 		thing.ScopeNote = thng.LeafScopeNote
 		thing.ShortLabel = thng.LeafShortLabel
 	}
-	
+
 	if len(thng.BroaderThan) > 0 && thng.BroaderThan[0].ID != "" {
 		tings := []Thing{}
 		for _, broadThanThing := range thng.BroaderThan {
@@ -177,6 +178,7 @@ func mapToResponseFormat(thng neoConcept, env string) (Concept, error) {
 			}
 			ting.PrefLabel = broadThanThing.PrefLabel
 			ting.APIURL = mapper.APIURL(broadThanThing.ID, broadThanThing.Types, env)
+			ting.ID = mapper.IDURL(broadThanThing.ID)
 			ting.Types = brTypes
 			ting.DirectType = brTypes[len(brTypes)-1]
 			tings = append(tings, ting)
@@ -200,6 +202,7 @@ func mapToResponseFormat(thng neoConcept, env string) (Concept, error) {
 			ting.Types = brTypes
 			ting.DirectType = brTypes[len(brTypes)-1]
 			tings = append(tings, ting)
+			ting.ID = mapper.IDURL(narrowThanThing.ID)
 		}
 		thing.NarrowerThan = tings
 	}
@@ -216,6 +219,7 @@ func mapToResponseFormat(thng neoConcept, env string) (Concept, error) {
 			ting.PrefLabel = relatedToThing.PrefLabel
 			ting.APIURL = mapper.APIURL(relatedToThing.ID, relatedToThing.Types, env)
 			ting.Types = brTypes
+			ting.ID = mapper.IDURL(relatedToThing.ID)
 			ting.DirectType = brTypes[len(brTypes)-1]
 			tings = append(tings, ting)
 		}
