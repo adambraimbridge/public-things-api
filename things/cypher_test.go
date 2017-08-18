@@ -118,10 +118,10 @@ func TestRetrieveConceptNewModelAsThing(t *testing.T) {
 	typesUris := mapper.TypeURIs(types)
 
 	expected := Concept{APIURL: mapper.APIURL(TopicOnyxPike, types, "Prod"), PrefLabel: "Onyx Pike", ID: mapper.IDURL(TopicOnyxPike),
-		Types: typesUris, DirectType: typesUris[len(typesUris)-1], Aliases: []string{"Bob", "BOB2"},
-		DescriptionXML: "<p>Some stuff</p>", ImageURL: "http://media.ft.com/brand.png", EmailAddress:"email@email.com", ScopeNote: "bobs scopey notey", ShortLabel: "Short Label", TwitterHandle: "bob@twitter.com", FacebookPage: "bob@facebook.com",
-		BroaderThan: []Thing{{ID: mapper.IDURL(TopicOnyxPikeBroader), APIURL: mapper.APIURL(TopicOnyxPikeBroader, types, "Prod"), Types: typesUris, PrefLabel: "Onyx Pike Broader", DirectType: typesUris[len(typesUris)-1]}},
-		RelatedTo:[]Thing{{ID: mapper.IDURL(TopicOnyxPikeRelated), APIURL: mapper.APIURL(TopicOnyxPikeRelated, types, "Prod"),  Types: typesUris, PrefLabel: "Onyx Pike Related", DirectType: typesUris[len(typesUris)-1]}}}
+		Types:                  typesUris, DirectType: typesUris[len(typesUris)-1], Aliases: []string{"Bob", "BOB2"},
+		DescriptionXML:         "<p>Some stuff</p>", ImageURL: "http://media.ft.com/brand.png", EmailAddress: "email@email.com", ScopeNote: "bobs scopey notey", ShortLabel: "Short Label", TwitterHandle: "bob@twitter.com", FacebookPage: "bob@facebook.com",
+		BroaderConcepts:        []Thing{{ID: mapper.IDURL(TopicOnyxPikeBroader), APIURL: mapper.APIURL(TopicOnyxPikeBroader, types, "Prod"), Types: typesUris, PrefLabel: "Onyx Pike Broader", DirectType: typesUris[len(typesUris)-1]}},
+		RelatedTo:              []Thing{{ID: mapper.IDURL(TopicOnyxPikeRelated), APIURL: mapper.APIURL(TopicOnyxPikeRelated, types, "Prod"),  Types: typesUris, PrefLabel: "Onyx Pike Related", DirectType: typesUris[len(typesUris)-1]}}}
 
 	writeJSONToService(t, conceptsDriver, fmt.Sprintf("./fixtures/Topic-OnyxPikeRelated-%s.json", TopicOnyxPikeRelated))
 	writeJSONToService(t, conceptsDriver, fmt.Sprintf("./fixtures/Topic-OnyxPikeBroader-%s.json",TopicOnyxPikeBroader))
@@ -156,36 +156,36 @@ func readAndCompare(t *testing.T, expected Concept, actual Concept, testName str
 		return actual.Types[i] < actual.Types[j]
 	})
 
-	sort.Slice(actual.BroaderThan, func(i, j int) bool {
-		return actual.BroaderThan[i].ID < actual.BroaderThan[j].ID
+	sort.Slice(actual.BroaderConcepts, func(i, j int) bool {
+		return actual.BroaderConcepts[i].ID < actual.BroaderConcepts[j].ID
 	})
 
-	sort.Slice(actual.NarrowerThan, func(i, j int) bool {
-		return actual.NarrowerThan[i].ID< actual.NarrowerThan[j].ID
+	sort.Slice(actual.NarrowerConcepts, func(i, j int) bool {
+		return actual.NarrowerConcepts[i].ID< actual.NarrowerConcepts[j].ID
 	})
 
 	sort.Slice(actual.RelatedTo, func(i, j int) bool {
 		return actual.RelatedTo[i].ID < actual.RelatedTo[j].ID
 	})
 
-	sort.Slice(expected.BroaderThan, func(i, j int) bool {
-		return expected.BroaderThan[i].ID < expected.BroaderThan[j].ID
+	sort.Slice(expected.BroaderConcepts, func(i, j int) bool {
+		return expected.BroaderConcepts[i].ID < expected.BroaderConcepts[j].ID
 	})
 
-	sort.Slice(expected.NarrowerThan, func(i, j int) bool {
-		return expected.NarrowerThan[i].ID < expected.NarrowerThan[j].ID
+	sort.Slice(expected.NarrowerConcepts, func(i, j int) bool {
+		return expected.NarrowerConcepts[i].ID < expected.NarrowerConcepts[j].ID
 	})
 
 	sort.Slice(expected.RelatedTo, func(i, j int) bool {
 		return expected.RelatedTo[i].ID < expected.RelatedTo[j].ID
 	})
 
-	for _, thing := range actual.NarrowerThan {
+	for _, thing := range actual.NarrowerConcepts {
 		sort.Slice(thing.Types, func(i, j int) bool {
 			return thing.Types[i] < thing.Types[j]
 		})
 	}
-	for _, thing := range actual.BroaderThan {
+	for _, thing := range actual.BroaderConcepts {
 		sort.Slice(thing.Types, func(i, j int) bool {
 			return thing.Types[i] < thing.Types[j]
 		})
@@ -196,12 +196,12 @@ func readAndCompare(t *testing.T, expected Concept, actual Concept, testName str
 		})
 	}
 
-	for _, thing := range expected.NarrowerThan {
+	for _, thing := range expected.NarrowerConcepts {
 		sort.Slice(thing.Types, func(i, j int) bool {
 			return thing.Types[i] < thing.Types[j]
 		})
 	}
-	for _, thing := range expected.BroaderThan {
+	for _, thing := range expected.BroaderConcepts {
 		sort.Slice(thing.Types, func(i, j int) bool {
 			return thing.Types[i] < thing.Types[j]
 		})
