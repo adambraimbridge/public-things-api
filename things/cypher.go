@@ -203,8 +203,8 @@ func mapToResponseFormat(thng neoConcept, env string) (Concept, error) {
 			ting.APIURL = mapper.APIURL(narrowThanThing.ID, narrowThanThing.Types, env)
 			ting.Types = brTypes
 			ting.DirectType = brTypes[len(brTypes)-1]
-			tings = append(tings, ting)
 			ting.ID = mapper.IDURL(narrowThanThing.ID)
+			tings = append(tings, ting)
 		}
 		thing.NarrowerConcepts = tings
 	}
