@@ -57,7 +57,7 @@ type neoConcept struct {
 
 	NarrowerConcepts []neoThing `json:"narrowerConcepts,omitempty"`
 	BroaderConcepts  []neoThing `json:"broaderConcepts,omitempty"`
-	RelatedTo        []neoThing `json:"relatedTo,omitempty"`
+	RelatedConcepts  []neoThing `json:"relatedConcepts,omitempty"`
 }
 
 type neoThing struct {
@@ -82,14 +82,14 @@ func (cd cypherDriver) read(thingUUID string) (Concept, bool, error) {
 			OPTIONAL MATCH (leaf)-[:IS_RELATED_TO]->(rel:Concept)
 			OPTIONAL MATCH (rel)-[:EQUIVALENT_TO]->(relatedCanonical:Concept)
 			WITH leaf, canonical, broaderConcepts, collect(n) as narrowerConcepts, {id: relatedCanonical.prefUUID, prefLabel: relatedCanonical.prefLabel, types: labels(relatedCanonical)} as r
-			WITH leaf, canonical, broaderConcepts, narrowerConcepts, collect(r) as relatedTo
+			WITH leaf, canonical, broaderConcepts, narrowerConcepts, collect(r) as relatedConcepts
 			RETURN leaf.uuid as leafUUID, labels(leaf) as leafTypes, leaf.prefLabel as leafPrefLabel,
 			leaf.descriptionXML as leafDescriptionXML, leaf.imageUrl as leafImageUrl, leaf.aliases as leafAliases, leaf.emailAddress as leafEmailAddress,
 			leaf.facebookPage as leafFacebookPage, leaf.twitterHandle as leafTwitterHandle, leaf.scopeNote as leafScopeNote, leaf.shortLabel as leafShortLabel,
 			canonical.prefUUID as canonicalUUID, canonical.prefLabel as canonicalPrefLabel, labels(canonical) as canonicalTypes,
 			canonical.descriptionXML as canonicalDescriptionXML, canonical.imageUrl as canonicalImageUrl, canonical.aliases as canonicalAliases, canonical.emailAddress as canonicalEmailAddress,
 			canonical.facebookPage as canonicalFacebookPage, canonical.twitterHandle as canonicalTwitterHandle, canonical.scopeNote as canonicalScopeNote, canonical.shortLabel as canonicalShortLabel,
-			broaderConcepts, narrowerConcepts, relatedTo
+			broaderConcepts, narrowerConcepts, relatedConcepts
 			`,
 
 		Parameters: neoism.Props{"thingUUID": thingUUID},
@@ -208,9 +208,9 @@ func mapToResponseFormat(thng neoConcept, env string) (Concept, error) {
 		}
 		thing.NarrowerConcepts = tings
 	}
-	if len(thng.RelatedTo) > 0 && thng.RelatedTo[0].ID != "" {
+	if len(thng.RelatedConcepts) > 0 && thng.RelatedConcepts[0].ID != "" {
 		tings := []Thing{}
-		for _, relatedToThing := range thng.RelatedTo {
+		for _, relatedToThing := range thng.RelatedConcepts {
 			ting := Thing{}
 			brTypes := mapper.TypeURIs(relatedToThing.Types)
 			if brTypes == nil {
@@ -225,7 +225,7 @@ func mapToResponseFormat(thng neoConcept, env string) (Concept, error) {
 			ting.DirectType = brTypes[len(brTypes)-1]
 			tings = append(tings, ting)
 		}
-		thing.RelatedTo = tings
+		thing.RelatedConcepts = tings
 	}
 	log.Debugf("Mapped Concept: %v", thing)
 	return thing, nil

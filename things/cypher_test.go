@@ -119,9 +119,9 @@ func TestRetrieveConceptNewModelAsThing(t *testing.T) {
 
 	expected := Concept{APIURL: mapper.APIURL(TopicOnyxPike, types, "Prod"), PrefLabel: "Onyx Pike", ID: mapper.IDURL(TopicOnyxPike),
 		Types:                  typesUris, DirectType: typesUris[len(typesUris)-1], Aliases: []string{"Bob", "BOB2"},
-		DescriptionXML:         "<p>Some stuff</p>", ImageURL: "http://media.ft.com/brand.png", EmailAddress: "email@email.com", ScopeNote: "bobs scopey notey", ShortLabel: "Short Label", TwitterHandle: "bob@twitter.com", FacebookPage: "bob@facebook.com",
-		BroaderConcepts:        []Thing{{ID: mapper.IDURL(TopicOnyxPikeBroader), APIURL: mapper.APIURL(TopicOnyxPikeBroader, types, "Prod"), Types: typesUris, PrefLabel: "Onyx Pike Broader", DirectType: typesUris[len(typesUris)-1]}},
-		RelatedTo:              []Thing{{ID: mapper.IDURL(TopicOnyxPikeRelated), APIURL: mapper.APIURL(TopicOnyxPikeRelated, types, "Prod"),  Types: typesUris, PrefLabel: "Onyx Pike Related", DirectType: typesUris[len(typesUris)-1]}}}
+		DescriptionXML:                                                                      "<p>Some stuff</p>", ImageURL: "http://media.ft.com/brand.png", EmailAddress: "email@email.com", ScopeNote: "bobs scopey notey", ShortLabel: "Short Label", TwitterHandle: "bob@twitter.com", FacebookPage: "bob@facebook.com",
+		BroaderConcepts:                                                                     []Thing{{ID: mapper.IDURL(TopicOnyxPikeBroader), APIURL: mapper.APIURL(TopicOnyxPikeBroader, types, "Prod"), Types: typesUris, PrefLabel: "Onyx Pike Broader", DirectType: typesUris[len(typesUris)-1]}},
+		RelatedConcepts:                                                                     []Thing{{ID: mapper.IDURL(TopicOnyxPikeRelated), APIURL: mapper.APIURL(TopicOnyxPikeRelated, types, "Prod"),  Types: typesUris, PrefLabel: "Onyx Pike Related", DirectType: typesUris[len(typesUris)-1]}}}
 
 	writeJSONToService(t, conceptsDriver, fmt.Sprintf("./fixtures/Topic-OnyxPikeRelated-%s.json", TopicOnyxPikeRelated))
 	writeJSONToService(t, conceptsDriver, fmt.Sprintf("./fixtures/Topic-OnyxPikeBroader-%s.json",TopicOnyxPikeBroader))
@@ -164,8 +164,8 @@ func readAndCompare(t *testing.T, expected Concept, actual Concept, testName str
 		return actual.NarrowerConcepts[i].ID< actual.NarrowerConcepts[j].ID
 	})
 
-	sort.Slice(actual.RelatedTo, func(i, j int) bool {
-		return actual.RelatedTo[i].ID < actual.RelatedTo[j].ID
+	sort.Slice(actual.RelatedConcepts, func(i, j int) bool {
+		return actual.RelatedConcepts[i].ID < actual.RelatedConcepts[j].ID
 	})
 
 	sort.Slice(expected.BroaderConcepts, func(i, j int) bool {
@@ -176,8 +176,8 @@ func readAndCompare(t *testing.T, expected Concept, actual Concept, testName str
 		return expected.NarrowerConcepts[i].ID < expected.NarrowerConcepts[j].ID
 	})
 
-	sort.Slice(expected.RelatedTo, func(i, j int) bool {
-		return expected.RelatedTo[i].ID < expected.RelatedTo[j].ID
+	sort.Slice(expected.RelatedConcepts, func(i, j int) bool {
+		return expected.RelatedConcepts[i].ID < expected.RelatedConcepts[j].ID
 	})
 
 	for _, thing := range actual.NarrowerConcepts {
@@ -190,7 +190,7 @@ func readAndCompare(t *testing.T, expected Concept, actual Concept, testName str
 			return thing.Types[i] < thing.Types[j]
 		})
 	}
-	for _, thing := range actual.RelatedTo {
+	for _, thing := range actual.RelatedConcepts {
 		sort.Slice(thing.Types, func(i, j int) bool {
 			return thing.Types[i] < thing.Types[j]
 		})
@@ -206,7 +206,7 @@ func readAndCompare(t *testing.T, expected Concept, actual Concept, testName str
 			return thing.Types[i] < thing.Types[j]
 		})
 	}
-	for _, thing := range expected.RelatedTo {
+	for _, thing := range expected.RelatedConcepts {
 		sort.Slice(thing.Types, func(i, j int) bool {
 			return thing.Types[i] < thing.Types[j]
 		})

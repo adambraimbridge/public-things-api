@@ -18,7 +18,7 @@ type Concept struct {
 	ShortLabel       string   `json:"shortLabel,omitempty"`
 	NarrowerConcepts []Thing  `json:"narrowerConcepts,omitempty"`
 	BroaderConcepts  []Thing  `json:"broaderConcepts,omitempty"`
-	RelatedTo        []Thing  `json:"relatedTo,omitempty"`
+	RelatedConcepts  []Thing  `json:"relatedConcepts,omitempty"`
 }
 
 type Thing struct {
