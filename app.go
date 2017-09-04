@@ -12,11 +12,12 @@ import (
 	"github.com/Financial-Times/neo-utils-go/neoutils"
 	things "github.com/Financial-Times/public-things-api/things"
 	status "github.com/Financial-Times/service-status-go/httphandlers"
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/gorilla/mux"
 	"github.com/jawher/mow.cli"
 	"github.com/rcrowley/go-metrics"
 	"github.com/Financial-Times/base-ft-rw-app-go/baseftrwapp"
+	_ "github.com/joho/godotenv/autoload"
 )
 
 func main() {
@@ -61,13 +62,31 @@ func main() {
 		Desc:   "Duration Get requests should be cached for. e.g. 2h45m would set the max-age value to '7440' seconds",
 		EnvVar: "CACHE_DURATION",
 	})
-
+	logLevel := app.String(cli.StringOpt{
+		Name:   "logLevel",
+		Value:  "info",
+		Desc:   "Log level of the app",
+		EnvVar: "LOG_LEVEL",
+	})
 	app.Action = func() {
 		baseftrwapp.OutputMetricsIfRequired(*graphiteTCPAddress, *graphitePrefix, *logMetrics)
 		log.Infof("public-things-api will listen on port: %s, connecting to: %s", *port, *neoURL)
 		runServer(*neoURL, *port, *cacheDuration, *env)
 	}
-	log.SetLevel(log.InfoLevel)
+
+	log.SetFormatter(&log.JSONFormatter{})
+	lvl, err := log.ParseLevel(*logLevel)
+	if err != nil {
+		log.WithField("LOG_LEVEL", *logLevel).Warn("Cannot parse log level, setting it to INFO.")
+		lvl = log.InfoLevel
+	}
+	log.SetLevel(lvl)
+	log.WithFields(log.Fields{
+		"CACHE_DURATION":       *cacheDuration,
+		"NEO_URL":              *neoURL,
+		"LOG_LEVEL":            *logLevel,
+	}).Info("Starting app with arguments")
+
 	log.Infof("Application started with args %s", os.Args)
 	app.Run(os.Args)
 }

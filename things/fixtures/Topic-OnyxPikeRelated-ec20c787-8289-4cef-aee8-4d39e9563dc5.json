@@ -1,0 +1,21 @@
+{
+  "prefUUID": "ec20c787-8289-4cef-aee8-4d39e9563dc5",
+  "prefLabel": "Onyx Pike Related",
+  "type": "Topic",
+  "aliases": [
+    "Onyx Pike Related Business & Economy",
+    "Onyx Pike Related"
+  ],
+  "sourceRepresentations": [
+    {
+      "uuid": "ec20c787-8289-4cef-aee8-4d39e9563dc5",
+      "prefLabel": "Onyx Pike Related",
+      "authority": "Smartlogic",
+      "authorityValue": "ec20c787-8289-4cef-aee8-4d39e9563dc5",
+      "aliases": [
+        "Onyx Pike Related"
+      ],
+      "type": "Topic"
+    }
+  ]
+}

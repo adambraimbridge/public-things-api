@@ -1,14 +1,30 @@
 package things
 
-type things []thing
+type Things []Concept
 
-type thing struct {
-	ID             string   `json:"id"`
-	APIURL         string   `json:"apiUrl"`
-	PrefLabel      string   `json:"prefLabel,omitempty"`
-	Types          []string `json:"types"`
-	DirectType     string   `json:"directType,omitempty"`
-	Aliases               []string  `json:"aliases,omitempty"`
-	DescriptionXML        string    `json:"descriptionXML,omitempty"`
-	ImageURL              string    `json:"_imageUrl,omitempty"`
+type Concept struct {
+	ID               string   `json:"id"`
+	APIURL           string   `json:"apiUrl"`
+	PrefLabel        string   `json:"prefLabel,omitempty"`
+	Types            []string `json:"types"`
+	DirectType       string   `json:"directType,omitempty"`
+	Aliases          []string `json:"aliases,omitempty"`
+	DescriptionXML   string   `json:"descriptionXML,omitempty"`
+	ImageURL         string   `json:"_imageUrl,omitempty"`
+	EmailAddress     string   `json:"emailAddress,omitempty"`
+	FacebookPage     string   `json:"facebookPage,omitempty"`
+	TwitterHandle    string   `json:"twitterHandle,omitempty"`
+	ScopeNote        string   `json:"scopeNote,omitempty"`
+	ShortLabel       string   `json:"shortLabel,omitempty"`
+	NarrowerConcepts []Thing  `json:"narrowerConcepts,omitempty"`
+	BroaderConcepts  []Thing  `json:"broaderConcepts,omitempty"`
+	RelatedConcepts  []Thing  `json:"relatedConcepts,omitempty"`
+}
+
+type Thing struct {
+	ID         string   `json:"id"`
+	APIURL     string   `json:"apiUrl"`
+	PrefLabel  string   `json:"prefLabel,omitempty"`
+	Types      []string `json:"types"`
+	DirectType string   `json:"directType,omitempty"`
 }
