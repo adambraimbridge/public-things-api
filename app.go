@@ -12,7 +12,7 @@ import (
 	"github.com/Financial-Times/neo-utils-go/neoutils"
 	things "github.com/Financial-Times/public-things-api/things"
 	status "github.com/Financial-Times/service-status-go/httphandlers"
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/gorilla/mux"
 	"github.com/jawher/mow.cli"
 	"github.com/rcrowley/go-metrics"
@@ -68,16 +68,10 @@ func main() {
 		Desc:   "Log level of the app",
 		EnvVar: "LOG_LEVEL",
 	})
-	healthcheckInterval := app.String(cli.StringOpt{
-		Name:   "healthcheck-interval",
-		Value:  "30s",
-		Desc:   "How often the Neo4j healthcheck is called.",
-		EnvVar: "HEALTHCHECK_INTERVAL",
-	})
 	app.Action = func() {
 		baseftrwapp.OutputMetricsIfRequired(*graphiteTCPAddress, *graphitePrefix, *logMetrics)
 		log.Infof("public-things-api will listen on port: %s, connecting to: %s", *port, *neoURL)
-		runServer(*neoURL, *port, *cacheDuration, *env, *healthcheckInterval)
+		runServer(*neoURL, *port, *cacheDuration, *env)
 	}
 
 	log.SetFormatter(&log.JSONFormatter{})
@@ -88,7 +82,6 @@ func main() {
 	}
 	log.SetLevel(lvl)
 	log.WithFields(log.Fields{
-		"HEALTHCHECK_INTERVAL": *healthcheckInterval,
 		"CACHE_DURATION":       *cacheDuration,
 		"NEO_URL":              *neoURL,
 		"LOG_LEVEL":            *logLevel,
@@ -98,7 +91,7 @@ func main() {
 	app.Run(os.Args)
 }
 
-func runServer(neoURL string, port string, cacheDuration string, healthcheckInterval string, env string) {
+func runServer(neoURL string, port string, cacheDuration string, env string) {
 	if duration, durationErr := time.ParseDuration(cacheDuration); durationErr != nil {
 		log.Fatalf("Failed to parse cache duration string, %v", durationErr)
 	} else {

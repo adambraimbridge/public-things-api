@@ -15,7 +15,6 @@ import (
 	"github.com/Financial-Times/neo-model-utils-go/mapper"
 	"github.com/Financial-Times/neo-utils-go/neoutils"
 	"github.com/Financial-Times/organisations-rw-neo4j/organisations"
-	"github.com/Financial-Times/people-rw-neo4j/people"
 	"github.com/jmcvetta/neoism"
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/stretchr/testify/assert"
@@ -24,10 +23,8 @@ import (
 const (
 	//Generate uuids so there's no clash with real data
 	FakebookConceptUUID    = "eac853f5-3859-4c08-8540-55e043719400" //organisation - Old concept model
-	MetalMickeyConceptUUID = "0483bef8-5797-40b8-9b25-b12e492f63c6" //subject - ie. New concept model
 	ContentUUID            = "3fc9fe3e-af8c-4f7f-961a-e5065392bb31"
 	NonExistingThingUUID   = "b2860919-4b78-44c6-a665-af9221bdefb5"
-	PersonThingUUID        = "75e2f7e9-cb5e-40a5-a074-86d69fe09f69"
 	TopicOnyxPike          = "9a07c16f-def0-457d-a04a-57ba68ba1e00"
 	TopicOnyxPikeRelated   = "ec20c787-8289-4cef-aee8-4d39e9563dc5"
 	TopicOnyxPikeBroader   = "ba42b8d0-844f-4f2a-856c-5cbd863bf6bd"
@@ -54,36 +51,6 @@ func neoUrl() string {
 		url = "http://localhost:7474/db/data"
 	}
 	return url
-}
-
-func TestRetrievePeopleAsThing(t *testing.T) {
-	defer cleanDB(t, PersonThingUUID)
-
-	personRW := people.NewCypherPeopleService(db)
-	assert.NoError(t, personRW.Initialise())
-
-	writeJSONToService(t, personRW, fmt.Sprintf("./fixtures/People-%s.json", PersonThingUUID))
-	types := []string{"Thing", "Concept", "Person"}
-	typesUris := mapper.TypeURIs(types)
-
-	thingsDriver := NewCypherDriver(db, "prod")
-	thng, found, err := thingsDriver.read(PersonThingUUID)
-	assert.NoError(t, err, "Unexpected error for person as thing %s", PersonThingUUID)
-	assert.True(t, found, "Found no Concept for person as Concept %s", PersonThingUUID)
-
-	expected := Concept{
-		APIURL:         mapper.APIURL(PersonThingUUID, types, "Prod"),
-		PrefLabel:      "John Smith",
-		ID:             mapper.IDURL(PersonThingUUID),
-		Types:          typesUris,
-		DirectType:     typesUris[len(typesUris)-1],
-		Aliases:        []string{"John Smith"},
-		EmailAddress:   "john.smith@ft.com",
-		TwitterHandle:  "@johnsmith",
-		DescriptionXML: "John smith is some bloke and a beer",
-	}
-
-	readAndCompare(t, expected, thng, "Person successful retrieval")
 }
 
 func TestRetrieveOrganisationAsThing(t *testing.T) {
@@ -123,9 +90,9 @@ func TestRetrieveConceptNewModelAsThing(t *testing.T) {
 		BroaderConcepts:                                                                     []Thing{{ID: mapper.IDURL(TopicOnyxPikeBroader), APIURL: mapper.APIURL(TopicOnyxPikeBroader, types, "Prod"), Types: typesUris, PrefLabel: "Onyx Pike Broader", DirectType: typesUris[len(typesUris)-1]}},
 		RelatedConcepts:                                                                     []Thing{{ID: mapper.IDURL(TopicOnyxPikeRelated), APIURL: mapper.APIURL(TopicOnyxPikeRelated, types, "Prod"),  Types: typesUris, PrefLabel: "Onyx Pike Related", DirectType: typesUris[len(typesUris)-1]}}}
 
-	writeJSONToService(t, conceptsDriver, fmt.Sprintf("./fixtures/Topic-OnyxPikeRelated-%s.json", TopicOnyxPikeRelated))
-	writeJSONToService(t, conceptsDriver, fmt.Sprintf("./fixtures/Topic-OnyxPikeBroader-%s.json",TopicOnyxPikeBroader))
-	writeJSONToService(t, conceptsDriver, fmt.Sprintf("./fixtures/Topic-OnyxPike-%s.json", TopicOnyxPike))
+	writeJSONToConceptsService(t, conceptsDriver, fmt.Sprintf("./fixtures/Topic-OnyxPikeRelated-%s.json", TopicOnyxPikeRelated))
+	writeJSONToConceptsService(t, conceptsDriver, fmt.Sprintf("./fixtures/Topic-OnyxPikeBroader-%s.json",TopicOnyxPikeBroader))
+	writeJSONToConceptsService(t, conceptsDriver, fmt.Sprintf("./fixtures/Topic-OnyxPike-%s.json", TopicOnyxPike))
 
 	thingsDriver := NewCypherDriver(db, "prod")
 
@@ -264,6 +231,17 @@ func writeJSONToService(t *testing.T, service baseftrwapp.Service, pathToJSONFil
 	assert.NoError(t, errr)
 
 	errs := service.Write(inst, "TRANS_ID")
+	assert.NoError(t, errs)
+}
+
+func writeJSONToConceptsService(t *testing.T, service concepts.ConceptService, pathToJSONFile string) {
+	f, err := os.Open(pathToJSONFile)
+	assert.NoError(t, err)
+	dec := json.NewDecoder(f)
+	inst, _, errr := service.DecodeJSON(dec)
+	assert.NoError(t, errr)
+
+	_, errs := service.Write(inst, "TRANS_ID")
 	assert.NoError(t, errs)
 }
 
