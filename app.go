@@ -5,19 +5,19 @@ import (
 	"os"
 
 	"fmt"
-	"strconv"
-	"time"
+	"github.com/Financial-Times/base-ft-rw-app-go/baseftrwapp"
 	"github.com/Financial-Times/go-fthealth/v1a"
 	httpHandlers "github.com/Financial-Times/http-handlers-go/httphandlers"
 	"github.com/Financial-Times/neo-utils-go/neoutils"
 	things "github.com/Financial-Times/public-things-api/things"
 	status "github.com/Financial-Times/service-status-go/httphandlers"
-	log "github.com/sirupsen/logrus"
 	"github.com/gorilla/mux"
 	"github.com/jawher/mow.cli"
-	"github.com/rcrowley/go-metrics"
-	"github.com/Financial-Times/base-ft-rw-app-go/baseftrwapp"
 	_ "github.com/joho/godotenv/autoload"
+	"github.com/rcrowley/go-metrics"
+	log "github.com/sirupsen/logrus"
+	"strconv"
+	"time"
 )
 
 func main() {
@@ -82,9 +82,9 @@ func main() {
 	}
 	log.SetLevel(lvl)
 	log.WithFields(log.Fields{
-		"CACHE_DURATION":       *cacheDuration,
-		"NEO_URL":              *neoURL,
-		"LOG_LEVEL":            *logLevel,
+		"CACHE_DURATION": *cacheDuration,
+		"NEO_URL":        *neoURL,
+		"LOG_LEVEL":      *logLevel,
 	}).Info("Starting app with arguments")
 
 	log.Infof("Application started with args %s", os.Args)

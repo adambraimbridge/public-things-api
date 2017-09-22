@@ -67,12 +67,10 @@
 			"revisionTime": "2017-08-09T12:10:07Z"
 		},
 		{
-			"checksumSHA1": "ZmT6PPQSF7C4aHQ2HO8QsKtYStg=",
+			"checksumSHA1": "3tnAEvyLJTCGCucU9n0lMZrxLBk=",
 			"path": "github.com/Financial-Times/neo-model-utils-go/mapper",
-			"revision": "1a5407658c842183647f4799bb66ecac73af97a8",
-			"revisionTime": "2017-04-05T08:23:10Z",
-			"version": "=0.2.0",
-			"versionExact": "0.2.0"
+			"revision": "c14b518e8c6f89e8c26cee6f7c3a2686198c09f7",
+			"revisionTime": "2017-09-22T11:24:48Z"
 		},
 		{
 			"checksumSHA1": "ibld3tkf8qmEKpF69JI4mrSN0T8=",
@@ -249,7 +247,7 @@
 			"revisionTime": "2017-07-16T02:53:09Z"
 		},
 		{
-			"checksumSHA1": "VmSgg0+AGPLOL6WYjSNMKqelZhI=",
+			"checksumSHA1": "9M9J1BdK3JRK2akE8Z7cVbbKarI=",
 			"path": "golang.org/x/sys/unix",
 			"revision": "4cd6d1a821c7175768725b55ca82f14683a29ea4",
 			"revisionTime": "2017-07-14T13:21:52Z"
