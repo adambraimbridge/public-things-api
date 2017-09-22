@@ -67,10 +67,12 @@
 			"revisionTime": "2017-08-09T12:10:07Z"
 		},
 		{
-			"checksumSHA1": "D7KuaoKQKCq4SRzRGgaXWFy9shY=",
+			"checksumSHA1": "3tnAEvyLJTCGCucU9n0lMZrxLBk=",
 			"path": "github.com/Financial-Times/neo-model-utils-go/mapper",
-			"revision": "3c2faafc0c2e7f886ab799e888d469eaa2de5cda",
-			"revisionTime": "2017-09-20T10:01:40Z"
+			"revision": "fe2616452b1f93260a912a2b6f05a149d301f04c",
+			"revisionTime": "2017-09-22T09:46:51Z",
+			"version": "0.3.2-semantic-removeRoles-RC2",
+			"versionExact": "0.3.2-semantic-removeRoles-RC2"
 		},
 		{
 			"checksumSHA1": "ibld3tkf8qmEKpF69JI4mrSN0T8=",

@@ -6,8 +6,8 @@ import (
 
 	"github.com/Financial-Times/neo-model-utils-go/mapper"
 	"github.com/Financial-Times/neo-utils-go/neoutils"
-	log "github.com/sirupsen/logrus"
 	"github.com/jmcvetta/neoism"
+	log "github.com/sirupsen/logrus"
 )
 
 // Driver interface
@@ -187,7 +187,6 @@ func mapToResponseFormat(thng neoConcept, env string) (Concept, error) {
 		}
 		thing.BroaderConcepts = tings
 	}
-
 
 	if len(thng.NarrowerConcepts) > 0 && thng.NarrowerConcepts[0].ID != "" {
 		tings := []Thing{}

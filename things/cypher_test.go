@@ -22,12 +22,12 @@ import (
 
 const (
 	//Generate uuids so there's no clash with real data
-	FakebookConceptUUID    = "eac853f5-3859-4c08-8540-55e043719400" //organisation - Old concept model
-	ContentUUID            = "3fc9fe3e-af8c-4f7f-961a-e5065392bb31"
-	NonExistingThingUUID   = "b2860919-4b78-44c6-a665-af9221bdefb5"
-	TopicOnyxPike          = "9a07c16f-def0-457d-a04a-57ba68ba1e00"
-	TopicOnyxPikeRelated   = "ec20c787-8289-4cef-aee8-4d39e9563dc5"
-	TopicOnyxPikeBroader   = "ba42b8d0-844f-4f2a-856c-5cbd863bf6bd"
+	FakebookConceptUUID  = "eac853f5-3859-4c08-8540-55e043719400" //organisation - Old concept model
+	ContentUUID          = "3fc9fe3e-af8c-4f7f-961a-e5065392bb31"
+	NonExistingThingUUID = "b2860919-4b78-44c6-a665-af9221bdefb5"
+	TopicOnyxPike        = "9a07c16f-def0-457d-a04a-57ba68ba1e00"
+	TopicOnyxPikeRelated = "ec20c787-8289-4cef-aee8-4d39e9563dc5"
+	TopicOnyxPikeBroader = "ba42b8d0-844f-4f2a-856c-5cbd863bf6bd"
 )
 
 //Reusable Neo4J connection
@@ -85,20 +85,18 @@ func TestRetrieveConceptNewModelAsThing(t *testing.T) {
 	typesUris := mapper.TypeURIs(types)
 
 	expected := Concept{APIURL: mapper.APIURL(TopicOnyxPike, types, "Prod"), PrefLabel: "Onyx Pike", ID: mapper.IDURL(TopicOnyxPike),
-		Types:                  typesUris, DirectType: typesUris[len(typesUris)-1], Aliases: []string{"Bob", "BOB2"},
-		DescriptionXML:                                                                      "<p>Some stuff</p>", ImageURL: "http://media.ft.com/brand.png", EmailAddress: "email@email.com", ScopeNote: "bobs scopey notey", ShortLabel: "Short Label", TwitterHandle: "bob@twitter.com", FacebookPage: "bob@facebook.com",
-		BroaderConcepts:                                                                     []Thing{{ID: mapper.IDURL(TopicOnyxPikeBroader), APIURL: mapper.APIURL(TopicOnyxPikeBroader, types, "Prod"), Types: typesUris, PrefLabel: "Onyx Pike Broader", DirectType: typesUris[len(typesUris)-1]}},
-		RelatedConcepts:                                                                     []Thing{{ID: mapper.IDURL(TopicOnyxPikeRelated), APIURL: mapper.APIURL(TopicOnyxPikeRelated, types, "Prod"),  Types: typesUris, PrefLabel: "Onyx Pike Related", DirectType: typesUris[len(typesUris)-1]}}}
+		Types: typesUris, DirectType: typesUris[len(typesUris)-1], Aliases: []string{"Bob", "BOB2"},
+		DescriptionXML: "<p>Some stuff</p>", ImageURL: "http://media.ft.com/brand.png", EmailAddress: "email@email.com", ScopeNote: "bobs scopey notey", ShortLabel: "Short Label", TwitterHandle: "bob@twitter.com", FacebookPage: "bob@facebook.com",
+		BroaderConcepts: []Thing{{ID: mapper.IDURL(TopicOnyxPikeBroader), APIURL: mapper.APIURL(TopicOnyxPikeBroader, types, "Prod"), Types: typesUris, PrefLabel: "Onyx Pike Broader", DirectType: typesUris[len(typesUris)-1]}},
+		RelatedConcepts: []Thing{{ID: mapper.IDURL(TopicOnyxPikeRelated), APIURL: mapper.APIURL(TopicOnyxPikeRelated, types, "Prod"), Types: typesUris, PrefLabel: "Onyx Pike Related", DirectType: typesUris[len(typesUris)-1]}}}
 
 	writeJSONToConceptsService(t, conceptsDriver, fmt.Sprintf("./fixtures/Topic-OnyxPikeRelated-%s.json", TopicOnyxPikeRelated))
-	writeJSONToConceptsService(t, conceptsDriver, fmt.Sprintf("./fixtures/Topic-OnyxPikeBroader-%s.json",TopicOnyxPikeBroader))
+	writeJSONToConceptsService(t, conceptsDriver, fmt.Sprintf("./fixtures/Topic-OnyxPikeBroader-%s.json", TopicOnyxPikeBroader))
 	writeJSONToConceptsService(t, conceptsDriver, fmt.Sprintf("./fixtures/Topic-OnyxPike-%s.json", TopicOnyxPike))
 
 	thingsDriver := NewCypherDriver(db, "prod")
 
 	thng, found, err := thingsDriver.read(TopicOnyxPike)
-
-
 
 	assert.NoError(t, err, "Unexpected error for concept as thing %s", TopicOnyxPike)
 	assert.True(t, found, "Found no Concept for concept as Concept %s", TopicOnyxPike)
@@ -128,7 +126,7 @@ func readAndCompare(t *testing.T, expected Concept, actual Concept, testName str
 	})
 
 	sort.Slice(actual.NarrowerConcepts, func(i, j int) bool {
-		return actual.NarrowerConcepts[i].ID< actual.NarrowerConcepts[j].ID
+		return actual.NarrowerConcepts[i].ID < actual.NarrowerConcepts[j].ID
 	})
 
 	sort.Slice(actual.RelatedConcepts, func(i, j int) bool {
