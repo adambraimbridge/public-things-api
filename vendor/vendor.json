@@ -47,10 +47,12 @@
 			"revisionTime": "2017-05-25T09:50:41Z"
 		},
 		{
-			"checksumSHA1": "fNgRM8ZlaDzdvSpuhSdGxEOrWi4=",
+			"checksumSHA1": "G8lW8pPVLieqh/MTJZkvI/i/WyM=",
 			"path": "github.com/Financial-Times/go-fthealth/v1_1",
-			"revision": "e7ccca038327a0091303a52445ec1f0fb66cb97b",
-			"revisionTime": "2017-05-25T09:50:41Z"
+			"revision": "1b007e2b37b7936dfb6671fa17e5a29fd35a08ea",
+			"revisionTime": "2017-12-04T12:48:31Z",
+			"version": "0.4.0",
+			"versionExact": "0.4.0"
 		},
 		{
 			"checksumSHA1": "FUhczVSvt/VQAlWfzATo1YLez2E=",
@@ -247,7 +249,7 @@
 			"revisionTime": "2017-07-16T02:53:09Z"
 		},
 		{
-			"checksumSHA1": "9M9J1BdK3JRK2akE8Z7cVbbKarI=",
+			"checksumSHA1": "VmSgg0+AGPLOL6WYjSNMKqelZhI=",
 			"path": "golang.org/x/sys/unix",
 			"revision": "4cd6d1a821c7175768725b55ca82f14683a29ea4",
 			"revisionTime": "2017-07-14T13:21:52Z"

@@ -6,7 +6,6 @@ import (
 
 	"fmt"
 	"github.com/Financial-Times/base-ft-rw-app-go/baseftrwapp"
-	"github.com/Financial-Times/go-fthealth/v1a"
 	httpHandlers "github.com/Financial-Times/http-handlers-go/httphandlers"
 	"github.com/Financial-Times/neo-utils-go/neoutils"
 	things "github.com/Financial-Times/public-things-api/things"
@@ -18,6 +17,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"strconv"
 	"time"
+	"github.com/gorilla/handlers"
 )
 
 func main() {
@@ -71,7 +71,8 @@ func main() {
 	app.Action = func() {
 		baseftrwapp.OutputMetricsIfRequired(*graphiteTCPAddress, *graphitePrefix, *logMetrics)
 		log.Infof("public-things-api will listen on port: %s, connecting to: %s", *port, *neoURL)
-		runServer(*neoURL, *port, *cacheDuration, *env)
+		healthService := &things.HealthService{}
+		runServer(*neoURL, *port, *cacheDuration, *env, healthService)
 	}
 
 	log.SetFormatter(&log.JSONFormatter{})
@@ -91,7 +92,7 @@ func main() {
 	app.Run(os.Args)
 }
 
-func runServer(neoURL string, port string, cacheDuration string, env string) {
+func runServer(neoURL string, port string, cacheDuration string, env string, healthService *things.HealthService) {
 	if duration, durationErr := time.ParseDuration(cacheDuration); durationErr != nil {
 		log.Fatalf("Failed to parse cache duration string, %v", durationErr)
 	} else {
@@ -125,21 +126,19 @@ func runServer(neoURL string, port string, cacheDuration string, env string) {
 	http.HandleFunc(status.PingPathDW, status.PingHandler)
 	http.HandleFunc(status.BuildInfoPath, status.BuildInfoHandler)
 	http.HandleFunc(status.BuildInfoPathDW, status.BuildInfoHandler)
-	http.HandleFunc(status.GTGPath, things.GoodToGo)
 
-	http.Handle("/", router())
+	http.Handle("/", router(healthService))
 
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		log.Fatalf("Unable to start server: %v", err)
 	}
 }
 
-func router() http.Handler {
+func router(healthService *things.HealthService) http.Handler {
 	servicesRouter := mux.NewRouter()
 
-	// Healthchecks and standards first
-	servicesRouter.HandleFunc("/__health", v1a.Handler("PublicThingsApi Healthchecks",
-		"Checks for accessing neo4j", things.HealthCheck()))
+	servicesRouter.Path(status.GTGPath).Handler(handlers.MethodHandler{"GET": http.HandlerFunc(status.NewGoodToGoHandler(healthService.GTG))})
+	servicesRouter.Path("/__health").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(healthService.Health())})
 
 	// Then API specific ones:
 	servicesRouter.HandleFunc("/things/{uuid}", things.GetThings).Methods("GET")

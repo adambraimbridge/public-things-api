@@ -14,4 +14,8 @@ image:
 env:
   graphite:
     prefix: "coco.services.k8s.public-things-api"
-
+resources:
+  requests:
+    memory: 32Mi
+  limits:
+    memory: 64Mi
