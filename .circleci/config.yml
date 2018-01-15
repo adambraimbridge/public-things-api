@@ -63,11 +63,17 @@ jobs:
             else
               echo 'export DOCKER_TAG=$( echo ${CIRCLE_BRANCH} | cut -f 2 -d / )' >> $BASH_ENV
             fi
+            echo 'Docker tag: ${DOCKER_TAG}'
+            echo 'Circle tag: ${CIRCLE_TAG}'
+            echo 'Circle branch: ${CIRCLE_BRANCH}'
+            echot 'Bash Env: ${BASH_ENV}'
       - run:
-          name: Build Dockerfile
+          name: Build Docker image
           command: |
             source ${BASH_ENV}
             docker build \
+            --build-arg SONATYPE_USER=${SONATYPE_USER} \
+            --build-arg SONATYPE_PASSWORD=${SONATYPE_PASSWORD} \
             --tag nexus.in.ft.com:5000/coco/${CIRCLE_PROJECT_REPONAME}:${DOCKER_TAG} .
       - deploy:
           name: Push Docker image
