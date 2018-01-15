@@ -63,9 +63,9 @@ jobs:
             else
               echo 'export DOCKER_TAG=$( echo ${CIRCLE_BRANCH} | cut -f 2 -d / )' >> $BASH_ENV
             fi
-            echo 'Docker tag: $DOCKER_TAG'
-            echo 'Circle tag: $CIRCLE_TAG'
-            echo 'Circle branch: $CIRCLE_BRANCH'
+            echo "Docker tag: $DOCKER_TAG"
+            echo "Circle tag: $CIRCLE_TAG"
+            echo "Circle branch: $CIRCLE_BRANCH"
       - run:
           name: Build Docker image
           command: |
