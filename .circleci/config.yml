@@ -3,10 +3,7 @@ workflows:
   version: 2
   build-docker-image:
     jobs:
-      - build:
-          filters:
-            tags:
-              only: /.*/
+      - build
       - docker-push:
           filters:
             tags:
