@@ -8,6 +8,8 @@ workflows:
           filters:
             tags:
               only: /.*/
+            branches:
+              only: master
 jobs:
   build:
     working_directory: /go/src/github.com/Financial-Times/public-things-api
