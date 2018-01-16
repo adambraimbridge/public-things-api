@@ -7,7 +7,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/Financial-Times/go-fthealth/v1a"
 	"github.com/gorilla/mux"
 )
 
@@ -15,44 +14,6 @@ var ThingsDriver driver
 var CacheControlHeader string
 
 const validUUID = "([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$"
-
-//var maxAge = 24 * time.Hour
-
-func HealthCheck() v1a.Check {
-	return v1a.Check{
-		BusinessImpact:   "Unable to respond to Public Things api requests",
-		Name:             "Check connectivity to Neo4j - neoUrl is a parameter in hieradata for this service",
-		PanicGuide:       "https://sites.google.com/a/ft.com/ft-technology-service-transition/home/run-book-library/public-things-api",
-		Severity:         1,
-		TechnicalSummary: `Cannot connect to Neo4j. If this check fails, check that Neo4j instance is up and running. You can find the neoUrl as a parameter in hieradata for this service.`,
-		Checker:          Checker,
-	}
-}
-
-func Checker() (string, error) {
-	err := ThingsDriver.checkConnectivity()
-	if err == nil {
-		return "Connectivity to neo4j is ok", err
-	}
-	return "Error connecting to neo4j", err
-}
-
-func Ping(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "pong")
-}
-
-//goodToGo returns a 503 if the healthcheck fails - suitable for use from varnish to check availability of a node
-func GoodToGo(writer http.ResponseWriter, req *http.Request) {
-	if _, err := Checker(); err != nil {
-		writer.WriteHeader(http.StatusServiceUnavailable)
-	}
-
-}
-
-// buildInfoHandler - This is a stop gap and will be added to when we can define what we should display here
-func BuildInfoHandler(w http.ResponseWriter, req *http.Request) {
-	fmt.Fprintf(w, "build-info")
-}
 
 // methodNotAllowedHandler handles 405
 func MethodNotAllowedHandler(w http.ResponseWriter, r *http.Request) {
