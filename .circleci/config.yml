@@ -18,7 +18,7 @@ jobs:
           CIRCLE_TEST_REPORTS: /tmp/test-results
           CIRCLE_COVERAGE_REPORT: /tmp/coverage-results
           NEO4J_TEST_URL: "http://localhost:7474/db/data/"
-      - image: neo4j:3.1.0-enterprise
+      - image: neo4j:3.2.7-enterprise
         environment:
           NEO4J_AUTH: none
           NEO4J_HEAP_MEMORY: 256
