@@ -27,4 +27,5 @@ type Thing struct {
 	PrefLabel  string   `json:"prefLabel,omitempty"`
 	Types      []string `json:"types"`
 	DirectType string   `json:"directType,omitempty"`
+	Predicate  string   `json:"predicate,omitempty"`
 }

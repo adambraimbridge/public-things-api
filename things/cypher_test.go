@@ -68,7 +68,7 @@ func TestRetrieveOrganisationAsThing(t *testing.T) {
 	writeJSONToService(t, organisationRW, fmt.Sprintf("./fixtures/Organisation-Fakebook-%v.json", FakebookConceptUUID))
 
 	thingsDriver := NewCypherDriver(db, "prod")
-	thng, found, err := thingsDriver.read(FakebookConceptUUID)
+	thng, found, err := thingsDriver.read(FakebookConceptUUID, nil)
 	assert.NoError(t, err, "Unexpected error for organisation as thing %s", FakebookConceptUUID)
 	assert.True(t, found, "Found no Concept for organisation as Concept %s", FakebookConceptUUID)
 
@@ -87,8 +87,8 @@ func TestRetrieveConceptNewModelAsThing(t *testing.T) {
 	expected := Concept{APIURL: mapper.APIURL(TopicOnyxPike, types, "Prod"), PrefLabel: "Onyx Pike", ID: mapper.IDURL(TopicOnyxPike),
 		Types: typesUris, DirectType: typesUris[len(typesUris)-1], Aliases: []string{"Bob", "BOB2"},
 		DescriptionXML: "<p>Some stuff</p>", ImageURL: "http://media.ft.com/brand.png", EmailAddress: "email@email.com", ScopeNote: "bobs scopey notey", ShortLabel: "Short Label", TwitterHandle: "bob@twitter.com", FacebookPage: "bob@facebook.com",
-		BroaderConcepts: []Thing{{ID: mapper.IDURL(TopicOnyxPikeBroader), APIURL: mapper.APIURL(TopicOnyxPikeBroader, types, "Prod"), Types: typesUris, PrefLabel: "Onyx Pike Broader", DirectType: typesUris[len(typesUris)-1]}},
-		RelatedConcepts: []Thing{{ID: mapper.IDURL(TopicOnyxPikeRelated), APIURL: mapper.APIURL(TopicOnyxPikeRelated, types, "Prod"), Types: typesUris, PrefLabel: "Onyx Pike Related", DirectType: typesUris[len(typesUris)-1]}}}
+		BroaderConcepts: []Thing{{ID: mapper.IDURL(TopicOnyxPikeBroader), APIURL: mapper.APIURL(TopicOnyxPikeBroader, types, "Prod"), Types: typesUris, PrefLabel: "Onyx Pike Broader", DirectType: typesUris[len(typesUris)-1], Predicate: skosBroaderURI}},
+		RelatedConcepts: []Thing{{ID: mapper.IDURL(TopicOnyxPikeRelated), APIURL: mapper.APIURL(TopicOnyxPikeRelated, types, "Prod"), Types: typesUris, PrefLabel: "Onyx Pike Related", DirectType: typesUris[len(typesUris)-1], Predicate: skosRelatedURI}}}
 
 	writeJSONToConceptsService(t, conceptsDriver, fmt.Sprintf("./fixtures/Topic-OnyxPikeRelated-%s.json", TopicOnyxPikeRelated))
 	writeJSONToConceptsService(t, conceptsDriver, fmt.Sprintf("./fixtures/Topic-OnyxPikeBroader-%s.json", TopicOnyxPikeBroader))
@@ -96,7 +96,8 @@ func TestRetrieveConceptNewModelAsThing(t *testing.T) {
 
 	thingsDriver := NewCypherDriver(db, "prod")
 
-	thng, found, err := thingsDriver.read(TopicOnyxPike)
+	relationships := []string{"broader", "related"}
+	thng, found, err := thingsDriver.read(TopicOnyxPike, relationships)
 
 	assert.NoError(t, err, "Unexpected error for concept as thing %s", TopicOnyxPike)
 	assert.True(t, found, "Found no Concept for concept as Concept %s", TopicOnyxPike)
@@ -191,7 +192,7 @@ func TestCannotRetrieveContentAsThing(t *testing.T) {
 	defer cleanDB(t, NonExistingThingUUID, ContentUUID)
 
 	thingsDriver := NewCypherDriver(db, "prod")
-	thng, found, err := thingsDriver.read(NonExistingThingUUID)
+	thng, found, err := thingsDriver.read(NonExistingThingUUID, nil)
 	assert.NoError(err, "Unexpected error for thing %s", NonExistingThingUUID)
 	assert.False(found, "Found thing %s", NonExistingThingUUID)
 	assert.EqualValues(Concept{}, thng, "Found non-existing thing %s", NonExistingThingUUID)
@@ -200,7 +201,7 @@ func TestCannotRetrieveContentAsThing(t *testing.T) {
 func TestRetrieveNoThingsWhenThereAreNonePresent(t *testing.T) {
 	assert := assert.New(t)
 	thingsDriver := NewCypherDriver(db, "prod")
-	thng, found, err := thingsDriver.read(NonExistingThingUUID)
+	thng, found, err := thingsDriver.read(NonExistingThingUUID, nil)
 	assert.NoError(err, "Unexpected error for thing %s", NonExistingThingUUID)
 	assert.False(found, "Found thing %s", NonExistingThingUUID)
 	assert.EqualValues(Concept{}, thng, "Found non-existing thing %s", NonExistingThingUUID)

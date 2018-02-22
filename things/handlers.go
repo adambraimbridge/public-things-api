@@ -30,7 +30,7 @@ func GetThings(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "uuid required", http.StatusBadRequest)
 		return
 	}
-	thng, found, err := ThingsDriver.read(uuid)
+	thng, found, err := ThingsDriver.read(uuid, nil)
 	if err != nil {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		msg := fmt.Sprintf(`{"message":"Error getting thing with uuid %s, err=%s"}`, uuid, err.Error())

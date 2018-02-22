@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/gorilla/mux"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/gorilla/mux"
+	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -77,7 +78,7 @@ type dummyService struct {
 	failRead      bool
 }
 
-func (dS dummyService) read(contentUUID string) (Concept, bool, error) {
+func (dS dummyService) read(contentUUID string, relationships []string) (Concept, bool, error) {
 	if dS.failRead {
 		return Concept{}, false, errors.New("TEST failing to READ")
 	}
