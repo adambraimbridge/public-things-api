@@ -3,6 +3,7 @@ package things
 import (
 	"errors"
 	"fmt"
+	"regexp"
 
 	"github.com/Financial-Times/neo-model-utils-go/mapper"
 	"github.com/Financial-Times/neo-utils-go/neoutils"
@@ -10,10 +11,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const skosBroaderURI = "http://www.w3.org/2004/02/skos/core#broader"
-const skosBroaderTransitiveURI = "http://www.w3.org/2004/02/skos/core#broaderTransitive"
-const skosNarrowerURI = "http://www.w3.org/2004/02/skos/core#narrower"
-const skosRelatedURI = "http://www.w3.org/2004/02/skos/core#related"
+const (
+	broader           = "broader"
+	broaderTransitive = "broaderTransitive"
+	narrower          = "narrower"
+	related           = "related"
+
+	prefix                   = "http://www.w3.org/2004/02/skos/core#"
+	skosBroaderURI           = prefix + broader
+	skosBroaderTransitiveURI = prefix + broaderTransitive
+	skosNarrowerURI          = prefix + narrower
+	skosRelatedURI           = prefix + related
+)
 
 // Driver interface
 type driver interface {
@@ -75,6 +84,9 @@ type neoThing struct {
 func (cd cypherDriver) read(thingUUID string, relationships []string) (Concept, bool, error) {
 	var results []neoConcept
 
+	relationships = cleanUpRelationships(relationships)
+	relationships = appendMissingSubRelationships(relationships)
+
 	cypherStmt := newCypherStmtBuilder().withRelationships(relationships).build()
 
 	query := &neoism.CypherQuery{
@@ -98,6 +110,31 @@ func (cd cypherDriver) read(thingUUID string, relationships []string) (Concept, 
 		return thing, true, err
 	}
 
+}
+
+func cleanUpRelationships(requestedRelationships []string) []string {
+	var cleanRelationships []string
+	for _, r := range requestedRelationships {
+		if _, found := skosNeo4JRelationshipMap[r]; found {
+			cleanRelationships = append(cleanRelationships, r)
+		}
+	}
+	return cleanRelationships
+}
+
+func appendMissingSubRelationships(requestedRelationships []string) []string {
+	extendedRelationshipsSet := make(map[string]struct{})
+	for _, r := range requestedRelationships {
+		extendedRelationshipsSet[r] = struct{}{}
+		if r == broaderTransitive {
+			extendedRelationshipsSet[broader] = struct{}{}
+		}
+	}
+	var extendedRelationships []string
+	for r := range extendedRelationshipsSet {
+		extendedRelationships = append(extendedRelationships, r)
+	}
+	return extendedRelationships
 }
 
 func isContent(thng neoConcept) bool {
@@ -199,4 +236,87 @@ func mapToThingInRelationship(c neoThing, env, predicate string) Thing {
 		log.WithFields(log.Fields{"UUID": c.ID}).Errorf("Could not map type URIs for ID %s with types %s", c.ID, c.Types)
 	}
 	return t
+}
+
+const thingMatchStatements = `MATCH (identifier:UPPIdentifier{value:{thingUUID}})
+ 							  MATCH (identifier)-[:IDENTIFIES]->(leaf:Concept)
+                              OPTIONAL MATCH (leaf)-[:EQUIVALENT_TO]->(canonical:Concept) `
+const relationshipsMatchStatementsTemplate = `OPTIONAL MATCH (leaf)%s(c%v:Concept)
+                                              OPTIONAL MATCH (c%v)-[:EQUIVALENT_TO]->(%sCanonical:Concept) `
+const conceptMapTemplate = ", {id: %sCanonical.prefUUID, prefLabel: %sCanonical.prefLabel, types: labels(%sCanonical)} as %sMap "
+const conceptCollectionTemplate = ", collect(DISTINCT %sMap) as %sConcepts"
+const thingReturnStatement = `RETURN 
+                              leaf.uuid as leafUUID, labels(leaf) as leafTypes, leaf.prefLabel as leafPrefLabel,
+                              leaf.descriptionXML as leafDescriptionXML, leaf.imageUrl as leafImageUrl, leaf.aliases as leafAliases, leaf.emailAddress as leafEmailAddress,
+                              leaf.facebookPage as leafFacebookPage, leaf.twitterHandle as leafTwitterHandle, leaf.scopeNote as leafScopeNote, leaf.shortLabel as leafShortLabel,
+                              canonical.prefUUID as canonicalUUID, canonical.prefLabel as canonicalPrefLabel, labels(canonical) as canonicalTypes,
+                              canonical.descriptionXML as canonicalDescriptionXML, canonical.imageUrl as canonicalImageUrl, canonical.aliases as canonicalAliases, canonical.emailAddress as canonicalEmailAddress,
+                              canonical.facebookPage as canonicalFacebookPage, canonical.twitterHandle as canonicalTwitterHandle, canonical.scopeNote as canonicalScopeNote, canonical.shortLabel as canonicalShortLabel`
+
+var skosNeo4JRelationshipMap = map[string]string{
+	broader:           "-[:HAS_BROADER]->",
+	broaderTransitive: "-[:HAS_BROADER*2..]->",
+	narrower:          "<-[:HAS_BROADER]-",
+	related:           "-[:IS_RELATED_TO]->",
+}
+
+var collectStmtRegExp = regexp.MustCompile("collect\\(DISTINCT \\w+Map\\) as ")
+
+type cypherStmtBuilder struct {
+	thingUUID     string
+	relationships []string
+}
+
+func newCypherStmtBuilder() *cypherStmtBuilder {
+	return &cypherStmtBuilder{}
+}
+
+func (b *cypherStmtBuilder) withRelationships(relationships []string) *cypherStmtBuilder {
+	b.relationships = relationships
+	return b
+}
+
+func (b *cypherStmtBuilder) build() string {
+	stmt := thingMatchStatements
+	stmt += buildRelationshipsMatchStatements(b.relationships)
+	stmt += buildReturnStatement(b.relationships)
+	return stmt
+}
+
+func buildRelationshipsMatchStatements(relationships []string) string {
+	stmt := ""
+	previousRelationship := ""
+	withStmt := "WITH leaf, canonical"
+	for i, r := range relationships {
+		stmt += fmt.Sprintf(relationshipsMatchStatementsTemplate, skosNeo4JRelationshipMap[r], i, i, r)
+
+		withStmt = updatedWithStmt(withStmt, previousRelationship)
+
+		stmt += withStmt + fmt.Sprintf(conceptMapTemplate, r, r, r, r)
+
+		previousRelationship = r
+	}
+
+	if len(relationships) > 0 {
+		withStmt = updatedWithStmt(withStmt, previousRelationship)
+		stmt += withStmt + " "
+	}
+
+	return stmt
+}
+
+func buildReturnStatement(relationships []string) string {
+	stmt := thingReturnStatement
+	for _, r := range relationships {
+		stmt += ", " + r + "Concepts"
+	}
+	return stmt
+}
+
+func updatedWithStmt(withStmt, relationship string) string {
+	if relationship != "" {
+		withStmt = collectStmtRegExp.ReplaceAllString(withStmt, "")
+		withStmt += fmt.Sprintf(conceptCollectionTemplate, relationship, relationship)
+	}
+	return withStmt
 }

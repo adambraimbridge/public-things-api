@@ -22,12 +22,13 @@ import (
 
 const (
 	//Generate uuids so there's no clash with real data
-	FakebookConceptUUID  = "eac853f5-3859-4c08-8540-55e043719400" //organisation - Old concept model
-	ContentUUID          = "3fc9fe3e-af8c-4f7f-961a-e5065392bb31"
-	NonExistingThingUUID = "b2860919-4b78-44c6-a665-af9221bdefb5"
-	TopicOnyxPike        = "9a07c16f-def0-457d-a04a-57ba68ba1e00"
-	TopicOnyxPikeRelated = "ec20c787-8289-4cef-aee8-4d39e9563dc5"
-	TopicOnyxPikeBroader = "ba42b8d0-844f-4f2a-856c-5cbd863bf6bd"
+	FakebookConceptUUID            = "eac853f5-3859-4c08-8540-55e043719400" //organisation - Old concept model
+	ContentUUID                    = "3fc9fe3e-af8c-4f7f-961a-e5065392bb31"
+	NonExistingThingUUID           = "b2860919-4b78-44c6-a665-af9221bdefb5"
+	TopicOnyxPike                  = "9a07c16f-def0-457d-a04a-57ba68ba1e00"
+	TopicOnyxPikeRelated           = "ec20c787-8289-4cef-aee8-4d39e9563dc5"
+	TopicOnyxPikeBroader           = "ba42b8d0-844f-4f2a-856c-5cbd863bf6bd"
+	TopicOnyxPikeBroaderTransitive = "a0ec2c50-1174-48f2-b804-d1f346bb7256"
 )
 
 //Reusable Neo4J connection
@@ -75,11 +76,9 @@ func TestRetrieveOrganisationAsThing(t *testing.T) {
 	readAndCompare(t, expected, thng, "Organisation successful retrieval")
 }
 
-func TestRetrieveConceptNewModelAsThing(t *testing.T) {
-	defer cleanDB(t, TopicOnyxPikeRelated, TopicOnyxPikeBroader, TopicOnyxPike)
-
-	conceptsDriver := concepts.NewConceptService(db)
-	assert.NoError(t, conceptsDriver.Initialise())
+func TestRetrieveConceptAsThingWithoutRelationships(t *testing.T) {
+	createOnyxPikeScenario(t)
+	defer cleanUpOnyxPikeScenario(t)
 
 	types := []string{"Thing", "Concept", "Topic"}
 	typesUris := mapper.TypeURIs(types)
@@ -87,22 +86,267 @@ func TestRetrieveConceptNewModelAsThing(t *testing.T) {
 	expected := Concept{APIURL: mapper.APIURL(TopicOnyxPike, types, "Prod"), PrefLabel: "Onyx Pike", ID: mapper.IDURL(TopicOnyxPike),
 		Types: typesUris, DirectType: typesUris[len(typesUris)-1], Aliases: []string{"Bob", "BOB2"},
 		DescriptionXML: "<p>Some stuff</p>", ImageURL: "http://media.ft.com/brand.png", EmailAddress: "email@email.com", ScopeNote: "bobs scopey notey", ShortLabel: "Short Label", TwitterHandle: "bob@twitter.com", FacebookPage: "bob@facebook.com",
-		BroaderConcepts: []Thing{{ID: mapper.IDURL(TopicOnyxPikeBroader), APIURL: mapper.APIURL(TopicOnyxPikeBroader, types, "Prod"), Types: typesUris, PrefLabel: "Onyx Pike Broader", DirectType: typesUris[len(typesUris)-1], Predicate: skosBroaderURI}},
-		RelatedConcepts: []Thing{{ID: mapper.IDURL(TopicOnyxPikeRelated), APIURL: mapper.APIURL(TopicOnyxPikeRelated, types, "Prod"), Types: typesUris, PrefLabel: "Onyx Pike Related", DirectType: typesUris[len(typesUris)-1], Predicate: skosRelatedURI}}}
-
-	writeJSONToConceptsService(t, conceptsDriver, fmt.Sprintf("./fixtures/Topic-OnyxPikeRelated-%s.json", TopicOnyxPikeRelated))
-	writeJSONToConceptsService(t, conceptsDriver, fmt.Sprintf("./fixtures/Topic-OnyxPikeBroader-%s.json", TopicOnyxPikeBroader))
-	writeJSONToConceptsService(t, conceptsDriver, fmt.Sprintf("./fixtures/Topic-OnyxPike-%s.json", TopicOnyxPike))
+	}
 
 	thingsDriver := NewCypherDriver(db, "prod")
 
-	relationships := []string{"broader", "related"}
-	thng, found, err := thingsDriver.read(TopicOnyxPike, relationships)
+	thng, found, err := thingsDriver.read(TopicOnyxPike, nil)
 
 	assert.NoError(t, err, "Unexpected error for concept as thing %s", TopicOnyxPike)
 	assert.True(t, found, "Found no Concept for concept as Concept %s", TopicOnyxPike)
 
 	readAndCompare(t, expected, thng, "Retrieve concepts via new concordance model")
+}
+
+func TestRetrieveConceptWithBroader(t *testing.T) {
+	createOnyxPikeScenario(t)
+	defer cleanUpOnyxPikeScenario(t)
+
+	types := []string{"Thing", "Concept", "Topic"}
+	typesUris := mapper.TypeURIs(types)
+
+	expectedOnyxPike := Concept{APIURL: mapper.APIURL(TopicOnyxPike, types, "Prod"), PrefLabel: "Onyx Pike", ID: mapper.IDURL(TopicOnyxPike),
+		Types: typesUris, DirectType: typesUris[len(typesUris)-1], Aliases: []string{"Bob", "BOB2"},
+		DescriptionXML: "<p>Some stuff</p>", ImageURL: "http://media.ft.com/brand.png", EmailAddress: "email@email.com", ScopeNote: "bobs scopey notey", ShortLabel: "Short Label", TwitterHandle: "bob@twitter.com", FacebookPage: "bob@facebook.com",
+		BroaderConcepts: []Thing{{ID: mapper.IDURL(TopicOnyxPikeBroader), APIURL: mapper.APIURL(TopicOnyxPikeBroader, types, "Prod"), Types: typesUris, PrefLabel: "Onyx Pike Broader", DirectType: typesUris[len(typesUris)-1], Predicate: skosBroaderURI}},
+	}
+
+	expectedOnyxPikeBroader := Concept{APIURL: mapper.APIURL(TopicOnyxPikeBroader, types, "Prod"), PrefLabel: "Onyx Pike Broader", ID: mapper.IDURL(TopicOnyxPikeBroader),
+		Types: typesUris, DirectType: typesUris[len(typesUris)-1], Aliases: []string{"Onyx Pike Broader Business & Economy", "Onyx Pike Broader"},
+		BroaderConcepts: []Thing{{ID: mapper.IDURL(TopicOnyxPikeBroaderTransitive), APIURL: mapper.APIURL(TopicOnyxPikeBroaderTransitive, types, "Prod"), Types: typesUris, PrefLabel: "Onyx Pike Broader Transitive", DirectType: typesUris[len(typesUris)-1], Predicate: skosBroaderURI}},
+	}
+
+	thingsDriver := NewCypherDriver(db, "prod")
+
+	relationships := []string{broader}
+	actualOnyxPike, found, err := thingsDriver.read(TopicOnyxPike, relationships)
+
+	assert.NoError(t, err, "Unexpected error for concept as thing %s", TopicOnyxPike)
+	assert.True(t, found, "Found no Concept for concept as Concept %s", TopicOnyxPike)
+
+	readAndCompare(t, expectedOnyxPike, actualOnyxPike, "Retrieve concepts via new concordance model")
+
+	actualOnyxPikeBroader, found, err := thingsDriver.read(TopicOnyxPikeBroader, relationships)
+
+	assert.NoError(t, err, "Unexpected error for concept as thing %s", TopicOnyxPikeBroader)
+	assert.True(t, found, "Found no Concept for concept as Concept %s", TopicOnyxPikeBroader)
+
+	readAndCompare(t, expectedOnyxPikeBroader, actualOnyxPikeBroader, "Retrieve concepts via new concordance model")
+}
+
+func TestRetrieveConceptWithBroaderTransitive(t *testing.T) {
+	createOnyxPikeScenario(t)
+	defer cleanUpOnyxPikeScenario(t)
+
+	types := []string{"Thing", "Concept", "Topic"}
+	typesUris := mapper.TypeURIs(types)
+
+	expectedOnyxPike := Concept{APIURL: mapper.APIURL(TopicOnyxPike, types, "Prod"), PrefLabel: "Onyx Pike", ID: mapper.IDURL(TopicOnyxPike),
+		Types: typesUris, DirectType: typesUris[len(typesUris)-1], Aliases: []string{"Bob", "BOB2"},
+		DescriptionXML: "<p>Some stuff</p>", ImageURL: "http://media.ft.com/brand.png", EmailAddress: "email@email.com", ScopeNote: "bobs scopey notey", ShortLabel: "Short Label", TwitterHandle: "bob@twitter.com", FacebookPage: "bob@facebook.com",
+		BroaderConcepts: []Thing{
+			{ID: mapper.IDURL(TopicOnyxPikeBroader), APIURL: mapper.APIURL(TopicOnyxPikeBroader, types, "Prod"), Types: typesUris, PrefLabel: "Onyx Pike Broader", DirectType: typesUris[len(typesUris)-1], Predicate: skosBroaderURI},
+			{ID: mapper.IDURL(TopicOnyxPikeBroaderTransitive), APIURL: mapper.APIURL(TopicOnyxPikeBroaderTransitive, types, "Prod"), Types: typesUris, PrefLabel: "Onyx Pike Broader Transitive", DirectType: typesUris[len(typesUris)-1], Predicate: skosBroaderTransitiveURI},
+		},
+	}
+
+	expectedOnyxPikeBroader := Concept{APIURL: mapper.APIURL(TopicOnyxPikeBroader, types, "Prod"), PrefLabel: "Onyx Pike Broader", ID: mapper.IDURL(TopicOnyxPikeBroader),
+		Types: typesUris, DirectType: typesUris[len(typesUris)-1], Aliases: []string{"Onyx Pike Broader Business & Economy", "Onyx Pike Broader"},
+		BroaderConcepts: []Thing{{ID: mapper.IDURL(TopicOnyxPikeBroaderTransitive), APIURL: mapper.APIURL(TopicOnyxPikeBroaderTransitive, types, "Prod"), Types: typesUris, PrefLabel: "Onyx Pike Broader Transitive", DirectType: typesUris[len(typesUris)-1], Predicate: skosBroaderURI}},
+	}
+
+	thingsDriver := NewCypherDriver(db, "prod")
+
+	relationships := []string{broaderTransitive}
+	actualOnyxPike, found, err := thingsDriver.read(TopicOnyxPike, relationships)
+
+	assert.NoError(t, err, "Unexpected error for concept as thing %s", TopicOnyxPike)
+	assert.True(t, found, "Found no Concept for concept as Concept %s", TopicOnyxPike)
+
+	readAndCompare(t, expectedOnyxPike, actualOnyxPike, "Retrieve concepts via new concordance model")
+
+	actualOnyxPikeBroader, found, err := thingsDriver.read(TopicOnyxPikeBroader, relationships)
+
+	assert.NoError(t, err, "Unexpected error for concept as thing %s", TopicOnyxPikeBroader)
+	assert.True(t, found, "Found no Concept for concept as Concept %s", TopicOnyxPikeBroader)
+
+	readAndCompare(t, expectedOnyxPikeBroader, actualOnyxPikeBroader, "Retrieve concepts via new concordance model")
+}
+
+func TestRetrieveConceptWithNarrower(t *testing.T) {
+	createOnyxPikeScenario(t)
+	defer cleanUpOnyxPikeScenario(t)
+
+	types := []string{"Thing", "Concept", "Topic"}
+	typesUris := mapper.TypeURIs(types)
+
+	expectedOnyxPikeBroader := Concept{APIURL: mapper.APIURL(TopicOnyxPikeBroader, types, "Prod"), PrefLabel: "Onyx Pike Broader", ID: mapper.IDURL(TopicOnyxPikeBroader),
+		Types: typesUris, DirectType: typesUris[len(typesUris)-1], Aliases: []string{"Onyx Pike Broader Business & Economy", "Onyx Pike Broader"},
+		NarrowerConcepts: []Thing{{ID: mapper.IDURL(TopicOnyxPike), APIURL: mapper.APIURL(TopicOnyxPike, types, "Prod"), Types: typesUris, PrefLabel: "Onyx Pike", DirectType: typesUris[len(typesUris)-1], Predicate: skosNarrowerURI}},
+	}
+
+	expectedOnyxPikeBroaderTransitive := Concept{APIURL: mapper.APIURL(TopicOnyxPikeBroaderTransitive, types, "Prod"), PrefLabel: "Onyx Pike Broader Transitive", ID: mapper.IDURL(TopicOnyxPikeBroaderTransitive),
+		Types: typesUris, DirectType: typesUris[len(typesUris)-1], Aliases: []string{"Onyx Pike Broader Transitive Business & Economy", "Onyx Pike Broader Transitive"},
+		NarrowerConcepts: []Thing{{ID: mapper.IDURL(TopicOnyxPikeBroader), APIURL: mapper.APIURL(TopicOnyxPikeBroader, types, "Prod"), Types: typesUris, PrefLabel: "Onyx Pike Broader", DirectType: typesUris[len(typesUris)-1], Predicate: skosNarrowerURI}},
+	}
+
+	thingsDriver := NewCypherDriver(db, "prod")
+
+	relationships := []string{narrower}
+	actualOnyxPikeBroader, found, err := thingsDriver.read(TopicOnyxPikeBroader, relationships)
+
+	assert.NoError(t, err, "Unexpected error for concept as thing %s", TopicOnyxPike)
+	assert.True(t, found, "Found no Concept for concept as Concept %s", TopicOnyxPike)
+
+	readAndCompare(t, expectedOnyxPikeBroader, actualOnyxPikeBroader, "Retrieve concepts via new concordance model")
+
+	actualOnyxPikeBroaderTransitive, found, err := thingsDriver.read(TopicOnyxPikeBroaderTransitive, relationships)
+
+	assert.NoError(t, err, "Unexpected error for concept as thing %s", TopicOnyxPikeBroader)
+	assert.True(t, found, "Found no Concept for concept as Concept %s", TopicOnyxPikeBroader)
+
+	readAndCompare(t, expectedOnyxPikeBroaderTransitive, actualOnyxPikeBroaderTransitive, "Retrieve concepts via new concordance model")
+}
+
+func TestRetrieveConceptWithRelated(t *testing.T) {
+	createOnyxPikeScenario(t)
+	defer cleanUpOnyxPikeScenario(t)
+
+	types := []string{"Thing", "Concept", "Topic"}
+	typesUris := mapper.TypeURIs(types)
+
+	expectedOnyxPike := Concept{APIURL: mapper.APIURL(TopicOnyxPike, types, "Prod"), PrefLabel: "Onyx Pike", ID: mapper.IDURL(TopicOnyxPike),
+		Types: typesUris, DirectType: typesUris[len(typesUris)-1], Aliases: []string{"Bob", "BOB2"},
+		DescriptionXML: "<p>Some stuff</p>", ImageURL: "http://media.ft.com/brand.png", EmailAddress: "email@email.com", ScopeNote: "bobs scopey notey", ShortLabel: "Short Label", TwitterHandle: "bob@twitter.com", FacebookPage: "bob@facebook.com",
+		RelatedConcepts: []Thing{
+			{ID: mapper.IDURL(TopicOnyxPikeRelated), APIURL: mapper.APIURL(TopicOnyxPikeRelated, types, "Prod"), Types: typesUris, PrefLabel: "Onyx Pike Related", DirectType: typesUris[len(typesUris)-1], Predicate: skosRelatedURI},
+		},
+	}
+
+	expectedOnyxPikeBroader := Concept{APIURL: mapper.APIURL(TopicOnyxPikeBroader, types, "Prod"), PrefLabel: "Onyx Pike Broader", ID: mapper.IDURL(TopicOnyxPikeBroader),
+		Types: typesUris, DirectType: typesUris[len(typesUris)-1], Aliases: []string{"Onyx Pike Broader Business & Economy", "Onyx Pike Broader"},
+	}
+
+	thingsDriver := NewCypherDriver(db, "prod")
+
+	relationships := []string{related}
+	actualOnyxPike, found, err := thingsDriver.read(TopicOnyxPike, relationships)
+
+	assert.NoError(t, err, "Unexpected error for concept as thing %s", TopicOnyxPike)
+	assert.True(t, found, "Found no Concept for concept as Concept %s", TopicOnyxPike)
+
+	readAndCompare(t, expectedOnyxPike, actualOnyxPike, "Retrieve concepts via new concordance model")
+
+	actualOnyxPikeBroader, found, err := thingsDriver.read(TopicOnyxPikeBroader, relationships)
+
+	assert.NoError(t, err, "Unexpected error for concept as thing %s", TopicOnyxPikeBroader)
+	assert.True(t, found, "Found no Concept for concept as Concept %s", TopicOnyxPikeBroader)
+
+	readAndCompare(t, expectedOnyxPikeBroader, actualOnyxPikeBroader, "Retrieve concepts via new concordance model")
+}
+
+func TestRetrieveConceptWithAllRelationships(t *testing.T) {
+	createOnyxPikeScenario(t)
+	defer cleanUpOnyxPikeScenario(t)
+
+	types := []string{"Thing", "Concept", "Topic"}
+	typesUris := mapper.TypeURIs(types)
+
+	expectedOnyxPike := Concept{APIURL: mapper.APIURL(TopicOnyxPike, types, "Prod"), PrefLabel: "Onyx Pike", ID: mapper.IDURL(TopicOnyxPike),
+		Types: typesUris, DirectType: typesUris[len(typesUris)-1], Aliases: []string{"Bob", "BOB2"},
+		DescriptionXML: "<p>Some stuff</p>", ImageURL: "http://media.ft.com/brand.png", EmailAddress: "email@email.com", ScopeNote: "bobs scopey notey", ShortLabel: "Short Label", TwitterHandle: "bob@twitter.com", FacebookPage: "bob@facebook.com",
+		RelatedConcepts: []Thing{
+			{ID: mapper.IDURL(TopicOnyxPikeRelated), APIURL: mapper.APIURL(TopicOnyxPikeRelated, types, "Prod"), Types: typesUris, PrefLabel: "Onyx Pike Related", DirectType: typesUris[len(typesUris)-1], Predicate: skosRelatedURI},
+		},
+		BroaderConcepts: []Thing{
+			{ID: mapper.IDURL(TopicOnyxPikeBroader), APIURL: mapper.APIURL(TopicOnyxPikeBroader, types, "Prod"), Types: typesUris, PrefLabel: "Onyx Pike Broader", DirectType: typesUris[len(typesUris)-1], Predicate: skosBroaderURI},
+			{ID: mapper.IDURL(TopicOnyxPikeBroaderTransitive), APIURL: mapper.APIURL(TopicOnyxPikeBroaderTransitive, types, "Prod"), Types: typesUris, PrefLabel: "Onyx Pike Broader Transitive", DirectType: typesUris[len(typesUris)-1], Predicate: skosBroaderTransitiveURI},
+		},
+	}
+
+	expectedOnyxPikeBroader := Concept{APIURL: mapper.APIURL(TopicOnyxPikeBroader, types, "Prod"), PrefLabel: "Onyx Pike Broader", ID: mapper.IDURL(TopicOnyxPikeBroader),
+		Types: typesUris, DirectType: typesUris[len(typesUris)-1], Aliases: []string{"Onyx Pike Broader Business & Economy", "Onyx Pike Broader"},
+		BroaderConcepts: []Thing{
+			{ID: mapper.IDURL(TopicOnyxPikeBroaderTransitive), APIURL: mapper.APIURL(TopicOnyxPikeBroaderTransitive, types, "Prod"), Types: typesUris, PrefLabel: "Onyx Pike Broader Transitive", DirectType: typesUris[len(typesUris)-1], Predicate: skosBroaderURI},
+		},
+		NarrowerConcepts: []Thing{
+			{ID: mapper.IDURL(TopicOnyxPike), APIURL: mapper.APIURL(TopicOnyxPike, types, "Prod"), Types: typesUris, PrefLabel: "Onyx Pike", DirectType: typesUris[len(typesUris)-1], Predicate: skosNarrowerURI},
+		},
+	}
+
+	thingsDriver := NewCypherDriver(db, "prod")
+
+	relationships := []string{related, broader, broaderTransitive, narrower}
+	actualOnyxPike, found, err := thingsDriver.read(TopicOnyxPike, relationships)
+
+	assert.NoError(t, err, "Unexpected error for concept as thing %s", TopicOnyxPike)
+	assert.True(t, found, "Found no Concept for concept as Concept %s", TopicOnyxPike)
+
+	readAndCompare(t, expectedOnyxPike, actualOnyxPike, "Retrieve concepts via new concordance model")
+
+	actualOnyxPikeBroader, found, err := thingsDriver.read(TopicOnyxPikeBroader, relationships)
+
+	assert.NoError(t, err, "Unexpected error for concept as thing %s", TopicOnyxPikeBroader)
+	assert.True(t, found, "Found no Concept for concept as Concept %s", TopicOnyxPikeBroader)
+
+	readAndCompare(t, expectedOnyxPikeBroader, actualOnyxPikeBroader, "Retrieve concepts via new concordance model")
+}
+
+func TestRetrieveConceptAsThingWithNotExistingRelationships(t *testing.T) {
+	createOnyxPikeScenario(t)
+	defer cleanUpOnyxPikeScenario(t)
+
+	types := []string{"Thing", "Concept", "Topic"}
+	typesUris := mapper.TypeURIs(types)
+
+	expectedWithoutRelationships := Concept{APIURL: mapper.APIURL(TopicOnyxPike, types, "Prod"), PrefLabel: "Onyx Pike", ID: mapper.IDURL(TopicOnyxPike),
+		Types: typesUris, DirectType: typesUris[len(typesUris)-1], Aliases: []string{"Bob", "BOB2"},
+		DescriptionXML: "<p>Some stuff</p>", ImageURL: "http://media.ft.com/brand.png", EmailAddress: "email@email.com", ScopeNote: "bobs scopey notey", ShortLabel: "Short Label", TwitterHandle: "bob@twitter.com", FacebookPage: "bob@facebook.com",
+	}
+
+	expectedWithRelationships := Concept{APIURL: mapper.APIURL(TopicOnyxPike, types, "Prod"), PrefLabel: "Onyx Pike", ID: mapper.IDURL(TopicOnyxPike),
+		Types: typesUris, DirectType: typesUris[len(typesUris)-1], Aliases: []string{"Bob", "BOB2"},
+		DescriptionXML: "<p>Some stuff</p>", ImageURL: "http://media.ft.com/brand.png", EmailAddress: "email@email.com", ScopeNote: "bobs scopey notey", ShortLabel: "Short Label", TwitterHandle: "bob@twitter.com", FacebookPage: "bob@facebook.com",
+		RelatedConcepts: []Thing{
+			{ID: mapper.IDURL(TopicOnyxPikeRelated), APIURL: mapper.APIURL(TopicOnyxPikeRelated, types, "Prod"), Types: typesUris, PrefLabel: "Onyx Pike Related", DirectType: typesUris[len(typesUris)-1], Predicate: skosRelatedURI},
+		},
+		BroaderConcepts: []Thing{
+			{ID: mapper.IDURL(TopicOnyxPikeBroader), APIURL: mapper.APIURL(TopicOnyxPikeBroader, types, "Prod"), Types: typesUris, PrefLabel: "Onyx Pike Broader", DirectType: typesUris[len(typesUris)-1], Predicate: skosBroaderURI},
+			{ID: mapper.IDURL(TopicOnyxPikeBroaderTransitive), APIURL: mapper.APIURL(TopicOnyxPikeBroaderTransitive, types, "Prod"), Types: typesUris, PrefLabel: "Onyx Pike Broader Transitive", DirectType: typesUris[len(typesUris)-1], Predicate: skosBroaderTransitiveURI},
+		},
+	}
+
+	thingsDriver := NewCypherDriver(db, "prod")
+
+	actualWithoutRelationships, found, err := thingsDriver.read(TopicOnyxPike, []string{"something-that-do-not-exist"})
+
+	assert.NoError(t, err, "Unexpected error for concept as thing %s", TopicOnyxPike)
+	assert.True(t, found, "Found no Concept for concept as Concept %s", TopicOnyxPike)
+
+	readAndCompare(t, expectedWithoutRelationships, actualWithoutRelationships, "Retrieve concepts via new concordance model")
+
+	relationships := []string{"something-that-do-not-exist", broaderTransitive, related}
+
+	actualWithRelationships, found, err := thingsDriver.read(TopicOnyxPike, relationships)
+
+	assert.NoError(t, err, "Unexpected error for concept as thing %s", TopicOnyxPike)
+	assert.True(t, found, "Found no Concept for concept as Concept %s", TopicOnyxPike)
+
+	readAndCompare(t, expectedWithRelationships, actualWithRelationships, "Retrieve concepts via new concordance model")
+}
+
+func createOnyxPikeScenario(t *testing.T) {
+	conceptsDriver := concepts.NewConceptService(db)
+	assert.NoError(t, conceptsDriver.Initialise())
+
+	writeJSONToConceptsService(t, conceptsDriver, fmt.Sprintf("./fixtures/Topic-OnyxPikeRelated-%s.json", TopicOnyxPikeRelated))
+	writeJSONToConceptsService(t, conceptsDriver, fmt.Sprintf("./fixtures/Topic-OnyxPikeBroaderTransitive-%s.json", TopicOnyxPikeBroaderTransitive))
+	writeJSONToConceptsService(t, conceptsDriver, fmt.Sprintf("./fixtures/Topic-OnyxPikeBroader-%s.json", TopicOnyxPikeBroader))
+	writeJSONToConceptsService(t, conceptsDriver, fmt.Sprintf("./fixtures/Topic-OnyxPike-%s.json", TopicOnyxPike))
+}
+
+func cleanUpOnyxPikeScenario(t *testing.T) {
+	cleanDB(t, TopicOnyxPikeRelated, TopicOnyxPikeBroaderTransitive, TopicOnyxPikeBroader, TopicOnyxPike)
 }
 
 func readAndCompare(t *testing.T, expected Concept, actual Concept, testName string) {
@@ -242,11 +486,4 @@ func writeJSONToConceptsService(t *testing.T, service concepts.ConceptService, p
 
 	_, errs := service.Write(inst, "TRANS_ID")
 	assert.NoError(t, errs)
-}
-
-func validateThing(t *testing.T, prefLabel string, UUID string, directType string, types []string, thng Concept) {
-	assert.EqualValues(t, prefLabel, thng.PrefLabel, "PrefLabel incorrect")
-	assert.EqualValues(t, "http://api.ft.com/Things/"+UUID, thng.ID, "ID incorrect")
-	assert.EqualValues(t, directType, thng.DirectType, "DirectType incorrect")
-	assert.EqualValues(t, types, thng.Types, "Types incorrect")
 }
