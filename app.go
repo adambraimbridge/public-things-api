@@ -1,23 +1,23 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"os"
+	"strconv"
+	"time"
 
-	"fmt"
 	"github.com/Financial-Times/base-ft-rw-app-go/baseftrwapp"
 	httpHandlers "github.com/Financial-Times/http-handlers-go/httphandlers"
 	"github.com/Financial-Times/neo-utils-go/neoutils"
 	"github.com/Financial-Times/public-things-api/things"
 	status "github.com/Financial-Times/service-status-go/httphandlers"
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/jawher/mow.cli"
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/rcrowley/go-metrics"
 	log "github.com/sirupsen/logrus"
-	"strconv"
-	"time"
-	"github.com/gorilla/handlers"
 )
 
 func main() {
