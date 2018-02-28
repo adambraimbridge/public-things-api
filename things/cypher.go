@@ -254,7 +254,7 @@ var skosNeo4JRelationshipMap = map[string]string{
 	related:           "-[:IS_RELATED_TO]->",
 }
 
-var collectStmtRegExp = regexp.MustCompile("collect\\(DISTINCT \\w+Map\\) as ")
+var collectStmtRegExp = regexp.MustCompile(`collect\(DISTINCT \w+Map\) as `)
 
 type cypherStmtBuilder struct {
 	thingUUID     string
