@@ -225,16 +225,18 @@ func populateRelationships(concepts []neoThing, predicate string, transitiveConc
 func mapToThingInRelationship(c neoThing, env, predicate string) Thing {
 	var t Thing
 	brTypes := mapper.TypeURIs(c.Types)
-	if brTypes != nil {
-		t.PrefLabel = c.PrefLabel
-		t.APIURL = mapper.APIURL(c.ID, c.Types, env)
-		t.ID = mapper.IDURL(c.ID)
-		t.Types = brTypes
-		t.DirectType = brTypes[len(brTypes)-1]
-		t.Predicate = predicate
-	} else {
+	if brTypes == nil {
 		log.WithFields(log.Fields{"UUID": c.ID}).Errorf("Could not map type URIs for ID %s with types %s", c.ID, c.Types)
+		return t
 	}
+
+	t.PrefLabel = c.PrefLabel
+	t.APIURL = mapper.APIURL(c.ID, c.Types, env)
+	t.ID = mapper.IDURL(c.ID)
+	t.Types = brTypes
+	t.DirectType = brTypes[len(brTypes)-1]
+	t.Predicate = predicate
+
 	return t
 }
 
