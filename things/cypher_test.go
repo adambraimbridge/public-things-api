@@ -325,7 +325,7 @@ func TestRetrieveConceptAsThingWithNotExistingRelationships(t *testing.T) {
 
 	readAndCompare(t, expectedWithoutRelationships, actualWithoutRelationships, "Retrieve concepts via new concordance model")
 
-	relationships := []string{"something-that-do-not-exist", broaderTransitive, related}
+	relationships := []string{"something-that-do-not-exist", broaderTransitive, related, "something-else-that-does-not-exist"}
 
 	actualWithRelationships, found, err := thingsDriver.read(TopicOnyxPike, relationships)
 

@@ -81,10 +81,11 @@ type neoThing struct {
 	Types     []string `json:"types,omitempty"`
 }
 
-func (cd cypherDriver) read(thingUUID string, relationships []string) (Concept, bool, error) {
+func (cd cypherDriver) read(thingUUID string, relationshipSlice []string) (Concept, bool, error) {
 	var results []neoConcept
 
-	relationships = cleanUpRelationships(relationships)
+	relationships := newRelationshipSet(relationshipSlice)
+	relationships = filterSupportedRelationships(relationships)
 	relationships = appendMissingSubRelationships(relationships)
 
 	cypherStmt := newCypherStmtBuilder().withRelationships(relationships).build()
@@ -112,29 +113,20 @@ func (cd cypherDriver) read(thingUUID string, relationships []string) (Concept, 
 
 }
 
-func cleanUpRelationships(requestedRelationships []string) []string {
-	var cleanRelationships []string
-	for _, r := range requestedRelationships {
-		if _, found := skosNeo4JRelationshipMap[r]; found {
-			cleanRelationships = append(cleanRelationships, r)
+func filterSupportedRelationships(relationships relationshipSet) relationshipSet {
+	for r := range relationships {
+		if _, found := skosNeo4JRelationshipMap[r]; !found {
+			delete(relationships, r)
 		}
 	}
-	return cleanRelationships
+	return relationships
 }
 
-func appendMissingSubRelationships(requestedRelationships []string) []string {
-	extendedRelationshipsSet := make(map[string]struct{})
-	for _, r := range requestedRelationships {
-		extendedRelationshipsSet[r] = struct{}{}
-		if r == broaderTransitive {
-			extendedRelationshipsSet[broader] = struct{}{}
-		}
+func appendMissingSubRelationships(relationships relationshipSet) relationshipSet {
+	if _, found := relationships[broaderTransitive]; found {
+		relationships[broader] = struct{}{}
 	}
-	var extendedRelationships []string
-	for r := range extendedRelationshipsSet {
-		extendedRelationships = append(extendedRelationships, r)
-	}
-	return extendedRelationships
+	return relationships
 }
 
 func isContent(thng neoConcept) bool {
@@ -266,14 +258,14 @@ var collectStmtRegExp = regexp.MustCompile("collect\\(DISTINCT \\w+Map\\) as ")
 
 type cypherStmtBuilder struct {
 	thingUUID     string
-	relationships []string
+	relationships relationshipSet
 }
 
 func newCypherStmtBuilder() *cypherStmtBuilder {
 	return &cypherStmtBuilder{}
 }
 
-func (b *cypherStmtBuilder) withRelationships(relationships []string) *cypherStmtBuilder {
+func (b *cypherStmtBuilder) withRelationships(relationships relationshipSet) *cypherStmtBuilder {
 	b.relationships = relationships
 	return b
 }
@@ -285,11 +277,12 @@ func (b *cypherStmtBuilder) build() string {
 	return stmt
 }
 
-func buildRelationshipsMatchStatements(relationships []string) string {
+func buildRelationshipsMatchStatements(relationships relationshipSet) string {
 	stmt := ""
 	previousRelationship := ""
 	withStmt := "WITH leaf, canonical"
-	for i, r := range relationships {
+	i := 0
+	for r := range relationships {
 		stmt += fmt.Sprintf(relationshipsMatchStatementsTemplate, skosNeo4JRelationshipMap[r], i, i, r)
 
 		withStmt = updatedWithStmt(withStmt, previousRelationship)
@@ -297,6 +290,7 @@ func buildRelationshipsMatchStatements(relationships []string) string {
 		stmt += withStmt + fmt.Sprintf(conceptMapTemplate, r, r, r, r)
 
 		previousRelationship = r
+		i++
 	}
 
 	if len(relationships) > 0 {
@@ -307,9 +301,9 @@ func buildRelationshipsMatchStatements(relationships []string) string {
 	return stmt
 }
 
-func buildReturnStatement(relationships []string) string {
+func buildReturnStatement(relationships relationshipSet) string {
 	stmt := thingReturnStatement
-	for _, r := range relationships {
+	for r := range relationships {
 		stmt += ", " + r + "Concepts"
 	}
 	return stmt
@@ -321,4 +315,14 @@ func updatedWithStmt(withStmt, relationship string) string {
 		withStmt += fmt.Sprintf(conceptCollectionTemplate, relationship, relationship)
 	}
 	return withStmt
+}
+
+type relationshipSet map[string]struct{}
+
+func newRelationshipSet(relationships []string) relationshipSet {
+	set := relationshipSet{}
+	for _, r := range relationships {
+		set[r] = struct{}{}
+	}
+	return set
 }
