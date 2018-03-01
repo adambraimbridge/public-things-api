@@ -15,7 +15,8 @@
       "aliases": [
         "Onyx Pike Broader"
       ],
-      "type": "Topic"
+      "type": "Topic",
+      "broaderUUIDs": ["a0ec2c50-1174-48f2-b804-d1f346bb7256"]
     }
   ]
 }

@@ -1,0 +1,21 @@
+{
+  "prefUUID": "a0ec2c50-1174-48f2-b804-d1f346bb7256",
+  "prefLabel": "Onyx Pike Broader Transitive",
+  "type": "Topic",
+  "aliases": [
+    "Onyx Pike Broader Transitive Business & Economy",
+    "Onyx Pike Broader Transitive"
+  ],
+  "sourceRepresentations": [
+    {
+      "uuid": "a0ec2c50-1174-48f2-b804-d1f346bb7256",
+      "prefLabel": "Onyx Pike Broader",
+      "authority": "Smartlogic",
+      "authorityValue": "a0ec2c50-1174-48f2-b804-d1f346bb7256",
+      "aliases": [
+        "Onyx Pike Broader"
+      ],
+      "type": "Topic"
+    }
+  ]
+}

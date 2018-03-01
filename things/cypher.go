@@ -3,6 +3,7 @@ package things
 import (
 	"errors"
 	"fmt"
+	"regexp"
 
 	"github.com/Financial-Times/neo-model-utils-go/mapper"
 	"github.com/Financial-Times/neo-utils-go/neoutils"
@@ -10,9 +11,22 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	broader           = "broader"
+	broaderTransitive = "broaderTransitive"
+	narrower          = "narrower"
+	related           = "related"
+
+	prefix                   = "http://www.w3.org/2004/02/skos/core#"
+	skosBroaderURI           = prefix + broader
+	skosBroaderTransitiveURI = prefix + broaderTransitive
+	skosNarrowerURI          = prefix + narrower
+	skosRelatedURI           = prefix + related
+)
+
 // Driver interface
 type driver interface {
-	read(id string) (thng Concept, found bool, err error)
+	read(id string, relationships []string) (thng Concept, found bool, err error)
 	checkConnectivity() error
 }
 
@@ -55,9 +69,10 @@ type neoConcept struct {
 	CanonicalScopeNote      string   `json:"canonicalScopeNote,omitempty"`
 	CanonicalShortLabel     string   `json:"canonicalShortLabel,omitempty"`
 
-	NarrowerConcepts []neoThing `json:"narrowerConcepts,omitempty"`
-	BroaderConcepts  []neoThing `json:"broaderConcepts,omitempty"`
-	RelatedConcepts  []neoThing `json:"relatedConcepts,omitempty"`
+	NarrowerConcepts          []neoThing `json:"narrowerConcepts,omitempty"`
+	BroaderConcepts           []neoThing `json:"broaderConcepts,omitempty"`
+	BroaderTransitiveConcepts []neoThing `json:"broaderTransitiveConcepts,omitempty"`
+	RelatedConcepts           []neoThing `json:"relatedConcepts,omitempty"`
 }
 
 type neoThing struct {
@@ -66,32 +81,17 @@ type neoThing struct {
 	Types     []string `json:"types,omitempty"`
 }
 
-func (cd cypherDriver) read(thingUUID string) (Concept, bool, error) {
-	results := []neoConcept{}
+func (cd cypherDriver) read(thingUUID string, relationshipSlice []string) (Concept, bool, error) {
+	var results []neoConcept
+
+	relationships := newRelationshipSet(relationshipSlice)
+	relationships = filterSupportedRelationships(relationships)
+	relationships = appendMissingSubRelationships(relationships)
+
+	cypherStmt := newCypherStmtBuilder().withRelationships(relationships).build()
 
 	query := &neoism.CypherQuery{
-		Statement: `MATCH (identifier:UPPIdentifier{value:{thingUUID}})
-			MATCH (identifier)-[:IDENTIFIES]->(leaf:Concept)
-			OPTIONAL MATCH (leaf)-[:EQUIVALENT_TO]->(canonical:Concept)
-			OPTIONAL MATCH (leaf)-[:HAS_BROADER]->(br:Concept)
-			OPTIONAL MATCH (br)-[:EQUIVALENT_TO]->(broaderCanonical:Concept)
-			WITH leaf, canonical, {id: broaderCanonical.prefUUID, prefLabel: broaderCanonical.prefLabel, types: labels(broaderCanonical)} as b
-			OPTIONAL MATCH (leaf)<-[:HAS_BROADER]-(nw:Concept)
-			OPTIONAL MATCH (nw)-[:EQUIVALENT_TO]->(narrowerCanonical:Concept)
-			WITH leaf, canonical, collect(b) as broaderConcepts, {id: narrowerCanonical.prefUUID, prefLabel: narrowerCanonical.prefLabel, types: labels(narrowerCanonical)} as n
-			OPTIONAL MATCH (leaf)-[:IS_RELATED_TO]->(rel:Concept)
-			OPTIONAL MATCH (rel)-[:EQUIVALENT_TO]->(relatedCanonical:Concept)
-			WITH leaf, canonical, broaderConcepts, collect(n) as narrowerConcepts, {id: relatedCanonical.prefUUID, prefLabel: relatedCanonical.prefLabel, types: labels(relatedCanonical)} as r
-			WITH leaf, canonical, broaderConcepts, narrowerConcepts, collect(r) as relatedConcepts
-			RETURN leaf.uuid as leafUUID, labels(leaf) as leafTypes, leaf.prefLabel as leafPrefLabel,
-			leaf.descriptionXML as leafDescriptionXML, leaf.imageUrl as leafImageUrl, leaf.aliases as leafAliases, leaf.emailAddress as leafEmailAddress,
-			leaf.facebookPage as leafFacebookPage, leaf.twitterHandle as leafTwitterHandle, leaf.scopeNote as leafScopeNote, leaf.shortLabel as leafShortLabel,
-			canonical.prefUUID as canonicalUUID, canonical.prefLabel as canonicalPrefLabel, labels(canonical) as canonicalTypes,
-			canonical.descriptionXML as canonicalDescriptionXML, canonical.imageUrl as canonicalImageUrl, canonical.aliases as canonicalAliases, canonical.emailAddress as canonicalEmailAddress,
-			canonical.facebookPage as canonicalFacebookPage, canonical.twitterHandle as canonicalTwitterHandle, canonical.scopeNote as canonicalScopeNote, canonical.shortLabel as canonicalShortLabel,
-			broaderConcepts, narrowerConcepts, relatedConcepts
-			`,
-
+		Statement:  cypherStmt,
 		Parameters: neoism.Props{"thingUUID": thingUUID},
 		Result:     &results,
 	}
@@ -111,6 +111,22 @@ func (cd cypherDriver) read(thingUUID string) (Concept, bool, error) {
 		return thing, true, err
 	}
 
+}
+
+func filterSupportedRelationships(relationships relationshipSet) relationshipSet {
+	for r := range relationships {
+		if _, found := skosNeo4JRelationshipMap[r]; !found {
+			delete(relationships, r)
+		}
+	}
+	return relationships
+}
+
+func appendMissingSubRelationships(relationships relationshipSet) relationshipSet {
+	if _, found := relationships[broaderTransitive]; found {
+		relationships[broader] = struct{}{}
+	}
+	return relationships
 }
 
 func isContent(thng neoConcept) bool {
@@ -134,7 +150,7 @@ func mapToResponseFormat(thng neoConcept, env string) (Concept, error) {
 		types := mapper.TypeURIs(thng.CanonicalTypes)
 		if types == nil {
 			log.WithFields(log.Fields{"UUID": thng.CanonicalUUID}).Errorf("Could not map type URIs for ID %s with types %s", thng.CanonicalUUID, thng.CanonicalTypes)
-			return thing, errors.New("Concept not found")
+			return thing, errors.New("concept not found")
 		}
 		thing.Types = types
 		thing.DirectType = types[len(types)-1]
@@ -154,7 +170,7 @@ func mapToResponseFormat(thng neoConcept, env string) (Concept, error) {
 		types := mapper.TypeURIs(thng.LeafTypes)
 		if types == nil {
 			log.WithFields(log.Fields{"UUID": thng.LeafUUID}).Errorf("Could not map type URIs for ID %s with types %s", thng.LeafUUID, thng.LeafTypes)
-			return thing, errors.New("Concept not found")
+			return thing, errors.New("concept not found")
 		}
 		thing.Types = types
 		thing.DirectType = types[len(types)-1]
@@ -168,64 +184,145 @@ func mapToResponseFormat(thng neoConcept, env string) (Concept, error) {
 		thing.ShortLabel = thng.LeafShortLabel
 	}
 
-	if len(thng.BroaderConcepts) > 0 && thng.BroaderConcepts[0].ID != "" {
-		tings := []Thing{}
-		for _, broadThanThing := range thng.BroaderConcepts {
-			ting := Thing{}
-			brTypes := mapper.TypeURIs(broadThanThing.Types)
-			if brTypes == nil {
-				log.WithFields(log.Fields{"UUID": broadThanThing.ID}).Errorf("Could not map type URIs for ID %s with types %s", broadThanThing.ID, broadThanThing.Types)
-				ting = Thing{}
-				break
-			}
-			ting.PrefLabel = broadThanThing.PrefLabel
-			ting.APIURL = mapper.APIURL(broadThanThing.ID, broadThanThing.Types, env)
-			ting.ID = mapper.IDURL(broadThanThing.ID)
-			ting.Types = brTypes
-			ting.DirectType = brTypes[len(brTypes)-1]
-			tings = append(tings, ting)
-		}
-		thing.BroaderConcepts = tings
-	}
+	thing.BroaderConcepts = populateRelationships(thng.BroaderConcepts, skosBroaderURI, thng.BroaderTransitiveConcepts, skosBroaderTransitiveURI, env)
+	thing.NarrowerConcepts = populateRelationships(thng.NarrowerConcepts, skosNarrowerURI, nil, "", env)
+	thing.RelatedConcepts = populateRelationships(thng.RelatedConcepts, skosRelatedURI, nil, "", env)
 
-	if len(thng.NarrowerConcepts) > 0 && thng.NarrowerConcepts[0].ID != "" {
-		tings := []Thing{}
-		for _, narrowThanThing := range thng.NarrowerConcepts {
-			ting := Thing{}
-			brTypes := mapper.TypeURIs(narrowThanThing.Types)
-			if brTypes == nil {
-				log.WithFields(log.Fields{"UUID": narrowThanThing.ID}).Errorf("Could not map type URIs for ID %s with types %s", narrowThanThing.ID, narrowThanThing.Types)
-				ting = Thing{}
-				break
-			}
-			ting.PrefLabel = narrowThanThing.PrefLabel
-			ting.APIURL = mapper.APIURL(narrowThanThing.ID, narrowThanThing.Types, env)
-			ting.Types = brTypes
-			ting.DirectType = brTypes[len(brTypes)-1]
-			ting.ID = mapper.IDURL(narrowThanThing.ID)
-			tings = append(tings, ting)
-		}
-		thing.NarrowerConcepts = tings
-	}
-	if len(thng.RelatedConcepts) > 0 && thng.RelatedConcepts[0].ID != "" {
-		tings := []Thing{}
-		for _, relatedToThing := range thng.RelatedConcepts {
-			ting := Thing{}
-			brTypes := mapper.TypeURIs(relatedToThing.Types)
-			if brTypes == nil {
-				log.WithFields(log.Fields{"UUID": relatedToThing.ID}).Errorf("Could not map type URIs for ID %s with types %s", relatedToThing.ID, relatedToThing.Types)
-				ting = Thing{}
-				break
-			}
-			ting.PrefLabel = relatedToThing.PrefLabel
-			ting.APIURL = mapper.APIURL(relatedToThing.ID, relatedToThing.Types, env)
-			ting.Types = brTypes
-			ting.ID = mapper.IDURL(relatedToThing.ID)
-			ting.DirectType = brTypes[len(brTypes)-1]
-			tings = append(tings, ting)
-		}
-		thing.RelatedConcepts = tings
-	}
 	log.Debugf("Mapped Concept: %v", thing)
 	return thing, nil
+}
+
+func populateRelationships(concepts []neoThing, predicate string, transitiveConcepts []neoThing, transitivePredicate string, env string) []Thing {
+	if len(concepts) > 0 && concepts[0].ID != "" {
+		var things []Thing
+		directConceptCache := make(map[string]struct{})
+		for _, c := range concepts {
+			directConceptCache[c.ID] = struct{}{}
+			t := mapToThingInRelationship(c, env, predicate)
+			things = append(things, t)
+		}
+		if len(transitiveConcepts) > 0 && transitiveConcepts[0].ID != "" {
+			for _, tc := range transitiveConcepts {
+				if _, found := directConceptCache[tc.ID]; !found {
+					t := mapToThingInRelationship(tc, env, transitivePredicate)
+					things = append(things, t)
+				}
+			}
+		}
+		return things
+	}
+	return nil
+}
+
+func mapToThingInRelationship(c neoThing, env, predicate string) Thing {
+	var t Thing
+	brTypes := mapper.TypeURIs(c.Types)
+	if brTypes == nil {
+		log.WithFields(log.Fields{"UUID": c.ID}).Errorf("Could not map type URIs for ID %s with types %s", c.ID, c.Types)
+		return t
+	}
+
+	t.PrefLabel = c.PrefLabel
+	t.APIURL = mapper.APIURL(c.ID, c.Types, env)
+	t.ID = mapper.IDURL(c.ID)
+	t.Types = brTypes
+	t.DirectType = brTypes[len(brTypes)-1]
+	t.Predicate = predicate
+
+	return t
+}
+
+const thingMatchStatements = `MATCH (identifier:UPPIdentifier{value:{thingUUID}})
+ 							  MATCH (identifier)-[:IDENTIFIES]->(leaf:Concept)
+                              OPTIONAL MATCH (leaf)-[:EQUIVALENT_TO]->(canonical:Concept) `
+const relationshipsMatchStatementsTemplate = `OPTIONAL MATCH (leaf)%s(c%v:Concept)
+                                              OPTIONAL MATCH (c%v)-[:EQUIVALENT_TO]->(%sCanonical:Concept) `
+const conceptMapTemplate = ", {id: %sCanonical.prefUUID, prefLabel: %sCanonical.prefLabel, types: labels(%sCanonical)} as %sMap "
+const conceptCollectionTemplate = ", collect(DISTINCT %sMap) as %sConcepts"
+const thingReturnStatement = `RETURN 
+                              leaf.uuid as leafUUID, labels(leaf) as leafTypes, leaf.prefLabel as leafPrefLabel,
+                              leaf.descriptionXML as leafDescriptionXML, leaf.imageUrl as leafImageUrl, leaf.aliases as leafAliases, leaf.emailAddress as leafEmailAddress,
+                              leaf.facebookPage as leafFacebookPage, leaf.twitterHandle as leafTwitterHandle, leaf.scopeNote as leafScopeNote, leaf.shortLabel as leafShortLabel,
+                              canonical.prefUUID as canonicalUUID, canonical.prefLabel as canonicalPrefLabel, labels(canonical) as canonicalTypes,
+                              canonical.descriptionXML as canonicalDescriptionXML, canonical.imageUrl as canonicalImageUrl, canonical.aliases as canonicalAliases, canonical.emailAddress as canonicalEmailAddress,
+                              canonical.facebookPage as canonicalFacebookPage, canonical.twitterHandle as canonicalTwitterHandle, canonical.scopeNote as canonicalScopeNote, canonical.shortLabel as canonicalShortLabel`
+
+var skosNeo4JRelationshipMap = map[string]string{
+	broader:           "-[:HAS_BROADER]->",
+	broaderTransitive: "-[:HAS_BROADER*2..]->",
+	narrower:          "<-[:HAS_BROADER]-",
+	related:           "-[:IS_RELATED_TO]->",
+}
+
+var collectStmtRegExp = regexp.MustCompile(`collect\(DISTINCT \w+Map\) as `)
+
+type cypherStmtBuilder struct {
+	thingUUID     string
+	relationships relationshipSet
+}
+
+func newCypherStmtBuilder() *cypherStmtBuilder {
+	return &cypherStmtBuilder{}
+}
+
+func (b *cypherStmtBuilder) withRelationships(relationships relationshipSet) *cypherStmtBuilder {
+	b.relationships = relationships
+	return b
+}
+
+func (b *cypherStmtBuilder) build() string {
+	stmt := thingMatchStatements
+	stmt += buildRelationshipsMatchStatements(b.relationships)
+	stmt += buildReturnStatement(b.relationships)
+	return stmt
+}
+
+func buildRelationshipsMatchStatements(relationships relationshipSet) string {
+	stmt := ""
+	previousRelationship := ""
+	withStmt := "WITH leaf, canonical"
+	i := 0
+	for r := range relationships {
+		stmt += fmt.Sprintf(relationshipsMatchStatementsTemplate, skosNeo4JRelationshipMap[r], i, i, r)
+
+		withStmt = updatedWithStmt(withStmt, previousRelationship)
+
+		stmt += withStmt + fmt.Sprintf(conceptMapTemplate, r, r, r, r)
+
+		previousRelationship = r
+		i++
+	}
+
+	if len(relationships) > 0 {
+		withStmt = updatedWithStmt(withStmt, previousRelationship)
+		stmt += withStmt + " "
+	}
+
+	return stmt
+}
+
+func buildReturnStatement(relationships relationshipSet) string {
+	stmt := thingReturnStatement
+	for r := range relationships {
+		stmt += ", " + r + "Concepts"
+	}
+	return stmt
+}
+
+func updatedWithStmt(withStmt, relationship string) string {
+	if relationship != "" {
+		withStmt = collectStmtRegExp.ReplaceAllString(withStmt, "")
+		withStmt += fmt.Sprintf(conceptCollectionTemplate, relationship, relationship)
+	}
+	return withStmt
+}
+
+type relationshipSet map[string]struct{}
+
+func newRelationshipSet(relationships []string) relationshipSet {
+	set := relationshipSet{}
+	for _, r := range relationships {
+		set[r] = struct{}{}
+	}
+	return set
 }

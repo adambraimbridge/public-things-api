@@ -25,12 +25,14 @@ func GetThings(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	uuid := vars["uuid"]
 
+	relationships := r.URL.Query()["showRelationship"]
+
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	if uuid == "" {
 		http.Error(w, "uuid required", http.StatusBadRequest)
 		return
 	}
-	thng, found, err := ThingsDriver.read(uuid)
+	thng, found, err := ThingsDriver.read(uuid, relationships)
 	if err != nil {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		msg := fmt.Sprintf(`{"message":"Error getting thing with uuid %s, err=%s"}`, uuid, err.Error())
