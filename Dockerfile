@@ -1,4 +1,4 @@
-FROM golang:1.8-alpine
+FROM golang:1.9-alpine
 
 RUN mkdir -p "$GOPATH/src"
 
@@ -18,8 +18,9 @@ RUN apk --no-cache --virtual .build-dependencies add git \
     && REVISION="revision=$(git rev-parse HEAD)" \
     && BUILDER="builder=$(go version)" \
     && LDFLAGS="-X '"${BUILDINFO_PACKAGE}$VERSION"' -X '"${BUILDINFO_PACKAGE}$DATETIME"' -X '"${BUILDINFO_PACKAGE}$REPOSITORY"' -X '"${BUILDINFO_PACKAGE}$REVISION"' -X '"${BUILDINFO_PACKAGE}$BUILDER"'" \
-    && go get -u github.com/kardianos/govendor \
-    && $GOPATH/bin/govendor sync \
+    && echo "Fetching dependencies..." \
+    && go get -u github.com/golang/dep/cmd/dep \
+    && $GOPATH/bin/dep ensure \
     && go-wrapper download \
     && go-wrapper install -ldflags="${LDFLAGS}" \
     && apk del .build-dependencies \
