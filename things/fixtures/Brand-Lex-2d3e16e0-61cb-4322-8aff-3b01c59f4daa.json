@@ -1,0 +1,27 @@
+{
+  "prefUUID": "2d3e16e0-61cb-4322-8aff-3b01c59f4daa",
+  "prefLabel": "Lex",
+  "type": "Brand",
+  "aliases": [
+    "LEX",
+    "Lex"
+  ],
+  "sourceRepresentations": [
+    {
+      "uuid": "2d3e16e0-61cb-4322-8aff-3b01c59f4daa",
+      "prefLabel": "Lex",
+      "type": "Brand",
+      "authority": "Smartlogic",
+      "authorityValue": "2d3e16e0-61cb-4322-8aff-3b01c59f4daa",
+      "aliases": [
+        "Lex"
+      ],
+      "parentUUIDs": [
+        "dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54"
+      ],
+      "strapline": "FT's agenda-setting column on business and finance",
+      "descriptionXML": "<p>Lex is a premium daily commentary service from the Financial Times. It is the oldest and arguably the most influential business and finance column of its kind in the world. It helps readers make better investment decisions by highlighting key emerging risks and opportunities.</p>",
+      "_imageUrl": "http://im.ft-static.com/content/images/d5ffade2-99ea-11e6-8f9b-70e3cabccfae.png"
+    }
+  ]
+}

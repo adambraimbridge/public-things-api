@@ -1,0 +1,26 @@
+{
+  "prefUUID": "e363dfb8-f6d9-4f2c-beba-5162b334272b",
+  "prefLabel": "Lex Live",
+  "type": "Brand",
+  "aliases": [
+    "Lex Live"
+  ],
+  "sourceRepresentations": [
+    {
+      "uuid": "e363dfb8-f6d9-4f2c-beba-5162b334272b",
+      "prefLabel": "Lex Live",
+      "type": "Brand",
+      "authority": "Smartlogic",
+      "authorityValue": "e363dfb8-f6d9-4f2c-beba-5162b334272b",
+      "aliases": [
+        "Lex Live"
+      ],
+      "parentUUIDs": [
+        "2d3e16e0-61cb-4322-8aff-3b01c59f4daa"
+      ],
+      "strapline": "Archived",
+      "descriptionXML": "<p>Lex live allowed a chance to see inside the work of a Lex writer and to participate in the construction of a Lex note. It also contained some brief observations and thought-provoking questions from Lex columnists.</p>\n<p><a href=\"https://twitter.com/ftlex\">Follow @ftlex</a></p>",
+      "_imageUrl": "http://im.ft-static.com/content/images/a2276f54-e66f-11e3-9a20-00144feabdc0.png"
+    }
+  ]
+}
