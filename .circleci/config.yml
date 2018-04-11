@@ -27,7 +27,7 @@ jobs:
       - run:
           name: External Dependencies
           command: |
-            go get -u github.com/golang/dep/cmd/dep
+            curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
             go get -u github.com/mattn/goveralls
             go get -u github.com/jstemmer/go-junit-report
       - run:
@@ -37,7 +37,7 @@ jobs:
             mkdir -p ${CIRCLE_COVERAGE_REPORT}
       - run:
           name: Importing libraries
-          command: dep ensure -v
+          command: dep ensure -v -vendor-only
       - run: |
             wget --retry-connrefused --no-check-certificate -T 60 $NEO4J_TEST_URL; curl $NEO4J_TEST_URL
       - run:
