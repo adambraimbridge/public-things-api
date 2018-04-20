@@ -29,6 +29,9 @@ const (
 	TopicOnyxPikeRelated           = "ec20c787-8289-4cef-aee8-4d39e9563dc5"
 	TopicOnyxPikeBroader           = "ba42b8d0-844f-4f2a-856c-5cbd863bf6bd"
 	TopicOnyxPikeBroaderTransitive = "a0ec2c50-1174-48f2-b804-d1f346bb7256"
+	BrandFTUUID                    = "dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54"
+	BrandLexUUID                   = "2d3e16e0-61cb-4322-8aff-3b01c59f4daa"
+	BrandLexLiveUUID               = "e363dfb8-f6d9-4f2c-beba-5162b334272b"
 )
 
 //Reusable Neo4J connection
@@ -134,6 +137,41 @@ func TestRetrieveConceptWithBroader(t *testing.T) {
 	readAndCompare(t, expectedOnyxPikeBroader, actualOnyxPikeBroader, "Retrieve concepts via new concordance model")
 }
 
+func TestRetrieveBrandWithBroader(t *testing.T) {
+	createLexLiveScenario(t)
+	defer cleanUpLexLiveScenario(t)
+
+	types := []string{"Thing", "Concept", "Classification", "Brand"}
+	typesUris := mapper.TypeURIs(types)
+
+	expectedLexLive := Concept{APIURL: mapper.APIURL(BrandLexLiveUUID, types, "Prod"), PrefLabel: "Lex Live", ID: mapper.IDURL(BrandLexLiveUUID),
+		Types: typesUris, DirectType: typesUris[len(typesUris)-1], Aliases: []string{"Lex Live"},
+		BroaderConcepts: []Thing{{ID: mapper.IDURL(BrandLexUUID), APIURL: mapper.APIURL(BrandLexUUID, types, "Prod"), Types: typesUris, PrefLabel: "Lex", DirectType: typesUris[len(typesUris)-1], Predicate: skosBroaderURI}},
+	}
+
+	expectedLex := Concept{APIURL: mapper.APIURL(BrandLexUUID, types, "Prod"), PrefLabel: "Lex", ID: mapper.IDURL(BrandLexUUID),
+		Types: typesUris, DirectType: typesUris[len(typesUris)-1], Aliases: []string{"LEX", "Lex"},
+		BroaderConcepts: []Thing{{ID: mapper.IDURL(BrandFTUUID), APIURL: mapper.APIURL(BrandFTUUID, types, "Prod"), Types: typesUris, PrefLabel: "Financial Times", DirectType: typesUris[len(typesUris)-1], Predicate: skosBroaderURI}},
+	}
+
+	thingsDriver := NewCypherDriver(db, "prod")
+
+	relationships := []string{broader}
+	actualLexLive, found, err := thingsDriver.read(BrandLexLiveUUID, relationships)
+
+	assert.NoError(t, err, "Unexpected error for concept as thing %s", BrandLexLiveUUID)
+	assert.True(t, found, "Found no Concept for concept as Concept %s", BrandLexLiveUUID)
+
+	readAndCompare(t, expectedLexLive, actualLexLive, "Retrieve concepts via new concordance model")
+
+	actualLex, found, err := thingsDriver.read(BrandLexUUID, relationships)
+
+	assert.NoError(t, err, "Unexpected error for concept as thing %s", BrandLexUUID)
+	assert.True(t, found, "Found no Concept for concept as Concept %s", BrandLexUUID)
+
+	readAndCompare(t, expectedLex, actualLex, "Retrieve concepts via new concordance model")
+}
+
 func TestRetrieveConceptWithBroaderTransitive(t *testing.T) {
 	createOnyxPikeScenario(t)
 	defer cleanUpOnyxPikeScenario(t)
@@ -173,6 +211,44 @@ func TestRetrieveConceptWithBroaderTransitive(t *testing.T) {
 	readAndCompare(t, expectedOnyxPikeBroader, actualOnyxPikeBroader, "Retrieve concepts via new concordance model")
 }
 
+func TestRetrieveBrandWithBroaderTransitive(t *testing.T) {
+	createLexLiveScenario(t)
+	defer cleanUpLexLiveScenario(t)
+
+	types := []string{"Thing", "Concept", "Classification", "Brand"}
+	typesUris := mapper.TypeURIs(types)
+
+	expectedLexLive := Concept{APIURL: mapper.APIURL(BrandLexLiveUUID, types, "Prod"), PrefLabel: "Lex Live", ID: mapper.IDURL(BrandLexLiveUUID),
+		Types: typesUris, DirectType: typesUris[len(typesUris)-1], Aliases: []string{"Lex Live"},
+		BroaderConcepts: []Thing{
+			{ID: mapper.IDURL(BrandLexUUID), APIURL: mapper.APIURL(BrandLexUUID, types, "Prod"), Types: typesUris, PrefLabel: "Lex", DirectType: typesUris[len(typesUris)-1], Predicate: skosBroaderURI},
+			{ID: mapper.IDURL(BrandFTUUID), APIURL: mapper.APIURL(BrandFTUUID, types, "Prod"), Types: typesUris, PrefLabel: "Financial Times", DirectType: typesUris[len(typesUris)-1], Predicate: skosBroaderTransitiveURI},
+		},
+	}
+
+	expectedLex := Concept{APIURL: mapper.APIURL(BrandLexUUID, types, "Prod"), PrefLabel: "Lex", ID: mapper.IDURL(BrandLexUUID),
+		Types: typesUris, DirectType: typesUris[len(typesUris)-1], Aliases: []string{"LEX", "Lex"},
+		BroaderConcepts: []Thing{{ID: mapper.IDURL(BrandFTUUID), APIURL: mapper.APIURL(BrandFTUUID, types, "Prod"), Types: typesUris, PrefLabel: "Financial Times", DirectType: typesUris[len(typesUris)-1], Predicate: skosBroaderURI}},
+	}
+
+	thingsDriver := NewCypherDriver(db, "prod")
+
+	relationships := []string{broaderTransitive}
+	actualLexLive, found, err := thingsDriver.read(BrandLexLiveUUID, relationships)
+
+	assert.NoError(t, err, "Unexpected error for concept as thing %s", BrandLexLiveUUID)
+	assert.True(t, found, "Found no Concept for concept as Concept %s", BrandLexLiveUUID)
+
+	readAndCompare(t, expectedLexLive, actualLexLive, "Retrieve concepts via new concordance model")
+
+	actualLex, found, err := thingsDriver.read(BrandLexUUID, relationships)
+
+	assert.NoError(t, err, "Unexpected error for concept as thing %s", BrandLexUUID)
+	assert.True(t, found, "Found no Concept for concept as Concept %s", BrandLexUUID)
+
+	readAndCompare(t, expectedLex, actualLex, "Retrieve concepts via new concordance model")
+}
+
 func TestRetrieveConceptWithNarrower(t *testing.T) {
 	createOnyxPikeScenario(t)
 	defer cleanUpOnyxPikeScenario(t)
@@ -206,6 +282,43 @@ func TestRetrieveConceptWithNarrower(t *testing.T) {
 	assert.True(t, found, "Found no Concept for concept as Concept %s", TopicOnyxPikeBroader)
 
 	readAndCompare(t, expectedOnyxPikeBroaderTransitive, actualOnyxPikeBroaderTransitive, "Retrieve concepts via new concordance model")
+}
+
+func TestRetrieveBrandWithNarrower(t *testing.T) {
+	createLexLiveScenario(t)
+	defer cleanUpLexLiveScenario(t)
+
+	types := []string{"Thing", "Concept", "Classification", "Brand"}
+	typesUris := mapper.TypeURIs(types)
+
+	expectedFT := Concept{APIURL: mapper.APIURL(BrandFTUUID, types, "Prod"), PrefLabel: "Financial Times", ID: mapper.IDURL(BrandFTUUID),
+		Types: typesUris, DirectType: typesUris[len(typesUris)-1], Aliases: []string{"Financial Times"},
+		NarrowerConcepts: []Thing{
+			{ID: mapper.IDURL(BrandLexUUID), APIURL: mapper.APIURL(BrandLexUUID, types, "Prod"), Types: typesUris, PrefLabel: "Lex", DirectType: typesUris[len(typesUris)-1], Predicate: skosNarrowerURI},
+		},
+	}
+
+	expectedLex := Concept{APIURL: mapper.APIURL(BrandLexUUID, types, "Prod"), PrefLabel: "Lex", ID: mapper.IDURL(BrandLexUUID),
+		Types: typesUris, DirectType: typesUris[len(typesUris)-1], Aliases: []string{"LEX", "Lex"},
+		NarrowerConcepts: []Thing{{ID: mapper.IDURL(BrandLexLiveUUID), APIURL: mapper.APIURL(BrandLexLiveUUID, types, "Prod"), Types: typesUris, PrefLabel: "Lex Live", DirectType: typesUris[len(typesUris)-1], Predicate: skosNarrowerURI}},
+	}
+
+	thingsDriver := NewCypherDriver(db, "prod")
+
+	relationships := []string{narrower}
+	actualFT, found, err := thingsDriver.read(BrandFTUUID, relationships)
+
+	assert.NoError(t, err, "Unexpected error for concept as thing %s", BrandFTUUID)
+	assert.True(t, found, "Found no Concept for concept as Concept %s", BrandFTUUID)
+
+	readAndCompare(t, expectedFT, actualFT, "Retrieve concepts via new concordance model")
+
+	actualLex, found, err := thingsDriver.read(BrandLexUUID, relationships)
+
+	assert.NoError(t, err, "Unexpected error for concept as thing %s", BrandLexUUID)
+	assert.True(t, found, "Found no Concept for concept as Concept %s", BrandLexUUID)
+
+	readAndCompare(t, expectedLex, actualLex, "Retrieve concepts via new concordance model")
 }
 
 func TestRetrieveConceptWithRelated(t *testing.T) {
@@ -347,6 +460,19 @@ func createOnyxPikeScenario(t *testing.T) {
 
 func cleanUpOnyxPikeScenario(t *testing.T) {
 	cleanDB(t, TopicOnyxPikeRelated, TopicOnyxPikeBroaderTransitive, TopicOnyxPikeBroader, TopicOnyxPike)
+}
+
+func createLexLiveScenario(t *testing.T) {
+	conceptsDriver := concepts.NewConceptService(db)
+	assert.NoError(t, conceptsDriver.Initialise())
+
+	writeJSONToConceptsService(t, conceptsDriver, fmt.Sprintf("./fixtures/Brand-FT-%s.json", BrandFTUUID))
+	writeJSONToConceptsService(t, conceptsDriver, fmt.Sprintf("./fixtures/Brand-Lex-%s.json", BrandLexUUID))
+	writeJSONToConceptsService(t, conceptsDriver, fmt.Sprintf("./fixtures/Brand-LexLive-%s.json", BrandLexLiveUUID))
+}
+
+func cleanUpLexLiveScenario(t *testing.T) {
+	cleanDB(t, BrandFTUUID, BrandLexUUID, BrandLexLiveUUID)
 }
 
 func readAndCompare(t *testing.T, expected Concept, actual Concept, testName string) {

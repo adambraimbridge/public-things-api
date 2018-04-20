@@ -248,9 +248,9 @@ const thingReturnStatement = `RETURN
                               canonical.facebookPage as canonicalFacebookPage, canonical.twitterHandle as canonicalTwitterHandle, canonical.scopeNote as canonicalScopeNote, canonical.shortLabel as canonicalShortLabel`
 
 var skosNeo4JRelationshipMap = map[string]string{
-	broader:           "-[:HAS_BROADER]->",
-	broaderTransitive: "-[:HAS_BROADER*2..]->",
-	narrower:          "<-[:HAS_BROADER]-",
+	broader:           "-[:HAS_BROADER|:HAS_PARENT]->",
+	broaderTransitive: "-[:HAS_BROADER|:HAS_PARENT*2..]->",
+	narrower:          "<-[:HAS_BROADER|:HAS_PARENT]-",
 	related:           "-[:IS_RELATED_TO]->",
 }
 

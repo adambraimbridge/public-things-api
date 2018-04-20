@@ -1,0 +1,20 @@
+{
+  "prefUUID": "dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54",
+  "prefLabel": "Financial Times",
+  "type": "Brand",
+  "aliases": [
+    "Financial Times"
+  ],
+  "sourceRepresentations": [
+    {
+      "uuid": "dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54",
+      "prefLabel": "Financial Times",
+      "type": "Brand",
+      "authority": "Smartlogic",
+      "authorityValue": "dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54",
+      "aliases": [
+        "Financial Times"
+      ]
+    }
+  ]
+}
