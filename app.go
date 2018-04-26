@@ -142,7 +142,7 @@ func router(healthService *things.HealthService) http.Handler {
 
 	// Then API specific ones:
 	servicesRouter.HandleFunc("/things/{uuid}", things.GetThing).Methods("GET")
-	servicesRouter.HandleFunc("/things", things.GetThing).Methods("GET")
+	servicesRouter.HandleFunc("/things", things.GetThings).Methods("GET")
 	servicesRouter.HandleFunc("/things/{uuid}", things.MethodNotAllowedHandler)
 
 	var monitoringRouter http.Handler = servicesRouter
