@@ -39,7 +39,7 @@ func (h *HealthService) HealthCheck() fthealth.Check {
 }
 
 func (h *HealthService) Checker() (string, error) {
-	err := ThingsDriver.checkConnectivity()
+	err := Driver.checkConnectivity()
 	if err == nil {
 		return "Connectivity to neo4j is ok", err
 	}

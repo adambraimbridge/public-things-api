@@ -116,7 +116,7 @@ func runServer(neoURL string, port string, cacheDuration string, env string, hea
 		log.Fatalf("Error connecting to neo4j %s", err)
 	}
 
-	things.ThingsDriver = things.NewCypherDriver(db, env)
+	things.Driver = things.NewCypherDriver(db, env)
 
 	// The following endpoints should not be monitored or logged (varnish calls one of these every second, depending on config)
 	// The top one of these build info endpoints feels more correct, but the lower one matches what we have in Dropwizard,
@@ -141,7 +141,8 @@ func router(healthService *things.HealthService) http.Handler {
 	servicesRouter.Path("/__health").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(healthService.Health())})
 
 	// Then API specific ones:
-	servicesRouter.HandleFunc("/things/{uuid}", things.GetThings).Methods("GET")
+	servicesRouter.HandleFunc("/things/{uuid}", things.GetThing).Methods("GET")
+	servicesRouter.HandleFunc("/things", things.GetThing).Methods("GET")
 	servicesRouter.HandleFunc("/things/{uuid}", things.MethodNotAllowedHandler)
 
 	var monitoringRouter http.Handler = servicesRouter
