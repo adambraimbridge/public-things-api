@@ -18,10 +18,11 @@ import (
 )
 
 const (
-	canonicalUUID = "00000000-0000-002a-0000-00000000002a"
+	canonicalUUID       = "00000000-0000-002a-0000-00000000002a"
 	secondCanonicalUUID = "00000000-0000-002a-0000-00000000002d"
-	thirdCanonicalUUID = "00000000-0000-002a-0000-00000000002f"
-	alternateUUID = "00000000-0000-002a-0000-00000000002b"
+	thirdCanonicalUUID  = "00000000-0000-002a-0000-00000000002f"
+	alternateUUID       = "00000000-0000-002a-0000-00000000002b"
+	invalidUUID         = "00000000-0000-002a-0000"
 )
 
 var testConcept = Concept{ID: canonicalUUID, APIURL: canonicalUUID, Types: []string{}}
@@ -37,7 +38,6 @@ func TestGetHandlerSuccess(t *testing.T) {
 
 	req := newThingHTTPRequest(t, canonicalUUID, nil)
 
-	//Driver = d
 	handler := RequestHandler{ThingsDriver: d,}
 	rec := httptest.NewRecorder()
 	r := mux.NewRouter()
@@ -108,7 +108,7 @@ func TestGetHandlerNotFound(t *testing.T) {
 }
 
 func TestGetThingsHandlerNotFound(t *testing.T) {
-	expectedBody := message("No things found with provided uuids: [" + canonicalUUID + " " + secondCanonicalUUID + " " + thirdCanonicalUUID + "].")
+	expectedBody := `{"things":{}}`
 
 	d := new(mockedDriver)
 	d.On("read", canonicalUUID, []string(nil)).Return(Concept{}, false, nil)
@@ -122,7 +122,7 @@ func TestGetThingsHandlerNotFound(t *testing.T) {
 	r := mux.NewRouter()
 	r.HandleFunc("/things", handler.GetThings).Methods("GET")
 	r.ServeHTTP(rec, req)
-	assert.Equal(t, http.StatusNotFound, rec.Code)
+	assert.Equal(t, http.StatusOK, rec.Code)
 	assert.JSONEq(t, expectedBody, rec.Body.String())
 	assert.Equal(t, "application/json; charset=UTF-8", rec.HeaderMap.Get("Content-Type"))
 }
@@ -161,6 +161,24 @@ func TestGetThingsHandlerReadError(t *testing.T) {
 	r.HandleFunc("/things", handler.GetThings).Methods("GET")
 	r.ServeHTTP(rec, req)
 	assert.Equal(t, http.StatusServiceUnavailable, rec.Code)
+	assert.JSONEq(t, expectedBody, rec.Body.String())
+	assert.Equal(t, "application/json; charset=UTF-8", rec.HeaderMap.Get("Content-Type"))
+}
+func TestGetThingsHandlerInvalidUUIDError(t *testing.T) {
+	expectedBody := message("Invalid uuid: " + invalidUUID + ", err: uuid: incorrect UUID length: " + invalidUUID)
+
+	d := new(mockedDriver)
+	d.On("read", canonicalUUID, []string(nil)).Return(Concept{}, false, nil)
+	d.On("read", thirdCanonicalUUID, []string(nil)).Return(Concept{}, false, nil)
+
+	req := newThingsHTTPRequest(t, []string{canonicalUUID, secondCanonicalUUID, thirdCanonicalUUID, invalidUUID}, nil)
+
+	handler := RequestHandler{ThingsDriver: d,}
+	rec := httptest.NewRecorder()
+	r := mux.NewRouter()
+	r.HandleFunc("/things", handler.GetThings).Methods("GET")
+	r.ServeHTTP(rec, req)
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
 	assert.JSONEq(t, expectedBody, rec.Body.String())
 	assert.Equal(t, "application/json; charset=UTF-8", rec.HeaderMap.Get("Content-Type"))
 }

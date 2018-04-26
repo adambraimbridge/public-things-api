@@ -7,9 +7,11 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"errors"
 
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
+	gouuid "github.com/satori/go.uuid"
 )
 
 type RequestHandler struct {
@@ -38,6 +40,12 @@ func (rh *RequestHandler) GetThing(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "uuid required", http.StatusBadRequest)
 		return
 	}
+
+	if err := validateUUID(uuid); err != nil {
+		http.Error(w, "invalid/malformed uuid", http.StatusBadRequest)
+		return
+	}
+
 	thng, found, err := rh.ThingsDriver.read(uuid, relationships)
 	if err != nil {
 		w.WriteHeader(http.StatusServiceUnavailable)
@@ -107,6 +115,12 @@ func (rh *RequestHandler) GetThings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := validateUUID(uuids...); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(fmt.Sprintf(`{"message":"%v"}`, err)))
+		return
+	}
+
 	var wg sync.WaitGroup
 	uctCh := make(chan *uuidConceptTuple)
 	errCh := make(chan *uuidErrorTuple)
@@ -128,13 +142,6 @@ func (rh *RequestHandler) GetThings(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		msg := fmt.Sprintf(`{"message":"Error getting thing with uuid %s, err=%s"}`, err.uuid, err.err.Error())
-		w.Write([]byte(msg))
-		return
-	}
-
-	if len(things) == 0 {
-		w.WriteHeader(http.StatusNotFound)
-		msg := fmt.Sprintf(`{"message":"No things found with provided uuids: %s."}`, uuids)
 		w.Write([]byte(msg))
 		return
 	}
@@ -225,4 +232,14 @@ type uuidConceptTuple struct {
 type uuidErrorTuple struct {
 	uuid string
 	err  error
+}
+
+func validateUUID(uuids ...string) error {
+	for _, uuid := range uuids {
+		_, err := gouuid.FromString(uuid)
+		if err != nil {
+			return errors.New(fmt.Sprintf("Invalid uuid: %s, err: %v", uuid, err))
+		}
+	}
+	return nil
 }
