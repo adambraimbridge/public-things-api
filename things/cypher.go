@@ -25,7 +25,7 @@ const (
 )
 
 // Driver interface
-type driver interface {
+type Driver interface {
 	read(id string, relationships []string) (thng Concept, found bool, err error)
 	checkConnectivity() error
 }
@@ -36,7 +36,7 @@ type cypherDriver struct {
 	env  string
 }
 
-func NewCypherDriver(conn neoutils.NeoConnection, env string) cypherDriver {
+func NewCypherDriver(conn neoutils.NeoConnection, env string) Driver {
 	return cypherDriver{conn, env}
 }
 

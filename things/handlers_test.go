@@ -37,10 +37,11 @@ func TestGetHandlerSuccess(t *testing.T) {
 
 	req := newThingHTTPRequest(t, canonicalUUID, nil)
 
-	Driver = d
+	//Driver = d
+	handler := RequestHandler{ThingsDriver: d,}
 	rec := httptest.NewRecorder()
 	r := mux.NewRouter()
-	r.HandleFunc("/things/{uuid}", GetThing).Methods("GET")
+	r.HandleFunc("/things/{uuid}", handler.GetThing).Methods("GET")
 	r.ServeHTTP(rec, req)
 	assert.Equal(t, http.StatusOK, rec.Code)
 	assert.JSONEq(t, expectedBody, rec.Body.String())
@@ -60,10 +61,10 @@ func TestGetThingsHandlerSuccess(t *testing.T) {
 
 	req := newThingsHTTPRequest(t, []string {canonicalUUID, secondCanonicalUUID, thirdCanonicalUUID}, nil)
 
-	Driver = d
+	handler := RequestHandler{ThingsDriver: d,}
 	rec := httptest.NewRecorder()
 	r := mux.NewRouter()
-	r.HandleFunc("/things", GetThings).Methods("GET")
+	r.HandleFunc("/things",handler.GetThings).Methods("GET")
 	r.ServeHTTP(rec, req)
 	assert.Equal(t, http.StatusOK, rec.Code)
 	assert.JSONEq(t, expectedBody, rec.Body.String())
@@ -78,10 +79,10 @@ func TestGetHandlerSuccessWithRelationships(t *testing.T) {
 
 	req := newThingHTTPRequest(t, canonicalUUID, testRelationships)
 
-	Driver = d
+	handler := RequestHandler{ThingsDriver: d,}
 	rec := httptest.NewRecorder()
 	r := mux.NewRouter()
-	r.HandleFunc("/things/{uuid}", GetThing).Methods("GET")
+	r.HandleFunc("/things/{uuid}", handler.GetThing).Methods("GET")
 	r.ServeHTTP(rec, req)
 	assert.Equal(t, http.StatusOK, rec.Code)
 	assert.JSONEq(t, expectedBody, rec.Body.String())
@@ -96,10 +97,10 @@ func TestGetHandlerNotFound(t *testing.T) {
 
 	req := newThingHTTPRequest(t, canonicalUUID, nil)
 
-	Driver = d
+	handler := RequestHandler{ThingsDriver: d,}
 	rec := httptest.NewRecorder()
 	r := mux.NewRouter()
-	r.HandleFunc("/things/{uuid}", GetThing).Methods("GET")
+	r.HandleFunc("/things/{uuid}", handler.GetThing).Methods("GET")
 	r.ServeHTTP(rec, req)
 	assert.Equal(t, http.StatusNotFound, rec.Code)
 	assert.JSONEq(t, expectedBody, rec.Body.String())
@@ -116,10 +117,10 @@ func TestGetThingsHandlerNotFound(t *testing.T) {
 
 	req := newThingsHTTPRequest(t, []string {canonicalUUID, secondCanonicalUUID, thirdCanonicalUUID}, nil)
 
-	Driver = d
+	handler := RequestHandler{ThingsDriver: d,}
 	rec := httptest.NewRecorder()
 	r := mux.NewRouter()
-	r.HandleFunc("/things", GetThings).Methods("GET")
+	r.HandleFunc("/things", handler.GetThings).Methods("GET")
 	r.ServeHTTP(rec, req)
 	assert.Equal(t, http.StatusNotFound, rec.Code)
 	assert.JSONEq(t, expectedBody, rec.Body.String())
@@ -134,10 +135,10 @@ func TestGetHandlerReadError(t *testing.T) {
 
 	req := newThingHTTPRequest(t, canonicalUUID, nil)
 
-	Driver = d
+	handler := RequestHandler{ThingsDriver: d,}
 	rec := httptest.NewRecorder()
 	r := mux.NewRouter()
-	r.HandleFunc("/things/{uuid}", GetThing).Methods("GET")
+	r.HandleFunc("/things/{uuid}", handler.GetThing).Methods("GET")
 	r.ServeHTTP(rec, req)
 	assert.Equal(t, http.StatusServiceUnavailable, rec.Code)
 	assert.JSONEq(t, expectedBody, rec.Body.String())
@@ -154,10 +155,10 @@ func TestGetThingsHandlerReadError(t *testing.T) {
 
 	req := newThingsHTTPRequest(t, []string {canonicalUUID, secondCanonicalUUID, thirdCanonicalUUID}, nil)
 
-	Driver = d
+	handler := RequestHandler{ThingsDriver: d,}
 	rec := httptest.NewRecorder()
 	r := mux.NewRouter()
-	r.HandleFunc("/things", GetThings).Methods("GET")
+	r.HandleFunc("/things", handler.GetThings).Methods("GET")
 	r.ServeHTTP(rec, req)
 	assert.Equal(t, http.StatusServiceUnavailable, rec.Code)
 	assert.JSONEq(t, expectedBody, rec.Body.String())
@@ -170,10 +171,10 @@ func TestGetHandlerRedirect(t *testing.T) {
 
 	req := newThingHTTPRequest(t, alternateUUID, nil)
 
-	Driver = d
+	handler := RequestHandler{ThingsDriver: d,}
 	rec := httptest.NewRecorder()
 	r := mux.NewRouter()
-	r.HandleFunc("/things/{uuid}", GetThing).Methods("GET")
+	r.HandleFunc("/things/{uuid}", handler.GetThing).Methods("GET")
 	r.ServeHTTP(rec, req)
 	assert.Equal(t, http.StatusMovedPermanently, rec.Code)
 	assert.Equal(t, "/things/"+canonicalUUID, rec.HeaderMap.Get("Location"))
@@ -195,10 +196,10 @@ func TestGetThingsHandlerRedirect(t *testing.T) {
 	d.On("read", secondCanonicalUUID, []string(nil)).Return(testSecondConcept, true, nil)
 	d.On("read", thirdCanonicalUUID, []string(nil)).Return(testThirdConcept, true, nil)
 
-	Driver = d
+	handler := RequestHandler{ThingsDriver: d,}
 	rec := httptest.NewRecorder()
 	r := mux.NewRouter()
-	r.HandleFunc("/things", GetThings).Methods("GET")
+	r.HandleFunc("/things", handler.GetThings).Methods("GET")
 	r.ServeHTTP(rec, req)
 
 	assert.Equal(t, http.StatusOK, rec.Code)
@@ -212,10 +213,10 @@ func TestGetHandlerRedirectWithRelationships(t *testing.T) {
 
 	req := newThingHTTPRequest(t, alternateUUID, testRelationships)
 
-	Driver = d
+	handler := RequestHandler{ThingsDriver: d,}
 	rec := httptest.NewRecorder()
 	r := mux.NewRouter()
-	r.HandleFunc("/things/{uuid}", GetThing).Methods("GET")
+	r.HandleFunc("/things/{uuid}", handler.GetThing).Methods("GET")
 	r.ServeHTTP(rec, req)
 	assert.Equal(t, http.StatusMovedPermanently, rec.Code)
 	assert.Equal(t, "/things/"+canonicalUUID+"?showRelationship=testBroader&showRelationship=testNarrower", rec.HeaderMap.Get("Location"))
@@ -265,10 +266,9 @@ func message(errMsg string) string {
 
 func TestHappyHealthCheck(t *testing.T) {
 	d := new(mockedDriver)
-	Driver = d
 	d.On("checkConnectivity").Return(nil)
 
-	hs := &HealthService{}
+	hs := &HealthService{ThingsDriver:d}
 
 	rec := httptest.NewRecorder()
 	r := mux.NewRouter()
@@ -291,10 +291,9 @@ func TestHappyHealthCheck(t *testing.T) {
 
 func TestUnhappyHealthCheck(t *testing.T) {
 	d := new(mockedDriver)
-	Driver = d
 	d.On("checkConnectivity").Return(errors.New("computer says no"))
 
-	hs := &HealthService{}
+	hs := &HealthService{ThingsDriver:d}
 
 	rec := httptest.NewRecorder()
 	r := mux.NewRouter()
@@ -318,10 +317,9 @@ func TestUnhappyHealthCheck(t *testing.T) {
 
 func TestHealthCheckTimeout(t *testing.T) {
 	d := new(mockedDriver)
-	Driver = d
 	d.On("checkConnectivity").Return(nil).After(11 * time.Second)
 
-	hs := &HealthService{}
+	hs := &HealthService{ThingsDriver:d}
 
 	rec := httptest.NewRecorder()
 	r := mux.NewRouter()

@@ -12,20 +12,22 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var Driver driver
-var CacheControlHeader string
+type RequestHandler struct {
+	ThingsDriver          Driver
+	CacheControllerHeader string
+}
 
 const validUUID = "([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$"
 
 // MethodNotAllowedHandler handles 405
-func MethodNotAllowedHandler(w http.ResponseWriter, r *http.Request) {
+func (rh *RequestHandler) MethodNotAllowedHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusMethodNotAllowed)
 	return
 }
 
 // GetThing handler directly returns the concept/thing if it's a canonical
 // or provides redirect URL via Location http header within the response.
-func GetThing(w http.ResponseWriter, r *http.Request) {
+func (rh *RequestHandler) GetThing(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	uuid := vars["uuid"]
 
@@ -36,7 +38,7 @@ func GetThing(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "uuid required", http.StatusBadRequest)
 		return
 	}
-	thng, found, err := Driver.read(uuid, relationships)
+	thng, found, err := rh.ThingsDriver.read(uuid, relationships)
 	if err != nil {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		msg := fmt.Sprintf(`{"message":"Error getting thing with uuid %s, err=%s"}`, uuid, err.Error())
@@ -60,7 +62,7 @@ func GetThing(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Cache-Control", CacheControlHeader)
+	w.Header().Set("Cache-Control", rh.CacheControllerHeader)
 	w.WriteHeader(http.StatusOK)
 
 	if err = json.NewEncoder(w).Encode(thng); err != nil {
@@ -91,7 +93,7 @@ func GetThing(w http.ResponseWriter, r *http.Request) {
 // 	is simply to provide a convenient way to the caller for making the correlation between requested uuids with respect to
 // 	found things. Since we are handling the resolution of non canonical uuids, returned thing payloads may not have the same
 // 	requested/associated uuid.
-func GetThings(w http.ResponseWriter, r *http.Request) {
+func (rh *RequestHandler) GetThings(w http.ResponseWriter, r *http.Request) {
 
 	queryParams := r.URL.Query()
 	relationships := queryParams["showRelationship"]
@@ -114,7 +116,7 @@ func GetThings(w http.ResponseWriter, r *http.Request) {
 
 	// start getting things
 	for _, uuid := range uuids {
-		go getChanneledThing(uuid, relationships, uctCh, errCh, &wg)
+		go rh.getChanneledThing(uuid, relationships, uctCh, errCh, &wg)
 	}
 
 	// start watching the sync bucket and close the channel
@@ -137,7 +139,7 @@ func GetThings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Cache-Control", CacheControlHeader)
+	w.Header().Set("Cache-Control", rh.CacheControllerHeader)
 	w.WriteHeader(http.StatusOK)
 
 	result := make(map[string]map[string]Concept)
@@ -150,11 +152,11 @@ func GetThings(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func getChanneledThing(uuid string, relationships []string, uctCh chan *uuidConceptTuple,
+func (rh *RequestHandler) getChanneledThing(uuid string, relationships []string, uctCh chan *uuidConceptTuple,
 	errCh chan *uuidErrorTuple, wg *sync.WaitGroup) {
 
 	defer wg.Done()
-	thing, found, err := Driver.read(uuid, relationships)
+	thing, found, err := rh.ThingsDriver.read(uuid, relationships)
 
 	if err != nil {
 		errCh <- &uuidErrorTuple{uuid, err}
@@ -169,7 +171,7 @@ func getChanneledThing(uuid string, relationships []string, uctCh chan *uuidConc
 		validRegexp := regexp.MustCompile(validUUID)
 
 		canonicalUUID := validRegexp.FindString(thing.ID)
-		thing, found, err = Driver.read(canonicalUUID, relationships)
+		thing, found, err = rh.ThingsDriver.read(canonicalUUID, relationships)
 
 		if err != nil {
 			errCh <- &uuidErrorTuple{uuid, err}
