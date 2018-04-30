@@ -8,11 +8,11 @@ __Provides a public API for Things stored in a Neo4J graph database__
 Download the source code, dependencies and test dependencies:
 
 ```
-go get -u github.com/kardianos/govendor
+curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
 mkdir $GOPATH/src/github.com/Financial-Times/public-things-api
 cd $GOPATH/src/github.com/Financial-Times
 git clone https://github.com/Financial-Times/public-things-api.git
-cd public-things-api && govendor sync
+cd public-things-api && dep ensure -vendor-only
 go build .
 ```
 
@@ -21,8 +21,7 @@ go build .
 1. Run the tests and install the binary:
 
     ```
-    govendor sync
-    govendor test -v -race +local
+    go test ./...
     go install
     ```
 
@@ -183,6 +182,48 @@ This is a potential response of a thing description with relationships
     }
   ]
 }
+```
+### Getting multiple "thing" descriptions with one request
+It's possible to request descriptions for multiple things via `GET /things` endpoint, providing uuids as url parameters.
+It still supports concept relationships (with `showRelationship` url param) and returns a high level `things` json object which includes a map of requested uuids
+and actual resolved descriptions/values of the things.
+
+**A subtle difference between single and bulk get operation**
+
+Bulk get automatically handles non canonical uuids, resolves the canonical uuid and provide the response accordingly. Since this approach
+keeps this behaviour abstracted to the caller, endpoint returns the mapping of the requested uuid and the actual resolved things so that the 
+client can be aware of the possible auto resolution.
+
+Sample usage;
+
+```
+    curl http://localhost:8080/things?uuid={canonical-uuid}&uuid={non-canonical-uuid}&uuid={yet-another-canonical-uuid} | jq
+
+```
+
+Sample response at a high level;
+
+```
+{
+  "things": {
+    "a11fa00f-777d-484a-9ebc-fbf81b774fc0": {
+      "id": "http://api.ft.com/things/a11fa00f-777d-484a-9ebc-fbf81b774fc0",
+      "apiUrl": "http://api.ft.com/things/a11fa00f-777d-484a-9ebc-fbf81b774fc0",
+      "prefLabel": "Solar Wars",
+      "types": [
+        "http://www.ft.com/ontology/core/Thing",
+        "http://www.ft.com/ontology/concept/Concept",
+        "http://www.ft.com/ontology/Topic"
+      ],
+      "directType": "http://www.ft.com/ontology/Topic",
+      "aliases": [
+        "Solar Wars"
+      ]
+    },
+    ...,
+    ...,
+    ...
+}    
 ```
 
 ## Healthchecks

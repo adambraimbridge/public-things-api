@@ -71,8 +71,9 @@ func main() {
 	app.Action = func() {
 		baseftrwapp.OutputMetricsIfRequired(*graphiteTCPAddress, *graphitePrefix, *logMetrics)
 		log.Infof("public-things-api will listen on port: %s, connecting to: %s", *port, *neoURL)
-		healthService := &things.HealthService{}
-		runServer(*neoURL, *port, *cacheDuration, *env, healthService)
+		driver := driverForNeo4j(*neoURL, *env)
+		healthService := &things.HealthService{ThingsDriver:driver}
+		runServer(*port, *cacheDuration, healthService, driver)
 	}
 
 	log.SetFormatter(&log.JSONFormatter{})
@@ -92,13 +93,32 @@ func main() {
 	app.Run(os.Args)
 }
 
-func runServer(neoURL string, port string, cacheDuration string, env string, healthService *things.HealthService) {
+func runServer(port string, cacheDuration string, healthService *things.HealthService, driver things.Driver) {
+	var cacheControlHeader string
+
 	if duration, durationErr := time.ParseDuration(cacheDuration); durationErr != nil {
 		log.Fatalf("Failed to parse cache duration string, %v", durationErr)
 	} else {
-		things.CacheControlHeader = fmt.Sprintf("max-age=%s, public", strconv.FormatFloat(duration.Seconds(), 'f', 0, 64))
+		cacheControlHeader = fmt.Sprintf("max-age=%s, public", strconv.FormatFloat(duration.Seconds(), 'f', 0, 64))
 	}
 
+	// The following endpoints should not be monitored or logged (varnish calls one of these every second, depending on config)
+	// The top one of these build info endpoints feels more correct, but the lower one matches what we have in Dropwizard,
+	// so it's what apps expect currently same as ping, the content of build-info needs more definition
+	// Healthchecks and standards first
+	http.HandleFunc(status.PingPath, status.PingHandler)
+	http.HandleFunc(status.PingPathDW, status.PingHandler)
+	http.HandleFunc(status.BuildInfoPath, status.BuildInfoHandler)
+	http.HandleFunc(status.BuildInfoPathDW, status.BuildInfoHandler)
+
+	http.Handle("/", router(healthService, driver, cacheControlHeader))
+
+	if err := http.ListenAndServe(":"+port, nil); err != nil {
+		log.Fatalf("Unable to start server: %v", err)
+	}
+}
+
+func driverForNeo4j(neoURL string, env string) things.Driver {
 	conf := neoutils.ConnectionConfig{
 		BatchSize:     1024,
 		Transactional: false,
@@ -111,38 +131,24 @@ func runServer(neoURL string, port string, cacheDuration string, env string, hea
 		BackgroundConnect: true,
 	}
 	db, err := neoutils.Connect(neoURL, &conf)
-
 	if err != nil {
 		log.Fatalf("Error connecting to neo4j %s", err)
 	}
-
-	things.ThingsDriver = things.NewCypherDriver(db, env)
-
-	// The following endpoints should not be monitored or logged (varnish calls one of these every second, depending on config)
-	// The top one of these build info endpoints feels more correct, but the lower one matches what we have in Dropwizard,
-	// so it's what apps expect currently same as ping, the content of build-info needs more definition
-	// Healthchecks and standards first
-	http.HandleFunc(status.PingPath, status.PingHandler)
-	http.HandleFunc(status.PingPathDW, status.PingHandler)
-	http.HandleFunc(status.BuildInfoPath, status.BuildInfoHandler)
-	http.HandleFunc(status.BuildInfoPathDW, status.BuildInfoHandler)
-
-	http.Handle("/", router(healthService))
-
-	if err := http.ListenAndServe(":"+port, nil); err != nil {
-		log.Fatalf("Unable to start server: %v", err)
-	}
+	driver := things.NewCypherDriver(db, env)
+	return driver
 }
 
-func router(healthService *things.HealthService) http.Handler {
+func router(healthService *things.HealthService, driver things.Driver, cacheControlHeader string) http.Handler {
 	servicesRouter := mux.NewRouter()
 
 	servicesRouter.Path(status.GTGPath).Handler(handlers.MethodHandler{"GET": http.HandlerFunc(status.NewGoodToGoHandler(healthService.GTG))})
 	servicesRouter.Path("/__health").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(healthService.Health())})
 
 	// Then API specific ones:
-	servicesRouter.HandleFunc("/things/{uuid}", things.GetThings).Methods("GET")
-	servicesRouter.HandleFunc("/things/{uuid}", things.MethodNotAllowedHandler)
+	thingsHandler := &things.RequestHandler{ThingsDriver:driver, CacheControllerHeader:cacheControlHeader}
+	servicesRouter.HandleFunc("/things/{uuid}", thingsHandler.GetThing).Methods("GET")
+	servicesRouter.HandleFunc("/things", thingsHandler.GetThings).Methods("GET")
+	servicesRouter.HandleFunc("/things/{uuid}", thingsHandler.MethodNotAllowedHandler)
 
 	var monitoringRouter http.Handler = servicesRouter
 	monitoringRouter = httpHandlers.TransactionAwareRequestLoggingHandler(log.StandardLogger(), monitoringRouter)
