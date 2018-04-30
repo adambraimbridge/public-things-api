@@ -126,6 +126,25 @@ func TestGetThingsHandlerNotFound(t *testing.T) {
 	assert.JSONEq(t, expectedBody, rec.Body.String())
 	assert.Equal(t, "application/json; charset=UTF-8", rec.HeaderMap.Get("Content-Type"))
 }
+func TestGetThingsHandlerPartialSuccess(t *testing.T) {
+	expectedBody := `{"things": {
+						"` + canonicalUUID + `": {"id": "` + canonicalUUID + `", "apiUrl":"` + canonicalUUID + `", "types":[]}}}`
+
+	d := new(mockedDriver)
+	d.On("read", canonicalUUID, []string(nil)).Return(testConcept, true, nil)
+	d.On("read", secondCanonicalUUID, []string(nil)).Return(Concept{}, false, nil)
+
+	req := newThingsHTTPRequest(t, []string {canonicalUUID, secondCanonicalUUID}, nil)
+
+	handler := RequestHandler{ThingsDriver: d,}
+	rec := httptest.NewRecorder()
+	r := mux.NewRouter()
+	r.HandleFunc("/things", handler.GetThings).Methods("GET")
+	r.ServeHTTP(rec, req)
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.JSONEq(t, expectedBody, rec.Body.String())
+	assert.Equal(t, "application/json; charset=UTF-8", rec.HeaderMap.Get("Content-Type"))
+}
 
 func TestGetHandlerReadError(t *testing.T) {
 	expectedBody := message("Error getting thing with uuid " + canonicalUUID + ", err=TEST failing to READ")
