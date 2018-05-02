@@ -1,0 +1,346 @@
+swagger: "2.0"
+
+info:
+  title: Public Things API
+  description: Provides read access to concepts/things
+  version: 0.0.0
+  license:
+    name: MIT
+  contact:
+    name: Universal Publishing
+    email: universal.publishing@ft.com
+
+host: api.ft.com
+basePath: "/"
+schemes:
+  - http
+  - https
+
+paths:
+  /__health:
+    get:
+      summary: Healthchecks
+      description: Runs application healthchecks and returns FT Healthcheck style json.
+      produces:
+        - application/json
+      tags:
+        - Health
+      responses:
+        200:
+          description: >
+            Should always return 200 along with the output of the healthchecks - regardless
+            of whether the healthchecks failed or not.
+            Please inspect the overall ok property to see whether or not the application is healthy.
+          examples:
+            application/json:
+              schemaVersion: 1
+              systemCode: public-things-api
+              name: PublicThingsApi
+              description: Checks for accessing neo4j
+              checks:
+                - id: neo4j-connectivity-check
+                  name: Check connectivity to Neo4j
+                  ok: true
+                  severity: 1
+                  businessImpact: Unable to respond to Public Things api requests
+                  technicalSummary: Cannot connect to Neo4j. If this check fails, check that Neo4j instance is up and running.
+                  panicGuide: https://dewey.in.ft.com/view/system/public-things-api
+                  checkOutput: Connectivity to neo4j is ok
+                  lastUpdated: 2018-04-30T10:22:50.371968658Z
+              ok: true
+  /__gtg:
+    get:
+      summary: Good To Go
+      description: Lightly healthchecks the application, and returns a 200 if it's Good-To-Go.
+      tags:
+        - Health
+      produces:
+          - text/plain; charset=US-ASCII
+      responses:
+        200:
+          description: The application is healthy enough to perform all its functions correctly - i.e. good to go.
+          examples:
+               text/plain; charset=US-ASCII: OK
+        503:
+          description: >
+            One or more of the applications healthchecks have failed,
+            so please do not use the app. See the /__health endpoint for more detailed information.
+  /__build-info:
+    get:
+      summary: Build Information
+      description: >
+        Returns application build info, such as the git repository and revision,
+        the golang version it was built with, and the app release version.
+      produces:
+        - application/json; charset=UTF-8
+      tags:
+        - Info
+      responses:
+        200:
+          description: Outputs build information as described in the summary.
+          examples:
+            application/json; charset=UTF-8:
+              version: 1.6.1
+              repository: https://github.com/Financial-Times/public-things-api.git
+              revision: 0cd10bc814ca820e3fe181be0fc05124971c7169
+              builder: go version go1.10.1 linux/amd64
+              dateTime: "20180420102900"
+  /things/{uuid}:
+    get:
+      summary: Get a thing
+      description: >
+        Fetches the thing with the provided uuid
+      produces:
+        - application/json
+      tags:
+        - Public API
+      parameters:
+        - name: uuid
+          in: path
+          description: The UUID of the things
+          required: true
+          type: string
+          x-example: 97c97db4-4a93-43a4-87c9-b04d7f5284c1
+        - name: showRelationship
+          in: query
+          type: array
+          items:
+            type: string
+            enum:
+              - broader
+              - broaderTransitive
+              - narrower
+              - related
+          required: false
+      responses:
+        200:
+          description: Get thing response
+          schema:
+            $ref: '#/definitions/concept'
+          examples:
+            application/json:
+              id: http://api.ft.com/things/a11fa00f-777d-484a-9ebc-fbf81b774fc0
+              apiUrl: http://api.ft.com/things/a11fa00f-777d-484a-9ebc-fbf81b774fc0
+              prefLabel: Solar Wars
+              types:
+                - http://www.ft.com/ontology/core/Thing
+                - http://www.ft.com/ontology/concept/Concept
+                - http://www.ft.com/ontology/Topic
+              directType: http://www.ft.com/ontology/Topic
+              aliases:
+                - Solar Wars
+              narrowerConcepts:
+                - id: http://api.ft.com/things/0ff1c1c9-970a-4f05-9f97-c5150f8f907e
+                  apiUrl: http://api.ft.com/things/0ff1c1c9-970a-4f05-9f97-c5150f8f907e
+                  prefLabel: Macroeconomics
+                  types:
+                    - http://www.ft.com/ontology/core/Thing
+                    - http://www.ft.com/ontology/concept/Concept
+                    - http://www.ft.com/ontology/Topic
+                  directType: http://www.ft.com/ontology/Topic
+                  predicate: http://www.w3.org/2004/02/skos/core#narrower
+              broaderConcepts:
+                - id: http://api.ft.com/things/49181791-a1a9-4966-ac30-010846ec76d8
+                  apiUrl: http://api.ft.com/things/49181791-a1a9-4966-ac30-010846ec76d8
+                  prefLabel: Trade disputes
+                  types:
+                    - http://www.ft.com/ontology/core/Thing
+                    - http://www.ft.com/ontology/concept/Concept
+                    - http://www.ft.com/ontology/Topic
+                  directType: http://www.ft.com/ontology/Topic
+                  predicate: http://www.w3.org/2004/02/skos/core#broader
+                - id: http://api.ft.com/things/243243d9-de4b-4869-909b-fab711125624
+                  apiUrl: http://api.ft.com/things/243243d9-de4b-4869-909b-fab711125624
+                  prefLabel: Global Trade
+                  types:
+                    - http://www.ft.com/ontology/core/Thing
+                    - http://www.ft.com/ontology/concept/Concept
+                    - http://www.ft.com/ontology/Topic
+                  directType: http://www.ft.com/ontology/Topic
+                  predicate: http://www.w3.org/2004/02/skos/core#broaderTransitive
+              relatedConcepts:
+                - id: http://api.ft.com/things/86fb0401-ec02-419d-a14e-74078cb8b662
+                  apiUrl: http://api.ft.com/things/86fb0401-ec02-419d-a14e-74078cb8b662
+                  prefLabel: Protectionism
+                  types:
+                    - http://www.ft.com/ontology/core/Thing
+                    - http://www.ft.com/ontology/concept/Concept
+                    - http://www.ft.com/ontology/Topic
+                  directType: http://www.ft.com/ontology/Topic
+                  predicate: http://www.w3.org/2004/02/skos/core#related
+  /things:
+    get:
+      parameters:
+        - name: uuid
+          in: query
+          required: true
+          type: array
+          items:
+            type: string
+        - name: showRelationship
+          in: query
+          type: array
+          items:
+            type: string
+            enum:
+              - broader
+              - broaderTransitive
+              - narrower
+              - related
+          required: false
+      produces:
+        - application/json
+      tags:
+        - Public API
+      description: >
+        Fetches the things with the provided uuids collection
+      responses:
+        200:
+          description: Get things response
+          schema:
+            type: object
+            properties:
+              things:
+                type: object
+                additionalProperties:
+                  $ref: '#/definitions/concept'
+          examples:
+            application/json:
+              things:
+                a11fa00f-777d-484a-9ebc-fbf81b774fc0:
+                  id: http://api.ft.com/things/a11fa00f-777d-484a-9ebc-fbf81b774fc0
+                  apiUrl: http://api.ft.com/things/a11fa00f-777d-484a-9ebc-fbf81b774fc0
+                  prefLabel: Solar Wars
+                  types:
+                    - http://www.ft.com/ontology/core/Thing
+                    - http://www.ft.com/ontology/concept/Concept
+                    - http://www.ft.com/ontology/Topic
+                  directType: http://www.ft.com/ontology/Topic
+                  aliases:
+                    - Solar Wars
+                  narrowerConcepts:
+                    - id: http://api.ft.com/things/0ff1c1c9-970a-4f05-9f97-c5150f8f907e
+                      apiUrl: http://api.ft.com/things/0ff1c1c9-970a-4f05-9f97-c5150f8f907e
+                      prefLabel: Macroeconomics
+                      types:
+                        - http://www.ft.com/ontology/core/Thing
+                        - http://www.ft.com/ontology/concept/Concept
+                        - http://www.ft.com/ontology/Topic
+                      directType: http://www.ft.com/ontology/Topic
+                      predicate: http://www.w3.org/2004/02/skos/core#narrower
+                  broaderConcepts:
+                    - id: http://api.ft.com/things/49181791-a1a9-4966-ac30-010846ec76d8
+                      apiUrl: http://api.ft.com/things/49181791-a1a9-4966-ac30-010846ec76d8
+                      prefLabel: Trade disputes
+                      types:
+                        - http://www.ft.com/ontology/core/Thing
+                        - http://www.ft.com/ontology/concept/Concept
+                        - http://www.ft.com/ontology/Topic
+                      directType: http://www.ft.com/ontology/Topic
+                      predicate: http://www.w3.org/2004/02/skos/core#broader
+                    - id: http://api.ft.com/things/243243d9-de4b-4869-909b-fab711125624
+                      apiUrl: http://api.ft.com/things/243243d9-de4b-4869-909b-fab711125624
+                      prefLabel: Global Trade
+                      types:
+                        - http://www.ft.com/ontology/core/Thing
+                        - http://www.ft.com/ontology/concept/Concept
+                        - http://www.ft.com/ontology/Topic
+                      directType: http://www.ft.com/ontology/Topic
+                      predicate: http://www.w3.org/2004/02/skos/core#broaderTransitive
+                  relatedConcepts:
+                    - id: http://api.ft.com/things/86fb0401-ec02-419d-a14e-74078cb8b662
+                      apiUrl: http://api.ft.com/things/86fb0401-ec02-419d-a14e-74078cb8b662
+                      prefLabel: Protectionism
+                      types:
+                        - http://www.ft.com/ontology/core/Thing
+                        - http://www.ft.com/ontology/concept/Concept
+                        - http://www.ft.com/ontology/Topic
+                      directType: http://www.ft.com/ontology/Topic
+                      predicate: http://www.w3.org/2004/02/skos/core#related
+
+definitions:
+  concept:
+    type: object
+    title: Concept
+    properties:
+      id:
+        type: string
+        description: The canonical ID of the concept
+      apiUrl:
+        type: string
+        description: Api url of the concept
+      prefLabel:
+        type: string
+        description: Label
+        x-example: Solar wars
+      types:
+        type: array
+        items:
+          type: string
+          description: Concept types
+      directType:
+        type: string
+        description: Direct type
+      aliases:
+        type: array
+        items:
+          type: string
+      descriptionXML:
+        type: string
+      imageUrl:
+        type: string
+      emailAddress:
+        type: string
+      facebookPage:
+        type: string
+      twitterHandle:
+        type: string
+      scopeNote:
+        type: string
+      shortLabel:
+        type: string
+      narrowerConcepts:
+        type: array
+        items:
+          $ref: '#/definitions/thing'
+      broaderConcepts:
+        type: array
+        items:
+          $ref: '#/definitions/thing'
+      relatedConcepts:
+        type: array
+        items:
+          $ref: '#/definitions/thing'
+    required:
+      - id
+      - apiUrl
+      - types
+  thing:
+    type: object
+    title: Title
+    properties:
+      id:
+        type: string
+        description: The canonical ID of the concept
+      apiUrl:
+        type: string
+        description: Api url of the concept
+      prefLabel:
+        type: string
+        description: Label
+        x-example: Solar wars
+      types:
+        type: array
+        items:
+          type: string
+          description: Concept types
+      directType:
+        type: string
+        description: Direct type
+      predicate:
+        type: string
+    required:
+      - id
+      - apiUrl
+      - types
+
