@@ -52,7 +52,7 @@ spec:
           - name: LOG_METRICS
             value: "false"
           - name: CACHE_DURATION
-            value: 30s
+            value: 24h
         ports: 
         - containerPort: 8080 
         livenessProbe: 
