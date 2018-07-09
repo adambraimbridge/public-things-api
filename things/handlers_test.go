@@ -107,6 +107,23 @@ func TestGetHandlerNotFound(t *testing.T) {
 	assert.Equal(t, "application/json; charset=UTF-8", rec.HeaderMap.Get("Content-Type"))
 }
 
+func TestGetHandlerInvalidUUIDError(t *testing.T) {
+	expectedBody := "invalid/malformed uuid"
+
+	d := new(mockedDriver)
+	d.On("read", invalidUUID, []string(nil)).Return(Concept{}, false, nil)
+
+	req := newThingHTTPRequest(t, invalidUUID, nil)
+
+	handler := RequestHandler{ThingsDriver: d}
+	rec := httptest.NewRecorder()
+	r := mux.NewRouter()
+	r.HandleFunc("/things/{uuid}", handler.GetThing).Methods("GET")
+	r.ServeHTTP(rec, req)
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.Contains(t, expectedBody, rec.Body.String())
+}
+
 func TestGetThingsHandlerNotFound(t *testing.T) {
 	expectedBody := `{"things":{}}`
 
@@ -183,6 +200,24 @@ func TestGetThingsHandlerReadError(t *testing.T) {
 	assert.JSONEq(t, expectedBody, rec.Body.String())
 	assert.Equal(t, "application/json; charset=UTF-8", rec.HeaderMap.Get("Content-Type"))
 }
+func TestGetThingsHandlerNoUUIDError(t *testing.T) {
+	expectedBody := message("at least one uuid query param should be provided for batch operations")
+
+	d := new(mockedDriver)
+	d.On("read", "", []string(nil)).Return(Concept{}, false, nil)
+
+	req := newThingsHTTPRequest(t, []string{}, nil)
+
+	handler := RequestHandler{ThingsDriver: d}
+	rec := httptest.NewRecorder()
+	r := mux.NewRouter()
+	r.HandleFunc("/things", handler.GetThings).Methods("GET")
+	r.ServeHTTP(rec, req)
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.JSONEq(t, expectedBody, rec.Body.String())
+	assert.Equal(t, "application/json; charset=UTF-8", rec.HeaderMap.Get("Content-Type"))
+}
+
 func TestGetThingsHandlerInvalidUUIDError(t *testing.T) {
 	expectedBody := message("Invalid uuid: " + invalidUUID + ", err: uuid: incorrect UUID length: " + invalidUUID)
 
