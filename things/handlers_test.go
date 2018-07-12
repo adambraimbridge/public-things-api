@@ -25,9 +25,9 @@ const (
 	invalidUUID         = "00000000-0000-002a-0000"
 )
 
-var testConcept = Concept{ID: canonicalUUID, APIURL: canonicalUUID, Types: []string{}}
-var testSecondConcept = Concept{ID: secondCanonicalUUID, APIURL: secondCanonicalUUID, Types: []string{}}
-var testThirdConcept = Concept{ID: thirdCanonicalUUID, APIURL: thirdCanonicalUUID, Types: []string{}}
+var testConcept = Thing{ID: canonicalUUID, APIURL: canonicalUUID, Types: []string{}}
+var testSecondConcept = Thing{ID: secondCanonicalUUID, APIURL: secondCanonicalUUID, Types: []string{}}
+var testThirdConcept = Thing{ID: thirdCanonicalUUID, APIURL: thirdCanonicalUUID, Types: []string{}}
 var testRelationships = []string{"testBroader", "testNarrower"}
 
 func TestGetHandlerSuccess(t *testing.T) {
@@ -38,7 +38,7 @@ func TestGetHandlerSuccess(t *testing.T) {
 
 	req := newThingHTTPRequest(t, canonicalUUID, nil)
 
-	handler := RequestHandler{ThingsDriver: d,}
+	handler := RequestHandler{ThingsDriver: d}
 	rec := httptest.NewRecorder()
 	r := mux.NewRouter()
 	r.HandleFunc("/things/{uuid}", handler.GetThing).Methods("GET")
@@ -61,7 +61,7 @@ func TestGetThingsHandlerSuccess(t *testing.T) {
 
 	req := newThingsHTTPRequest(t, []string {canonicalUUID, secondCanonicalUUID, thirdCanonicalUUID}, nil)
 
-	handler := RequestHandler{ThingsDriver: d,}
+	handler := RequestHandler{ThingsDriver: d}
 	rec := httptest.NewRecorder()
 	r := mux.NewRouter()
 	r.HandleFunc("/things",handler.GetThings).Methods("GET")
@@ -79,7 +79,7 @@ func TestGetHandlerSuccessWithRelationships(t *testing.T) {
 
 	req := newThingHTTPRequest(t, canonicalUUID, testRelationships)
 
-	handler := RequestHandler{ThingsDriver: d,}
+	handler := RequestHandler{ThingsDriver: d}
 	rec := httptest.NewRecorder()
 	r := mux.NewRouter()
 	r.HandleFunc("/things/{uuid}", handler.GetThing).Methods("GET")
@@ -93,11 +93,11 @@ func TestGetHandlerNotFound(t *testing.T) {
 	expectedBody := message("No thing found with uuid " + canonicalUUID + ".")
 
 	d := new(mockedDriver)
-	d.On("read", canonicalUUID, []string(nil)).Return(Concept{}, false, nil)
+	d.On("read", canonicalUUID, []string(nil)).Return(Thing{}, false, nil)
 
 	req := newThingHTTPRequest(t, canonicalUUID, nil)
 
-	handler := RequestHandler{ThingsDriver: d,}
+	handler := RequestHandler{ThingsDriver: d}
 	rec := httptest.NewRecorder()
 	r := mux.NewRouter()
 	r.HandleFunc("/things/{uuid}", handler.GetThing).Methods("GET")
@@ -111,7 +111,7 @@ func TestGetThingsHandlerNotFound(t *testing.T) {
 	expectedBody := `{"things":{}}`
 
 	d := new(mockedDriver)
-	d.On("read", canonicalUUID, []string(nil)).Return(Concept{}, false, nil)
+	d.On("read", canonicalUUID, []string(nil)).Return(Thing{}, false, nil)
 	d.On("read", secondCanonicalUUID, []string(nil)).Return(Concept{}, false, nil)
 	d.On("read", thirdCanonicalUUID, []string(nil)).Return(Concept{}, false, nil)
 

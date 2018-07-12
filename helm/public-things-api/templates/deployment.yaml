@@ -53,6 +53,8 @@ spec:
             value: "false"
           - name: CACHE_DURATION
             value: 24h
+          - name: CONCEPTS_API
+            value: "http://public-concepts-api:8080"
         ports: 
         - containerPort: 8080 
         livenessProbe: 

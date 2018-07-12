@@ -12,14 +12,30 @@ import (
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 	gouuid "github.com/satori/go.uuid"
+	"github.com/Financial-Times/transactionid-utils-go"
+	"github.com/Financial-Times/go-logger"
+	"io/ioutil"
+	"github.com/Financial-Times/neo-model-utils-go/mapper"
 )
 
 type RequestHandler struct {
 	ThingsDriver          Driver
 	CacheControllerHeader string
+	HttpClient httpClient
+	ConceptsURL string
 }
 
-const validUUID = "([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$"
+const (
+	validUUID = "([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$"
+	shortLabelURI = "http://www.ft.com/ontology/shortLabel"
+	emailAddressURI = "http://www.ft.com/ontology/emailAddress"
+	facebookPageURI = "http://www.ft.com/ontology/facebookPage"
+	twitterURI = "http://www.ft.com/ontology/twitterHandle"
+)
+
+type httpClient interface {
+	Do(req *http.Request) (resp *http.Response, err error)
+}
 
 // MethodNotAllowedHandler handles 405
 func (rh *RequestHandler) MethodNotAllowedHandler(w http.ResponseWriter, r *http.Request) {
@@ -32,6 +48,7 @@ func (rh *RequestHandler) MethodNotAllowedHandler(w http.ResponseWriter, r *http
 func (rh *RequestHandler) GetThing(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	uuid := vars["uuid"]
+	transID := transactionidutils.GetTransactionIDFromRequest(r)
 
 	relationships := r.URL.Query()["showRelationship"]
 
@@ -46,7 +63,8 @@ func (rh *RequestHandler) GetThing(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	thng, found, err := rh.ThingsDriver.read(uuid, relationships)
+	//thng, found, err := rh.ThingsDriver.read(uuid, relationships)
+	thng, found, err := rh.getThingViaConceptsApi(uuid, relationships, transID)
 	if err != nil {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		msg := fmt.Sprintf(`{"message":"Error getting thing with uuid %s, err=%s"}`, uuid, err.Error())
@@ -102,8 +120,8 @@ func (rh *RequestHandler) GetThing(w http.ResponseWriter, r *http.Request) {
 // 	found things. Since we are handling the resolution of non canonical uuids, returned thing payloads may not have the same
 // 	requested/associated uuid.
 func (rh *RequestHandler) GetThings(w http.ResponseWriter, r *http.Request) {
-
 	queryParams := r.URL.Query()
+	//transID := transactionidutils.GetTransactionIDFromRequest(r)
 	relationships := queryParams["showRelationship"]
 	uuids := queryParams["uuid"]
 
@@ -242,4 +260,102 @@ func validateUUID(uuids ...string) error {
 		}
 	}
 	return nil
+}
+
+func (rh *RequestHandler) getThingViaConceptsApi(UUID string, relationships []string, transID string) (Concept, bool, error) {
+	mappedConcept := Concept{}
+	reqURL := rh.ConceptsURL + "/concepts/" + UUID
+	request, err := http.NewRequest("GET", reqURL, nil)
+	if err != nil {
+		msg := fmt.Sprintf("failed to create request to %s", reqURL)
+		logger.WithError(err).WithUUID(UUID).WithTransactionID(transID).Error(msg)
+		return mappedConcept, false, err
+	}
+
+	request.Header.Set("X-Request-Id", transID)
+	resp, err := rh.HttpClient.Do(request)
+	if err != nil {
+		msg := fmt.Sprintf("request to %s returned status: %d", reqURL, resp.StatusCode)
+		logger.WithError(err).WithUUID(UUID).WithTransactionID(transID).Error(msg)
+		return mappedConcept, false, err
+	}
+	if resp.StatusCode == http.StatusNotFound {
+		return mappedConcept, false, nil
+	}
+
+	conceptsApiResponse := ConceptApiResponse{}
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		msg := fmt.Sprintf("failed to read response body: %v", resp.Body)
+		logger.WithError(err).WithUUID(UUID).WithTransactionID(transID).Error(msg)
+		return mappedConcept, false, err
+	}
+	if err = json.Unmarshal(body, &conceptsApiResponse); err != nil {
+		msg := fmt.Sprintf("failed to unmarshal response body: %v", body)
+		logger.WithError(err).WithUUID(UUID).WithTransactionID(transID).Error(msg)
+		return mappedConcept, false, err
+	}
+	var altLabels []string
+
+	mappedConcept.ID = conceptsApiResponse.ID
+	mappedConcept.APIURL = conceptsApiResponse.ApiURL
+	mappedConcept.PrefLabel = conceptsApiResponse.PrefLabel
+	mappedConcept.Types = mapper.FullTypeHierarchy(conceptsApiResponse.Type)
+
+	for _, keypair := range conceptsApiResponse.AlternativeLabels {
+		altLabels = append(altLabels, keypair.Value)
+		if keypair.Type == shortLabelURI {
+			mappedConcept.ShortLabel = keypair.Value
+		}
+	}
+	mappedConcept.Aliases = altLabels
+	mappedConcept.DescriptionXML = conceptsApiResponse.DescriptionXML
+	mappedConcept.ImageURL = conceptsApiResponse.ImageURL
+	for _, social := range conceptsApiResponse.Account {
+		mapTypedValues(&mappedConcept, social)
+	}
+	mappedConcept.ScopeNote = conceptsApiResponse.ScopeNote
+
+	for _, relationship := range relationships {
+		switch relationship {
+		case "broader":
+			mappedConcept.BroaderConcepts = convertRelationship(conceptsApiResponse.Broader)
+		case "narrower":
+			mappedConcept.NarrowerConcepts = convertRelationship(conceptsApiResponse.Narrower)
+		case "related":
+			mappedConcept.RelatedConcepts = convertRelationship(conceptsApiResponse.Related)
+		default:
+			logger.WithTransactionID(transID).WithUUID(UUID).Errorf("Show relationship type %s not currently supported")
+		}
+	}
+	return mappedConcept, true, nil
+}
+
+func convertRelationship(relationships []Relationship) []Thing {
+	var convertedRelationships []Thing
+	for _, rc := range relationships {
+		convertedRelationships = append(convertedRelationships, Thing{
+			ID:         rc.Concept.ID,
+			APIURL:     rc.Concept.ApiURL,
+			Types:      mapper.FullTypeHierarchy(rc.Concept.Type),
+			DirectType: rc.Concept.Type,
+			PrefLabel:  rc.Concept.PrefLabel,
+			Predicate:  rc.Predicate,
+		})
+	}
+	return convertedRelationships
+}
+
+func mapTypedValues(concept *Concept, keypair TypedValue) {
+	switch keypair.Type {
+	case emailAddressURI:
+		concept.EmailAddress = keypair.Value
+	case facebookPageURI:
+		concept.FacebookPage = keypair.Value
+	case twitterURI:
+		concept.TwitterHandle = keypair.Value
+	//TODO BroaderTransitive?
+	default:
+		logger.Errorf("Type %s not currently supported", keypair.Type)
+	}
 }

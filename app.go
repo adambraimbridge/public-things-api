@@ -18,7 +18,18 @@ import (
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/rcrowley/go-metrics"
 	log "github.com/sirupsen/logrus"
+	"net"
 )
+
+var httpClient = http.Client{
+	Transport: &http.Transport{
+		MaxIdleConnsPerHost: 128,
+		Dial: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).Dial,
+	},
+}
 
 func main() {
 	app := cli.App("public-things-api-neo4j", "A public RESTful API for accessing Things in neo4j")
@@ -68,12 +79,18 @@ func main() {
 		Desc:   "Log level of the app",
 		EnvVar: "LOG_LEVEL",
 	})
+	conceptsApiUrl := app.String(cli.StringOpt{
+		Name:   "conceptsApiUrl",
+		Value:  "http://localhost:8080",
+		Desc:   "Url of public concepts api",
+		EnvVar: "CONCEPTS_API",
+	})
 	app.Action = func() {
 		baseftrwapp.OutputMetricsIfRequired(*graphiteTCPAddress, *graphitePrefix, *logMetrics)
 		log.Infof("public-things-api will listen on port: %s, connecting to: %s", *port, *neoURL)
 		driver := driverForNeo4j(*neoURL, *env)
 		healthService := &things.HealthService{ThingsDriver:driver}
-		runServer(*port, *cacheDuration, healthService, driver)
+		runServer(*port, *cacheDuration, healthService, driver, *conceptsApiUrl)
 	}
 
 	log.SetFormatter(&log.JSONFormatter{})
@@ -93,7 +110,7 @@ func main() {
 	app.Run(os.Args)
 }
 
-func runServer(port string, cacheDuration string, healthService *things.HealthService, driver things.Driver) {
+func runServer(port string, cacheDuration string, healthService *things.HealthService, driver things.Driver, conceptsApiUrl string) {
 	var cacheControlHeader string
 
 	if duration, durationErr := time.ParseDuration(cacheDuration); durationErr != nil {
@@ -111,7 +128,7 @@ func runServer(port string, cacheDuration string, healthService *things.HealthSe
 	http.HandleFunc(status.BuildInfoPath, status.BuildInfoHandler)
 	http.HandleFunc(status.BuildInfoPathDW, status.BuildInfoHandler)
 
-	http.Handle("/", router(healthService, driver, cacheControlHeader))
+	http.Handle("/", router(healthService, driver, cacheControlHeader, conceptsApiUrl))
 
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		log.Fatalf("Unable to start server: %v", err)
@@ -138,14 +155,19 @@ func driverForNeo4j(neoURL string, env string) things.Driver {
 	return driver
 }
 
-func router(healthService *things.HealthService, driver things.Driver, cacheControlHeader string) http.Handler {
+func router(healthService *things.HealthService, driver things.Driver, cacheControlHeader string, conceptsApiUrl string) http.Handler {
 	servicesRouter := mux.NewRouter()
 
 	servicesRouter.Path(status.GTGPath).Handler(handlers.MethodHandler{"GET": http.HandlerFunc(status.NewGoodToGoHandler(healthService.GTG))})
 	servicesRouter.Path("/__health").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(healthService.Health())})
 
 	// Then API specific ones:
-	thingsHandler := &things.RequestHandler{ThingsDriver:driver, CacheControllerHeader:cacheControlHeader}
+	thingsHandler := &things.RequestHandler{
+		ThingsDriver:driver,
+		CacheControllerHeader:cacheControlHeader,
+		HttpClient: httpClient,
+		ConceptsURL: conceptsApiUrl,
+	}
 	servicesRouter.HandleFunc("/things/{uuid}", thingsHandler.GetThing).Methods("GET")
 	servicesRouter.HandleFunc("/things", thingsHandler.GetThings).Methods("GET")
 	servicesRouter.HandleFunc("/things/{uuid}", thingsHandler.MethodNotAllowedHandler)
