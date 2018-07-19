@@ -89,7 +89,7 @@ func main() {
 		baseftrwapp.OutputMetricsIfRequired(*graphiteTCPAddress, *graphitePrefix, *logMetrics)
 		log.Infof("public-things-api will listen on port: %s, connecting to: %s", *port, *neoURL)
 		driver := driverForNeo4j(*neoURL, *env)
-		healthService := &things.HealthService{ThingsDriver:driver}
+		healthService := &things.HealthService{ThingsDriver: driver}
 		runServer(*port, *cacheDuration, healthService, driver, *conceptsApiUrl)
 	}
 
@@ -163,10 +163,10 @@ func router(healthService *things.HealthService, driver things.Driver, cacheCont
 
 	// Then API specific ones:
 	thingsHandler := &things.RequestHandler{
-		ThingsDriver:driver,
-		CacheControllerHeader:cacheControlHeader,
-		HttpClient: httpClient,
-		ConceptsURL: conceptsApiUrl,
+		ThingsDriver:          driver,
+		CacheControllerHeader: cacheControlHeader,
+		HttpClient:            &httpClient,
+		ConceptsURL:           conceptsApiUrl,
 	}
 	servicesRouter.HandleFunc("/things/{uuid}", thingsHandler.GetThing).Methods("GET")
 	servicesRouter.HandleFunc("/things", thingsHandler.GetThings).Methods("GET")

@@ -2,35 +2,35 @@ package things
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"regexp"
 	"strings"
 	"sync"
-	"errors"
 
-	"github.com/gorilla/mux"
-	log "github.com/sirupsen/logrus"
-	gouuid "github.com/satori/go.uuid"
-	"github.com/Financial-Times/transactionid-utils-go"
 	"github.com/Financial-Times/go-logger"
-	"io/ioutil"
 	"github.com/Financial-Times/neo-model-utils-go/mapper"
+	"github.com/Financial-Times/transactionid-utils-go"
+	"github.com/gorilla/mux"
+	gouuid "github.com/satori/go.uuid"
+	log "github.com/sirupsen/logrus"
+	"io/ioutil"
 )
 
 type RequestHandler struct {
 	ThingsDriver          Driver
 	CacheControllerHeader string
-	HttpClient httpClient
-	ConceptsURL string
+	HttpClient            httpClient
+	ConceptsURL           string
 }
 
 const (
-	validUUID = "([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$"
-	shortLabelURI = "http://www.ft.com/ontology/shortLabel"
+	validUUID       = "([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$"
+	shortLabelURI   = "http://www.ft.com/ontology/shortLabel"
 	emailAddressURI = "http://www.ft.com/ontology/emailAddress"
 	facebookPageURI = "http://www.ft.com/ontology/facebookPage"
-	twitterURI = "http://www.ft.com/ontology/twitterHandle"
+	twitterURI      = "http://www.ft.com/ontology/twitterHandle"
 )
 
 type httpClient interface {
