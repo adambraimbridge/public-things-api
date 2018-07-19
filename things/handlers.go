@@ -19,11 +19,11 @@ import (
 )
 
 type RequestHandler struct {
-	ThingsDriver          Driver
-	CacheControllerHeader string
-	HttpClient            httpClient
-	ConceptsURL           string
+	HttpClient  httpClient
+	ConceptsURL string
 }
+
+var CacheControlHeader string
 
 const (
 	validUUID       = "([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$"
@@ -36,6 +36,19 @@ const (
 
 type httpClient interface {
 	Do(req *http.Request) (resp *http.Response, err error)
+}
+
+func NewHandler(client httpClient, conceptsURL string) RequestHandler {
+	return RequestHandler{
+		HttpClient:  client,
+		ConceptsURL: conceptsURL,
+	}
+}
+
+func (h *RequestHandler) RegisterHandlers(router *mux.Router) {
+	router.HandleFunc("/things/{uuid}", h.GetThing).Methods("GET")
+	router.HandleFunc("/things", h.GetThings).Methods("GET")
+	router.HandleFunc("/things/{uuid}", h.MethodNotAllowedHandler)
 }
 
 // MethodNotAllowedHandler handles 405
@@ -88,7 +101,7 @@ func (rh *RequestHandler) GetThing(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Cache-Control", rh.CacheControllerHeader)
+	w.Header().Set("Cache-Control", CacheControlHeader)
 	w.WriteHeader(http.StatusOK)
 
 	if err = json.NewEncoder(w).Encode(thing); err != nil {
@@ -164,7 +177,7 @@ func (rh *RequestHandler) GetThings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Cache-Control", rh.CacheControllerHeader)
+	w.Header().Set("Cache-Control", CacheControlHeader)
 	w.WriteHeader(http.StatusOK)
 
 	result := make(map[string]map[string]Concept)
@@ -300,6 +313,7 @@ func (rh *RequestHandler) getThingViaConceptsApi(UUID string, relationships []st
 	mappedConcept.ID = conceptsApiResponse.ID
 	mappedConcept.APIURL = conceptsApiResponse.ApiURL
 	mappedConcept.PrefLabel = conceptsApiResponse.PrefLabel
+	mappedConcept.DirectType = conceptsApiResponse.Type
 	mappedConcept.Types = mapper.FullTypeHierarchy(conceptsApiResponse.Type)
 
 	for _, keypair := range conceptsApiResponse.AlternativeLabels {

@@ -162,15 +162,8 @@ func router(healthService *things.HealthService, driver things.Driver, cacheCont
 	servicesRouter.Path("/__health").Handler(handlers.MethodHandler{"GET": http.HandlerFunc(healthService.Health())})
 
 	// Then API specific ones:
-	thingsHandler := &things.RequestHandler{
-		ThingsDriver:          driver,
-		CacheControllerHeader: cacheControlHeader,
-		HttpClient:            &httpClient,
-		ConceptsURL:           conceptsApiUrl,
-	}
-	servicesRouter.HandleFunc("/things/{uuid}", thingsHandler.GetThing).Methods("GET")
-	servicesRouter.HandleFunc("/things", thingsHandler.GetThings).Methods("GET")
-	servicesRouter.HandleFunc("/things/{uuid}", thingsHandler.MethodNotAllowedHandler)
+	handler := things.NewHandler(&httpClient, conceptsApiUrl)
+	handler.RegisterHandlers(servicesRouter)
 
 	var monitoringRouter http.Handler = servicesRouter
 	monitoringRouter = httpHandlers.TransactionAwareRequestLoggingHandler(log.StandardLogger(), monitoringRouter)
