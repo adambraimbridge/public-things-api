@@ -28,6 +28,7 @@ type RequestHandler struct {
 const (
 	validUUID       = "([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$"
 	shortLabelURI   = "http://www.ft.com/ontology/shortLabel"
+	aliasLabelURI   = "http://www.ft.com/ontology/Alias"
 	emailAddressURI = "http://www.ft.com/ontology/emailAddress"
 	facebookPageURI = "http://www.ft.com/ontology/facebookPage"
 	twitterURI      = "http://www.ft.com/ontology/twitterHandle"
@@ -63,8 +64,7 @@ func (rh *RequestHandler) GetThing(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//thng, found, err := rh.ThingsDriver.read(uuid, relationships)
-	thng, found, err := rh.getThingViaConceptsApi(uuid, relationships, transID)
+	thing, found, err := rh.getThingViaConceptsApi(uuid, relationships, transID)
 	if err != nil {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		msg := fmt.Sprintf(`{"message":"Error getting thing with uuid %s, err=%s"}`, uuid, err.Error())
@@ -79,9 +79,9 @@ func (rh *RequestHandler) GetThing(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//if the request was not made for the canonical, but an alternate uuid: redirect
-	if !strings.Contains(thng.ID, uuid) {
+	if !strings.Contains(thing.ID, uuid) {
 		validRegexp := regexp.MustCompile(validUUID)
-		canonicalUUID := validRegexp.FindString(thng.ID)
+		canonicalUUID := validRegexp.FindString(thing.ID)
 		redirectURL := strings.Replace(r.URL.String(), uuid, canonicalUUID, 1)
 		w.Header().Set("Location", redirectURL)
 		w.WriteHeader(http.StatusMovedPermanently)
@@ -91,7 +91,7 @@ func (rh *RequestHandler) GetThing(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", rh.CacheControllerHeader)
 	w.WriteHeader(http.StatusOK)
 
-	if err = json.NewEncoder(w).Encode(thng); err != nil {
+	if err = json.NewEncoder(w).Encode(thing); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		msg := fmt.Sprintf(`{"message":"Error parsing thing with uuid %s, err=%s"}`, uuid, err.Error())
 		w.Write([]byte(msg))
@@ -121,7 +121,7 @@ func (rh *RequestHandler) GetThing(w http.ResponseWriter, r *http.Request) {
 // 	requested/associated uuid.
 func (rh *RequestHandler) GetThings(w http.ResponseWriter, r *http.Request) {
 	queryParams := r.URL.Query()
-	//transID := transactionidutils.GetTransactionIDFromRequest(r)
+	transID := transactionidutils.GetTransactionIDFromRequest(r)
 	relationships := queryParams["showRelationship"]
 	uuids := queryParams["uuid"]
 
@@ -148,7 +148,7 @@ func (rh *RequestHandler) GetThings(w http.ResponseWriter, r *http.Request) {
 
 	// start getting things
 	for _, uuid := range uuids {
-		go rh.getChanneledThing(uuid, relationships, uctCh, errCh, &wg)
+		go rh.getChanneledThing(uuid, relationships, transID, uctCh, errCh, &wg)
 	}
 
 	// start watching the sync bucket and close the channel
@@ -177,11 +177,11 @@ func (rh *RequestHandler) GetThings(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (rh *RequestHandler) getChanneledThing(uuid string, relationships []string, uctCh chan *uuidConceptTuple,
+func (rh *RequestHandler) getChanneledThing(uuid string, relationships []string, transID string, uctCh chan *uuidConceptTuple,
 	errCh chan *uuidErrorTuple, wg *sync.WaitGroup) {
 
 	defer wg.Done()
-	thing, found, err := rh.ThingsDriver.read(uuid, relationships)
+	thing, found, err := rh.getThingViaConceptsApi(uuid, relationships, transID)
 
 	if err != nil {
 		errCh <- &uuidErrorTuple{uuid, err}
@@ -196,7 +196,7 @@ func (rh *RequestHandler) getChanneledThing(uuid string, relationships []string,
 		validRegexp := regexp.MustCompile(validUUID)
 
 		canonicalUUID := validRegexp.FindString(thing.ID)
-		thing, found, err = rh.ThingsDriver.read(canonicalUUID, relationships)
+		thing, found, err = rh.getThingViaConceptsApi(canonicalUUID, relationships, transID)
 
 		if err != nil {
 			errCh <- &uuidErrorTuple{uuid, err}
@@ -303,8 +303,10 @@ func (rh *RequestHandler) getThingViaConceptsApi(UUID string, relationships []st
 	mappedConcept.Types = mapper.FullTypeHierarchy(conceptsApiResponse.Type)
 
 	for _, keypair := range conceptsApiResponse.AlternativeLabels {
-		altLabels = append(altLabels, keypair.Value)
-		if keypair.Type == shortLabelURI {
+		switch {
+		case keypair.Type == aliasLabelURI:
+			altLabels = append(altLabels, keypair.Value)
+		case keypair.Type == shortLabelURI:
 			mappedConcept.ShortLabel = keypair.Value
 		}
 	}
