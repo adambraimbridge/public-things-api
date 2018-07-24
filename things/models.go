@@ -32,25 +32,25 @@ type Thing struct {
 
 type ConceptApiResponse struct {
 	BasicConcept
-	DescriptionXML   string     `json:"descriptionXML,omitempty"`
-	ImageURL         string     `json:"imageUrl,omitempty"`
-	Account          []TypedValue `json:"account,omitempty"`
-	AlternativeLabels []TypedValue `json:"alternativeLabels,omitempty"`
-	ScopeNote        string     `json:"scopeNote,omitempty"`
-	ShortLabel       string     `json:"shortLabel,omitempty"`
-	Broader     []Relationship  `json:"broaderConcepts,omitempty"`
-	Narrower    []Relationship  `json:"narrowerConcepts,omitempty"`
-	Related     []Relationship  `json:"narrowerConcepts,omitempty"`
+	DescriptionXML    string         `json:"descriptionXML,omitempty"`
+	ImageURL          string         `json:"imageUrl,omitempty"`
+	Account           []TypedValue   `json:"account,omitempty"`
+	AlternativeLabels []TypedValue   `json:"alternativeLabels,omitempty"`
+	ScopeNote         string         `json:"scopeNote,omitempty"`
+	ShortLabel        string         `json:"shortLabel,omitempty"`
+	Broader           []Relationship `json:"broaderConcepts,omitempty"`
+	Narrower          []Relationship `json:"narrowerConcepts,omitempty"`
+	Related           []Relationship `json:"relatedConcepts,omitempty"`
 }
 
 type TypedValue struct {
-	Type  string      `json:"type"`
+	Type  string `json:"type"`
 	Value string `json:"value"`
 }
 
 type Relationship struct {
-	Concept   BasicConcept  `json:concept,omitempty`
-	Predicate string   		`json:predicate,omitempty`
+	Concept   BasicConcept `json:concept,omitempty`
+	Predicate string       `json:predicate,omitempty`
 }
 
 type BasicConcept struct {
