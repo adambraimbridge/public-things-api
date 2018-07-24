@@ -69,7 +69,15 @@ func TestHandlers(t *testing.T) {
 		transformedCompleteThing,
 	}
 
-	// getThingSuccessWithRelationShip := testCase{}
+	getThingSuccessWithRelationShip := testCase{
+		"GetThing - Basic successful request with relationship parameter",
+		"/things/6773e864-78ab-4051-abc2-f4e9ab423ebb?showRelationship=related",
+		200,
+		getConmpleteThingWithRelationAsConcept,
+		nil,
+		200,
+		transformedCompleteThingWithRelation,
+	}
 
 	getThingNotFound := testCase{
 		"GetThing - request is not found",
@@ -93,7 +101,7 @@ func TestHandlers(t *testing.T) {
 
 	getThingRedirectWithRelationships := testCase{
 		"GetThing - redirect with relationships parameter",
-		"/things/6773e864-78ab-4051-abc2-f4e9ab423ebc?showRelationship=testBroader&showRelationship=testNarrower",
+		"/things/6773e864-78ab-4051-abc2-f4e9ab423ebc?showRelationship=narrower",
 		200,
 		getConmpleteThingAsConcept,
 		nil,
@@ -121,26 +129,25 @@ func TestHandlers(t *testing.T) {
 		`{"things":{}}`,
 	}
 
-	// getThingsRedirect := testCase{}
-
-	// getThingsPartialSuccess := testCase{
-	// 	"GetThings - request with one existing uuid and non eixsting uuid",
-	// 	"/things?uuid=6773e864-78ab-4051-abc2-f4e9ab423ebc&uuid=6773e864-78ab-4051-abc2-f4e9ab423ebb",
-	// 	200,
-	// 	"",
-	// 	nil,
-	// 	200,
-	// 	`{"things":{"f5b441a4-07db-357f-a2b4-aadc4c5d5fae":{}}}`,
-	// }
+	getThingsWithAlternativeUUID := testCase{
+		"GetThings - request with alternative uuid, which returns canonical uuid",
+		"/things?uuid=6773e864-78ab-4051-abc2-f4e9ab423ebc",
+		200,
+		getConmpleteThingAsConcept,
+		nil,
+		200,
+		`{"things":{"6773e864-78ab-4051-abc2-f4e9ab423ebc":` + transformedCompleteThing + `}}`,
+	}
 
 	testCases := []testCase{
 		getThingSuccess,
+		getThingSuccessWithRelationShip,
 		getThingNotFound,
 		getThingRedirect,
 		getThingRedirectWithRelationships,
 		getThingsWithoutParams,
 		getThingsNotFound,
-		// getThingsPartialSuccess,
+		getThingsWithAlternativeUUID,
 	}
 	for _, test := range testCases {
 		mockClient.resp = test.clientBody
@@ -260,27 +267,7 @@ var getConmpleteThingAsConcept = `{
 			"value": "Brussels Blog"
 		}
 	],
-	"strapline": "Archived",
-	"broaderConcepts": [
-		{
-			"concept": {
-				"id": "http://api.ft.com/things/dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54",
-				"apiUrl": "http://api.ft.com/concepts/dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54",
-				"type": "http://www.ft.com/ontology/product/Brand",
-				"prefLabel": "Financial Times",
-				"descriptionXML": "The Financial Times",
-				"imageURL": "http://aboutus.ft.com/files/2010/11/ft-logo.gif",
-				"alternativeLabels": [
-					{
-						"type": "http://www.ft.com/ontology/Alias",
-						"value": "Financial Times"
-					}
-				],
-				"strapline": "Make the right connections"
-			},
-			"predicate": "http://www.ft.com/ontology/subBrand"
-		}
-	]
+	"strapline": "Archived"
 }`
 
 var transformedCompleteThing = `{
@@ -300,6 +287,58 @@ var transformedCompleteThing = `{
 	"descriptionXML":"This blog covers everything",
 	"_imageUrl":"http://im.ft-static.com/content/images/2f1be452-02f3-11e6-99cb-83242733f755.png",
 	"twitterHandle":"@ftbrussels"
+}`
+
+var getConmpleteThingWithRelationAsConcept = `{
+	"id": "http://api.ft.com/things/6773e864-78ab-4051-abc2-f4e9ab423ebb",
+	"apiUrl": "http://api.ft.com/concepts/6773e864-78ab-4051-abc2-f4e9ab423ebb",
+	"type": "http://www.ft.com/ontology/product/Brand",
+	"prefLabel": "Brussels blog",
+	"descriptionXML": "This blog covers everything",
+	"imageURL": "http://im.ft-static.com/content/images/2f1be452-02f3-11e6-99cb-83242733f755.png",
+	"account": [],
+	"alternativeLabels": [],
+	"relatedConcepts": [
+		{
+			"concept": {
+				"id": "http://api.ft.com/things/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
+				"apiUrl": "http://api.ft.com/concepts/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
+				"type": "http://www.ft.com/ontology/Topic",
+				"prefLabel": "Neglected tropical diseases",
+				"alternativeLabels": []
+			},
+			"predicate": "http://www.ft.com/ontology/related"
+		}
+	]
+}`
+
+var transformedCompleteThingWithRelation = `{
+	"id":"http://api.ft.com/things/6773e864-78ab-4051-abc2-f4e9ab423ebb",
+	"apiUrl":"http://api.ft.com/concepts/6773e864-78ab-4051-abc2-f4e9ab423ebb",
+	"prefLabel":"Brussels blog",
+	"types":[
+		"http://www.ft.com/ontology/core/Thing",
+		"http://www.ft.com/ontology/concept/Concept",
+		"http://www.ft.com/ontology/classification/Classification",
+		"http://www.ft.com/ontology/product/Brand"
+	],
+	"directType":"http://www.ft.com/ontology/product/Brand",
+	"descriptionXML":"This blog covers everything",
+	"_imageUrl":"http://im.ft-static.com/content/images/2f1be452-02f3-11e6-99cb-83242733f755.png",
+	"relatedConcepts":[
+		{
+			"id":"http://api.ft.com/things/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
+			"apiUrl":"http://api.ft.com/concepts/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
+			"prefLabel":"Neglected tropical diseases",
+			"types":[
+				"http://www.ft.com/ontology/core/Thing",
+				"http://www.ft.com/ontology/concept/Concept",
+				"http://www.ft.com/ontology/Topic"
+			],
+			"directType":"http://www.ft.com/ontology/Topic",
+			"predicate":"http://www.ft.com/ontology/related"
+		}
+	]
 }`
 
 func transformBody(testBody string) string {
