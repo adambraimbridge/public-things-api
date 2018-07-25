@@ -30,29 +30,63 @@ jobs:
             curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
             go get -u github.com/mattn/goveralls
             go get -u github.com/jstemmer/go-junit-report
+            go get -u github.com/tsenart/vegeta
       - run:
-          name: Test Results
+          name: Install jq
           command: |
-            mkdir -p ${CIRCLE_TEST_REPORTS}
-            mkdir -p ${CIRCLE_COVERAGE_REPORT}
+            wget https://github.com/stedolan/jq/releases/download/jq-1.5/jq-1.5.tar.gz
+            tar -xzf jq-1.5.tar.gz
+            cd jq-1.5
+            ./configure
+            make
+            make install
       - run:
-          name: Importing libraries
-          command: dep ensure -v -vendor-only
-      - run: |
-            wget --retry-connrefused --no-check-certificate -T 60 $NEO4J_TEST_URL; curl $NEO4J_TEST_URL
-      - run:
-          name: Go Build
-          command: go build -v
-      - run:
-          name: Run Tests
+          name: Install vegeta
           command: |
-            go test -race -v ./... | /go/bin/go-junit-report > ${CIRCLE_TEST_REPORTS}/main.xml
-            go test -race -cover -coverprofile=$CIRCLE_COVERAGE_REPORT/coverage.out ./...
+            cd /go/src/github.com/tsenart/vegeta
+            go install
+            cd /go/bin
       - run:
-          name: Upload Coverage
-          command: /go/bin/goveralls -coverprofile=${CIRCLE_COVERAGE_REPORT}/coverage.out -service=circle-ci -repotoken=$COVERALLS_TOKEN
-      - store_test_results:
-          path: /tmp/test-results
+          name: Run load test
+          command: vegeta attack -workers 2 -duration=3s -targets=./things.req > results.bin
+      - run:
+          name: Get hist
+          command: cat results.bin | vegeta report -reporter='hist[0,50ms,100ms,250ms,500ms,1s,2s,5s]'
+      - run:
+          name: View results
+          command: vegeta report -inputs=results.bin -reporter=json | jq .
+      - run:
+          name: View send to Slack
+          command: |
+            RESULT=`vegeta report -inputs=results.bin -reporter=text`
+            curl "https://hooks.slack.com/services/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" \
+              -X "POST" \
+              -H "content-type: application/json" \
+              -d "{\"text\":\"\`\`\`${RESULT}\`\`\`\"}"
+
+      # - run:
+      #     name: Test Results
+      #     command: |
+      #       mkdir -p ${CIRCLE_TEST_REPORTS}
+      #       mkdir -p ${CIRCLE_COVERAGE_REPORT}
+      # - run:
+      #     name: Importing libraries
+      #     command: dep ensure -v -vendor-only
+      # - run: |
+      #       wget --retry-connrefused --no-check-certificate -T 60 $NEO4J_TEST_URL; curl $NEO4J_TEST_URL
+      # - run:
+      #     name: Go Build
+      #     command: go build -v
+      # - run:
+      #     name: Run Tests
+      #     command: |
+      #       go test -race -v ./... | /go/bin/go-junit-report > ${CIRCLE_TEST_REPORTS}/main.xml
+      #       go test -race -cover -coverprofile=$CIRCLE_COVERAGE_REPORT/coverage.out ./...
+      # - run:
+      #     name: Upload Coverage
+      #     command: /go/bin/goveralls -coverprofile=${CIRCLE_COVERAGE_REPORT}/coverage.out -service=circle-ci -repotoken=$COVERALLS_TOKEN
+      # - store_test_results:
+      #     path: /tmp/test-results
   dockerfile:
     docker:
       - image: docker:stable-git
