@@ -326,7 +326,7 @@ func (rh *RequestHandler) getThingViaConceptsApi(UUID string, relationships []st
 	var altLabels []string
 
 	mappedConcept.ID = conceptsApiResponse.ID
-	mappedConcept.APIURL = conceptsApiResponse.ApiURL
+	mappedConcept.APIURL = strings.Replace(conceptsApiResponse.ApiURL, "concepts", "things", 1)
 	mappedConcept.PrefLabel = conceptsApiResponse.PrefLabel
 	mappedConcept.DirectType = conceptsApiResponse.Type
 	mappedConcept.Types = mapper.FullTypeHierarchy(conceptsApiResponse.Type)
@@ -365,7 +365,7 @@ func convertRelationship(relationships []Relationship) []Thing {
 	for _, rc := range relationships {
 		convertedRelationships = append(convertedRelationships, Thing{
 			ID:         rc.Concept.ID,
-			APIURL:     rc.Concept.ApiURL,
+			APIURL:     strings.Replace(rc.Concept.ApiURL, "concepts", "things", 1),
 			Types:      mapper.FullTypeHierarchy(rc.Concept.Type),
 			DirectType: rc.Concept.Type,
 			PrefLabel:  rc.Concept.PrefLabel,

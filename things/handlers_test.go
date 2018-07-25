@@ -357,7 +357,7 @@ var getConmpleteThingAsConcept = `{
 
 var transformedCompleteThing = `{
 	"id":"http://api.ft.com/things/6773e864-78ab-4051-abc2-f4e9ab423ebb",
-	"apiUrl":"http://api.ft.com/concepts/6773e864-78ab-4051-abc2-f4e9ab423ebb",
+	"apiUrl":"http://api.ft.com/things/6773e864-78ab-4051-abc2-f4e9ab423ebb",
 	"prefLabel":"Brussels blog",
 	"types":[
 		"http://www.ft.com/ontology/core/Thing",
@@ -425,7 +425,7 @@ var getConmpleteThingWithRelationAsConcept = `{
 
 var transformedCompleteThingWithRelation = `{
 	"id":"http://api.ft.com/things/6773e864-78ab-4051-abc2-f4e9ab423ebb",
-	"apiUrl":"http://api.ft.com/concepts/6773e864-78ab-4051-abc2-f4e9ab423ebb",
+	"apiUrl":"http://api.ft.com/things/6773e864-78ab-4051-abc2-f4e9ab423ebb",
 	"prefLabel":"Brussels blog",
 	"types":[
 		"http://www.ft.com/ontology/core/Thing",
@@ -439,7 +439,7 @@ var transformedCompleteThingWithRelation = `{
 	"narrowerConcepts":[
 		{
 			"id":"http://api.ft.com/things/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
-			"apiUrl":"http://api.ft.com/concepts/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
+			"apiUrl":"http://api.ft.com/things/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
 			"prefLabel":"Narrower",
 			"types":[
 				"http://www.ft.com/ontology/core/Thing",
@@ -453,7 +453,7 @@ var transformedCompleteThingWithRelation = `{
 	"broaderConcepts":[
 		{
 			"id":"http://api.ft.com/things/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
-			"apiUrl":"http://api.ft.com/concepts/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
+			"apiUrl":"http://api.ft.com/things/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
 			"prefLabel":"Broader",
 			"types":[
 				"http://www.ft.com/ontology/core/Thing",
@@ -467,7 +467,7 @@ var transformedCompleteThingWithRelation = `{
 	"relatedConcepts":[
 		{
 			"id":"http://api.ft.com/things/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
-			"apiUrl":"http://api.ft.com/concepts/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
+			"apiUrl":"http://api.ft.com/things/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
 			"prefLabel":"Neglected tropical diseases",
 			"types":[
 				"http://www.ft.com/ontology/core/Thing",
