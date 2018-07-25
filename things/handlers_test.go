@@ -109,6 +109,16 @@ func TestHandlers(t *testing.T) {
 		`{"message":"Error getting thing with uuid 6773e864-78ab-4051-abc2-f4e9ab423ebc, err=Internal Server Error"}`,
 	}
 
+	getThingWithConceptsAPIInvalidResponse := testCase{
+		"GetThing - Service Unavailable because of concepts api internal server error",
+		"/things/6773e864-78ab-4051-abc2-f4e9ab423ebc",
+		200,
+		`{"foo":bar}`,
+		nil,
+		503,
+		`{"message":"Error getting thing with uuid 6773e864-78ab-4051-abc2-f4e9ab423ebc, err=invalid character 'b' looking for beginning of value"}`,
+	}
+
 	getThingRedirect := testCase{
 		"GetThing - redirect",
 		"/things/6773e864-78ab-4051-abc2-f4e9ab423ebc",
@@ -175,6 +185,7 @@ func TestHandlers(t *testing.T) {
 		getThingNotFound,
 		getThingWithInvalidUUID,
 		getThingWithConceptsAPIError,
+		getThingWithConceptsAPIInvalidResponse,
 		getThingRedirect,
 		getThingRedirectWithRelationships,
 		getThingsWithoutParams,
@@ -203,6 +214,23 @@ func TestHandlers(t *testing.T) {
 		}
 		assert.Equal(t, test.expectedBody, rr.Body.String(), test.name+" failed: status body does not match!")
 	}
+}
+
+func TestMethodNotAllowed(t *testing.T) {
+	logger.InitLogger("test service", "debug")
+	mockClient := mockHTTPClient{
+		resp:       "",
+		statusCode: 200,
+		err:        nil,
+	}
+	router := mux.NewRouter()
+	handler := NewHandler(&mockClient, "localhost:8080")
+	handler.RegisterHandlers(router)
+	rr := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/things/6773e864-78ab-4051-abc2-f4e9ab423ebb", nil)
+
+	router.ServeHTTP(rr, req)
+	assert.Equal(t, 405, rr.Code, "TestMethodNotAllowed failed: status codes do not match!")
 }
 
 func TestHappyHealthCheck(t *testing.T) {
@@ -292,6 +320,14 @@ var getConmpleteThingAsConcept = `{
 		{
 			"type": "http://www.ft.com/ontology/twitterHandle",
 			"value": "@ftbrussels"
+		},
+		{
+			"type": "http://www.ft.com/ontology/facebookPage",
+			"value": "https://www.facebook.com/financialtimes/"
+		},
+		{
+			"type": "http://www.ft.com/ontology/emailAddress",
+			"value": "example@example.com"
 		}
 	],
 	"alternativeLabels": [
@@ -319,6 +355,8 @@ var transformedCompleteThing = `{
 	],
 	"descriptionXML":"This blog covers everything",
 	"_imageUrl":"http://im.ft-static.com/content/images/2f1be452-02f3-11e6-99cb-83242733f755.png",
+	"emailAddress":"example@example.com",
+	"facebookPage":"https://www.facebook.com/financialtimes/",
 	"twitterHandle":"@ftbrussels"
 }`
 
