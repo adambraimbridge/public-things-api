@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/Financial-Times/go-logger"
 	"github.com/stretchr/testify/mock"
 	"io/ioutil"
@@ -208,12 +207,29 @@ func TestHandlers(t *testing.T) {
 		// assert.Equal(t, "application/json; charset=UTF-8", rr.Header().Get("Content-Type"))
 		assert.Equal(t, test.expectedCode, rr.Code, test.name+" failed: status codes do not match!")
 		if rr.Code == http.StatusOK {
-			fmt.Print(rr.Body.String())
 			assert.Equal(t, transformBody(test.expectedBody), rr.Body.String(), test.name+" failed: status body does not match!")
 			continue
 		}
 		assert.Equal(t, test.expectedBody, rr.Body.String(), test.name+" failed: status body does not match!")
 	}
+}
+
+func TestInvalidConcpetsAPIURL(t *testing.T) {
+	logger.InitLogger("test service", "debug")
+	mockClient := mockHTTPClient{
+		resp:       "",
+		statusCode: 200,
+		err:        nil,
+	}
+	router := mux.NewRouter()
+	handler := NewHandler(&mockClient, "://foo.com")
+	handler.RegisterHandlers(router)
+	rr := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/things/6773e864-78ab-4051-abc2-f4e9ab423ebb", nil)
+
+	router.ServeHTTP(rr, req)
+	assert.Equal(t, 503, rr.Code, "TestInvalidConcpetsAPIURL failed: status codes do not match!")
+	assert.Equal(t, `{"message":"Error getting thing with uuid 6773e864-78ab-4051-abc2-f4e9ab423ebb, err=parse ://foo.com: missing protocol scheme"}`, rr.Body.String(), "TestInvalidConceptsAPIURL failed: status body does not match!")
 }
 
 func TestMethodNotAllowed(t *testing.T) {
@@ -379,7 +395,9 @@ var getConmpleteThingWithRelationAsConcept = `{
 				"alternativeLabels": []
 			},
 			"predicate": "http://www.ft.com/ontology/related"
-		},
+		}
+	],
+	"broaderConcepts": [
 		{
 			"concept": {
 				"id": "http://api.ft.com/things/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
@@ -389,6 +407,18 @@ var getConmpleteThingWithRelationAsConcept = `{
 				"alternativeLabels": []
 			},
 			"predicate": "http://www.ft.com/ontology/broader"
+		}
+	],
+	"narrowerConcepts": [
+		{
+			"concept": {
+				"id": "http://api.ft.com/things/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
+				"apiUrl": "http://api.ft.com/concepts/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
+				"type": "http://www.ft.com/ontology/Topic",
+				"prefLabel": "Narrower",
+				"alternativeLabels": []
+			},
+			"predicate": "http://www.ft.com/ontology/narrower"
 		}
 	]
 }`
@@ -406,6 +436,34 @@ var transformedCompleteThingWithRelation = `{
 	"directType":"http://www.ft.com/ontology/product/Brand",
 	"descriptionXML":"This blog covers everything",
 	"_imageUrl":"http://im.ft-static.com/content/images/2f1be452-02f3-11e6-99cb-83242733f755.png",
+	"narrowerConcepts":[
+		{
+			"id":"http://api.ft.com/things/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
+			"apiUrl":"http://api.ft.com/concepts/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
+			"prefLabel":"Narrower",
+			"types":[
+				"http://www.ft.com/ontology/core/Thing",
+				"http://www.ft.com/ontology/concept/Concept",
+				"http://www.ft.com/ontology/Topic"
+			],
+			"directType":"http://www.ft.com/ontology/Topic",
+			"predicate":"http://www.ft.com/ontology/narrower"
+		}
+	],
+	"broaderConcepts":[
+		{
+			"id":"http://api.ft.com/things/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
+			"apiUrl":"http://api.ft.com/concepts/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
+			"prefLabel":"Broader",
+			"types":[
+				"http://www.ft.com/ontology/core/Thing",
+				"http://www.ft.com/ontology/concept/Concept",
+				"http://www.ft.com/ontology/Topic"
+			],
+			"directType":"http://www.ft.com/ontology/Topic",
+			"predicate":"http://www.ft.com/ontology/broader"
+		}
+	],
 	"relatedConcepts":[
 		{
 			"id":"http://api.ft.com/things/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
@@ -418,18 +476,6 @@ var transformedCompleteThingWithRelation = `{
 			],
 			"directType":"http://www.ft.com/ontology/Topic",
 			"predicate":"http://www.ft.com/ontology/related"
-		},
-		{
-			"id":"http://api.ft.com/things/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
-			"apiUrl":"http://api.ft.com/concepts/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
-			"prefLabel":"Broader",
-			"types":[
-				"http://www.ft.com/ontology/core/Thing",
-				"http://www.ft.com/ontology/concept/Concept",
-				"http://www.ft.com/ontology/Topic"
-			],
-			"directType":"http://www.ft.com/ontology/Topic",
-			"predicate":"http://www.ft.com/ontology/broader"
 		}
 	]
 }`
