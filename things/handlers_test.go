@@ -379,6 +379,16 @@ var getConmpleteThingWithRelationAsConcept = `{
 				"alternativeLabels": []
 			},
 			"predicate": "http://www.ft.com/ontology/related"
+		},
+		{
+			"concept": {
+				"id": "http://api.ft.com/things/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
+				"apiUrl": "http://api.ft.com/concepts/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
+				"type": "http://www.ft.com/ontology/Topic",
+				"prefLabel": "Broader",
+				"alternativeLabels": []
+			},
+			"predicate": "http://www.ft.com/ontology/broader"
 		}
 	]
 }`
@@ -408,6 +418,18 @@ var transformedCompleteThingWithRelation = `{
 			],
 			"directType":"http://www.ft.com/ontology/Topic",
 			"predicate":"http://www.ft.com/ontology/related"
+		},
+		{
+			"id":"http://api.ft.com/things/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
+			"apiUrl":"http://api.ft.com/concepts/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
+			"prefLabel":"Broader",
+			"types":[
+				"http://www.ft.com/ontology/core/Thing",
+				"http://www.ft.com/ontology/concept/Concept",
+				"http://www.ft.com/ontology/Topic"
+			],
+			"directType":"http://www.ft.com/ontology/Topic",
+			"predicate":"http://www.ft.com/ontology/broader"
 		}
 	]
 }`

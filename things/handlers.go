@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 	"sync"
@@ -277,7 +278,21 @@ func validateUUID(uuids ...string) error {
 
 func (rh *RequestHandler) getThingViaConceptsApi(UUID string, relationships []string, transID string) (Concept, bool, error) {
 	mappedConcept := Concept{}
-	reqURL := rh.ConceptsURL + "/concepts/" + UUID
+
+	u, err := url.Parse(rh.ConceptsURL)
+	if err != nil {
+		msg := fmt.Sprint("URL of Concepts API is invalid")
+		logger.WithError(err).WithUUID(UUID).WithTransactionID(transID).Error(msg)
+		return mappedConcept, false, err
+	}
+	u.Path = "/concepts/" + UUID
+	q := u.Query()
+	for _, relationship := range relationships {
+		q.Add("showRelationship", relationship)
+	}
+	u.RawQuery = q.Encode()
+	reqURL := u.String()
+
 	request, err := http.NewRequest("GET", reqURL, nil)
 	if err != nil {
 		msg := fmt.Sprintf("failed to create request to %s", reqURL)
@@ -332,18 +347,16 @@ func (rh *RequestHandler) getThingViaConceptsApi(UUID string, relationships []st
 	}
 	mappedConcept.ScopeNote = conceptsApiResponse.ScopeNote
 
-	for _, relationship := range relationships {
-		switch relationship {
-		case "broader":
-			mappedConcept.BroaderConcepts = convertRelationship(conceptsApiResponse.Broader)
-		case "narrower":
-			mappedConcept.NarrowerConcepts = convertRelationship(conceptsApiResponse.Narrower)
-		case "related":
-			mappedConcept.RelatedConcepts = convertRelationship(conceptsApiResponse.Related)
-		default:
-			logger.WithTransactionID(transID).WithUUID(UUID).Errorf("Show relationship type %s not currently supported")
-		}
+	if len(conceptsApiResponse.Broader) > 0 {
+		mappedConcept.BroaderConcepts = convertRelationship(conceptsApiResponse.Broader)
 	}
+	if len(conceptsApiResponse.Narrower) > 0 {
+		mappedConcept.NarrowerConcepts = convertRelationship(conceptsApiResponse.Narrower)
+	}
+	if len(conceptsApiResponse.Related) > 0 {
+		mappedConcept.RelatedConcepts = convertRelationship(conceptsApiResponse.Related)
+	}
+
 	return mappedConcept, true, nil
 }
 
