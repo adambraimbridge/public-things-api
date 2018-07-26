@@ -68,10 +68,10 @@ jobs:
                 "attachments": [
                   {
                     "author_name": "$CIRCLE_PR_USERNAME",
-                    "title": "Load testing failed <$CIRCLE_BUILD_URL|#$CIRCLE_BUILD_NUM> by $CIRCLE_PR_USERNAME",
+                    "title": "Load testing failed <$CIRCLE_BUILD_URL|#$CIRCLE_BUILD_NUM> by $CIRCLE_USERNAME",
                     "color": "danger",
                     "text": "95th latency is over 500ms. \n \`\`\`$TEST_RESULT\`\`\`",
-                    "footer": "$CIRCLE_PR_REPONAME/$CIRCLE_BRANCH",
+                    "footer": "$CIRCLE_PROJECT_REPONAME/$CIRCLE_BRANCH",
                     "ts": $TIMESTAMP,
                     "mrkdwn_in": ["text"]
                   }
