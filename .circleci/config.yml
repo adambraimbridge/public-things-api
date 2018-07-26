@@ -82,7 +82,7 @@ jobs:
             # Latency values from report are nano second.
             # The threshold is over 500ms (95 percentile latency)
             LATENCY_MS=`vegeta report -inputs=results.bin -reporter=json | jq -e '.latencies."95th" / (1000 * 1000) | floor'`
-            if [ $LATENCY_MS -gt 500 ] ; then
+            if [ true ] ; then
               curl "${SLACK_WEBHOOK_URL}" \
                 -X "POST" \
                 -H "content-type: application/json" \
