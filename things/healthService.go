@@ -9,7 +9,7 @@ import (
 	"github.com/Financial-Times/service-status-go/gtg"
 )
 
-type HealthService struct{
+type HealthService struct {
 	ThingsDriver Driver
 }
 
@@ -41,7 +41,7 @@ func (h *HealthService) HealthCheck() fthealth.Check {
 }
 
 func (h *HealthService) Checker() (string, error) {
-	err :=h.ThingsDriver.checkConnectivity()
+	err := h.ThingsDriver.checkConnectivity()
 	if err == nil {
 		return "Connectivity to neo4j is ok", err
 	}

@@ -29,10 +29,12 @@ var CacheControlHeader string
 const (
 	validUUID       = "([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$"
 	shortLabelURI   = "http://www.ft.com/ontology/shortLabel"
-	aliasLabelURI   = "http://www.ft.com/ontology/Alias"
+	aliasLabelURI   = "http://www.ft.com/ontology/alias"
 	emailAddressURI = "http://www.ft.com/ontology/emailAddress"
 	facebookPageURI = "http://www.ft.com/ontology/facebookPage"
 	twitterURI      = "http://www.ft.com/ontology/twitterHandle"
+	thingsApiUrl    = "http://api.ft.com/things/"
+	ftThing         = "http://www.ft.com/thing/"
 )
 
 type httpClient interface {
@@ -64,10 +66,9 @@ func (rh *RequestHandler) GetThing(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	uuid := vars["uuid"]
 	transID := transactionidutils.GetTransactionIDFromRequest(r)
-
 	relationships := r.URL.Query()["showRelationship"]
-
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+
 	if uuid == "" {
 		http.Error(w, "uuid required", http.StatusBadRequest)
 		return
@@ -292,7 +293,6 @@ func (rh *RequestHandler) getThingViaConceptsApi(UUID string, relationships []st
 	}
 	u.RawQuery = q.Encode()
 	reqURL := u.String()
-
 	request, err := http.NewRequest("GET", reqURL, nil)
 	if err != nil {
 		msg := fmt.Sprintf("failed to create request to %s", reqURL)
@@ -324,9 +324,8 @@ func (rh *RequestHandler) getThingViaConceptsApi(UUID string, relationships []st
 		return mappedConcept, false, err
 	}
 	var altLabels []string
-
-	mappedConcept.ID = conceptsApiResponse.ID
-	mappedConcept.APIURL = strings.Replace(conceptsApiResponse.ApiURL, "concepts", "things", 1)
+	mappedConcept.ID = convertID(conceptsApiResponse.ID)
+	mappedConcept.APIURL = mapper.APIURL(UUID, []string{extractSpecificType(conceptsApiResponse.Type)}, "")
 	mappedConcept.PrefLabel = conceptsApiResponse.PrefLabel
 	mappedConcept.DirectType = conceptsApiResponse.Type
 	mappedConcept.Types = mapper.FullTypeHierarchy(conceptsApiResponse.Type)
@@ -360,11 +359,16 @@ func (rh *RequestHandler) getThingViaConceptsApi(UUID string, relationships []st
 	return mappedConcept, true, nil
 }
 
+func extractSpecificType(directType string) string {
+	ss := strings.Split(directType, "/")
+	return ss[len(ss)-1]
+}
+
 func convertRelationship(relationships []Relationship) []Thing {
 	var convertedRelationships []Thing
 	for _, rc := range relationships {
 		convertedRelationships = append(convertedRelationships, Thing{
-			ID:         rc.Concept.ID,
+			ID:         convertID(rc.Concept.ID),
 			APIURL:     strings.Replace(rc.Concept.ApiURL, "concepts", "things", 1),
 			Types:      mapper.FullTypeHierarchy(rc.Concept.Type),
 			DirectType: rc.Concept.Type,
@@ -387,4 +391,8 @@ func mapTypedValues(concept *Concept, keypair TypedValue) {
 	default:
 		logger.Errorf("Type %s not currently supported", keypair.Type)
 	}
+}
+
+func convertID(conceptsApiID string) string {
+	return strings.Replace(conceptsApiID, ftThing, thingsApiUrl, 1)
 }

@@ -326,7 +326,7 @@ func TestHealthCheckTimeout(t *testing.T) {
 }
 
 var getConmpleteThingAsConcept = `{
-	"id": "http://api.ft.com/things/6773e864-78ab-4051-abc2-f4e9ab423ebb",
+	"id": "http://www.ft.com/thing/6773e864-78ab-4051-abc2-f4e9ab423ebb",
 	"apiUrl": "http://api.ft.com/concepts/6773e864-78ab-4051-abc2-f4e9ab423ebb",
 	"type": "http://www.ft.com/ontology/product/Brand",
 	"prefLabel": "Brussels blog",
@@ -348,7 +348,7 @@ var getConmpleteThingAsConcept = `{
 	],
 	"alternativeLabels": [
 		{
-			"type": "http://www.ft.com/ontology/Alias",
+			"type": "http://www.ft.com/ontology/alias",
 			"value": "Brussels Blog"
 		}
 	],
@@ -357,7 +357,7 @@ var getConmpleteThingAsConcept = `{
 
 var transformedCompleteThing = `{
 	"id":"http://api.ft.com/things/6773e864-78ab-4051-abc2-f4e9ab423ebb",
-	"apiUrl":"http://api.ft.com/things/6773e864-78ab-4051-abc2-f4e9ab423ebb",
+	"apiUrl":"http://api.ft.com/brands/6773e864-78ab-4051-abc2-f4e9ab423ebb",
 	"prefLabel":"Brussels blog",
 	"types":[
 		"http://www.ft.com/ontology/core/Thing",
@@ -378,7 +378,7 @@ var transformedCompleteThing = `{
 
 var getConmpleteThingWithRelationAsConcept = `{
 	"id": "http://api.ft.com/things/6773e864-78ab-4051-abc2-f4e9ab423ebb",
-	"apiUrl": "http://api.ft.com/concepts/6773e864-78ab-4051-abc2-f4e9ab423ebb",
+	"apiUrl": "http://api.ft.com/brands/6773e864-78ab-4051-abc2-f4e9ab423ebb",
 	"type": "http://www.ft.com/ontology/product/Brand",
 	"prefLabel": "Brussels blog",
 	"descriptionXML": "This blog covers everything",
@@ -389,7 +389,7 @@ var getConmpleteThingWithRelationAsConcept = `{
 		{
 			"concept": {
 				"id": "http://api.ft.com/things/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
-				"apiUrl": "http://api.ft.com/concepts/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
+				"apiUrl": "http://api.ft.com/things/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
 				"type": "http://www.ft.com/ontology/Topic",
 				"prefLabel": "Neglected tropical diseases",
 				"alternativeLabels": []
@@ -401,7 +401,7 @@ var getConmpleteThingWithRelationAsConcept = `{
 		{
 			"concept": {
 				"id": "http://api.ft.com/things/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
-				"apiUrl": "http://api.ft.com/concepts/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
+				"apiUrl": "http://api.ft.com/things/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
 				"type": "http://www.ft.com/ontology/Topic",
 				"prefLabel": "Broader",
 				"alternativeLabels": []
@@ -413,7 +413,7 @@ var getConmpleteThingWithRelationAsConcept = `{
 		{
 			"concept": {
 				"id": "http://api.ft.com/things/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
-				"apiUrl": "http://api.ft.com/concepts/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
+				"apiUrl": "http://api.ft.com/things/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
 				"type": "http://www.ft.com/ontology/Topic",
 				"prefLabel": "Narrower",
 				"alternativeLabels": []
@@ -425,7 +425,7 @@ var getConmpleteThingWithRelationAsConcept = `{
 
 var transformedCompleteThingWithRelation = `{
 	"id":"http://api.ft.com/things/6773e864-78ab-4051-abc2-f4e9ab423ebb",
-	"apiUrl":"http://api.ft.com/things/6773e864-78ab-4051-abc2-f4e9ab423ebb",
+	"apiUrl":"http://api.ft.com/brands/6773e864-78ab-4051-abc2-f4e9ab423ebb",
 	"prefLabel":"Brussels blog",
 	"types":[
 		"http://www.ft.com/ontology/core/Thing",
