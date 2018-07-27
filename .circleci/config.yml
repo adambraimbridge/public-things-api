@@ -10,11 +10,12 @@ workflows:
   nightly:
     triggers:
       - schedule:
-        cron: "*/5 * * * *"
-        filters:
-          branches:
-            only:
-              - master
+          cron: "* 8 * * *"
+          filters:
+            branches:
+              only:
+                - master
+                - feature/load-testing
     jobs:
       - loadtest
 jobs:
@@ -78,6 +79,8 @@ jobs:
       - image: golang:1.10
         environment:
           GOPATH: /go
+    steps:
+      - checkout
       - run:
           name: External Dependencies
           command: go get -u github.com/tsenart/vegeta
@@ -98,7 +101,7 @@ jobs:
             cd /go/bin
       - run:
           name: Run load test
-          command: vegeta attack -workers=1 -duration=1s -targets=./things.req > results.bin
+          command: vegeta attack -workers=2 -duration=300s -targets=./things.req > results.bin
       - run:
           name: Get hist and result
           command: |
@@ -113,12 +116,23 @@ jobs:
           command: |
             TEST_RESULT=`vegeta report -inputs=results.bin -reporter=text`
             TIMESTAMP=$(date "+%s")
-            MESSAGE=$(cat <<EOF
+            SUCCEEDED_MESSAGE=$(cat <<EOF
+              {
+                "attachments": [
+                  {
+                    "text": "Load testing succeeded - $CIRCLE_PROJECT_REPONAME/$CIRCLE_BRANCH",
+                    "color": "good",
+                  }
+                ]
+              }
+            EOF
+            )
+            FAILED_MESSAGE=$(cat <<EOF
               {
                 "attachments": [
                   {
                     "author_name": "$CIRCLE_PR_USERNAME",
-                    "title": "Load testing failed <$CIRCLE_BUILD_URL|#$CIRCLE_BUILD_NUM> by $CIRCLE_USERNAME",
+                    "title": "Load testing failed - $CIRCLE_PROJECT_REPONAME/$CIRCLE_BRANCH <$CIRCLE_BUILD_URL|#$CIRCLE_BUILD_NUM>",
                     "color": "danger",
                     "text": "95th latency is over 500ms. \n \`\`\`$TEST_RESULT\`\`\`",
                     "footer": "$CIRCLE_PROJECT_REPONAME/$CIRCLE_BRANCH",
@@ -132,12 +146,10 @@ jobs:
             # Latency values from report are nano second.
             # The threshold is over 500ms (95 percentile latency)
             LATENCY_MS=`vegeta report -inputs=results.bin -reporter=json | jq -e '.latencies."95th" / (1000 * 1000) | floor'`
-            if [ true ] ; then
-              curl "${SLACK_WEBHOOK_URL}" \
-                -X "POST" \
-                -H "content-type: application/json" \
-                -d "${MESSAGE}"
-              exit 1
-            else
+            if [ $LATENCY_MS -lt 500 ] ; then
+              curl "${SLACK_WEBHOOK_URL}" -X "POST" -H "content-type: application/json" -d "${SUCCEEDED_MESSAGE}"
               exit 0
+            else
+              curl "${SLACK_WEBHOOK_URL}" -X "POST" -H "content-type: application/json" -d "${FAILED_MESSAGE}"
+              exit 1
             fi
