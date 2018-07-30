@@ -178,6 +178,16 @@ func TestHandlers(t *testing.T) {
 		`{"things":{"6773e864-78ab-4051-abc2-f4e9ab423ebc":` + transformedCompleteThing + `}}`,
 	}
 
+	getBrand := testCase{
+		"",
+		"/things/c3e3fe44-93fb-11e8-8f42-da24cd01f044?showRelationship=broader&showRelationship=narrower",
+		200,
+		brandAsConcept,
+		nil,
+		200,
+		transformedBrand,
+	}
+
 	testCases := []testCase{
 		getThingSuccess,
 		getThingSuccessWithRelationShip,
@@ -191,6 +201,7 @@ func TestHandlers(t *testing.T) {
 		getThingsNotFound,
 		getThingsWithInvalidUUID,
 		getThingsWithAlternativeUUID,
+		getBrand,
 	}
 	for _, test := range testCases {
 		mockClient.resp = test.clientBody
@@ -476,6 +487,92 @@ var transformedCompleteThingWithRelation = `{
 			],
 			"directType":"http://www.ft.com/ontology/Topic",
 			"predicate":"http://www.ft.com/ontology/related"
+		}
+	]
+}`
+
+var brandAsConcept = `{
+	"id":"http://api.ft.com/things/c3e3fe44-93fb-11e8-8f42-da24cd01f044",
+	"apiUrl":"http://api.ft.com/concepts/c3e3fe44-93fb-11e8-8f42-da24cd01f044",
+	"prefLabel":"Brussels Blog",
+	"type":"http://www.ft.com/ontology/product/Brand",
+	"alternativeLabels":[
+		{
+			"type": "http://www.ft.com/ontology/alias",
+			"value": "Brussels Blog"
+		},
+		{
+			"type": "http://www.ft.com/ontology/shortLabel",
+			"value": "BrusselsBlog"
+		}
+	],
+	"broaderConcepts": [
+		{
+			"concept": {
+				"id": "http://api.ft.com/things/58ff7494-8684-4473-a73d-1c02715be17e",
+				"apiUrl": "http://api.ft.com/concepts/58ff7494-8684-4473-a73d-1c02715be17e",
+				"type": "http://www.ft.com/ontology/product/Brand",
+				"prefLabel": "Broader"
+			},
+			"predicate": "http://www.ft.com/ontology/hasSubBrand"
+		}
+	],
+	"narrowerConcepts": [
+		{
+			"concept": {
+				"id": "http://api.ft.com/things/1c4e60c4-93fc-11e8-8f42-da24cd01f044",
+				"apiUrl": "http://api.ft.com/concepts/1c4e60c4-93fc-11e8-8f42-da24cd01f044",
+				"type": "http://www.ft.com/ontology/product/Brand",
+				"prefLabel": "Narrower"
+			},
+			"predicate": "http://www.ft.com/ontology/subBrandOf"
+		}
+	]
+}`
+
+var transformedBrand = `{
+	"id":"http://api.ft.com/things/c3e3fe44-93fb-11e8-8f42-da24cd01f044",
+	"apiUrl":"http://api.ft.com/brands/c3e3fe44-93fb-11e8-8f42-da24cd01f044",
+	"prefLabel":"Brussels Blog",
+	"types":[
+		"http://www.ft.com/ontology/core/Thing",
+		"http://www.ft.com/ontology/concept/Concept",
+		"http://www.ft.com/ontology/classification/Classification",
+		"http://www.ft.com/ontology/product/Brand"
+	],
+	"directType":"http://www.ft.com/ontology/product/Brand",
+	"aliases":[
+		"Brussels Blog"
+	],
+	"shortLabel":"BrusselsBlog",
+	"narrowerConcepts":[
+		{
+			"id":"http://api.ft.com/things/1c4e60c4-93fc-11e8-8f42-da24cd01f044",
+			"apiUrl":"http://api.ft.com/brands/1c4e60c4-93fc-11e8-8f42-da24cd01f044",
+			"prefLabel":"Narrower",
+			"types":[
+				"http://www.ft.com/ontology/core/Thing",
+				"http://www.ft.com/ontology/concept/Concept",
+				"http://www.ft.com/ontology/classification/Classification",
+				"http://www.ft.com/ontology/product/Brand"
+			],
+			"directType":"http://www.ft.com/ontology/product/Brand",
+			"predicate":"http://www.w3.org/2004/02/skos/core#narrower"
+		}
+	],
+	"broaderConcepts":[
+		{
+			"id":"http://api.ft.com/things/58ff7494-8684-4473-a73d-1c02715be17e",
+			"apiUrl":"http://api.ft.com/brands/58ff7494-8684-4473-a73d-1c02715be17e",
+			"prefLabel":"Broader",
+			"types":[
+				"http://www.ft.com/ontology/core/Thing",
+				"http://www.ft.com/ontology/concept/Concept",
+				"http://www.ft.com/ontology/classification/Classification",
+				"http://www.ft.com/ontology/product/Brand"
+			],
+			"directType":"http://www.ft.com/ontology/product/Brand",
+			"predicate":"http://www.w3.org/2004/02/skos/core#broader"
 		}
 	]
 }`

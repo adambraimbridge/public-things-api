@@ -37,6 +37,11 @@ const (
 	ftThing         = "http://www.ft.com/thing/"
 )
 
+var brandPredicateMap = map[string]string{
+	"http://www.ft.com/ontology/subBrandOf":  "http://www.w3.org/2004/02/skos/core#narrower",
+	"http://www.ft.com/ontology/hasSubBrand": "http://www.w3.org/2004/02/skos/core#broader",
+}
+
 type httpClient interface {
 	Do(req *http.Request) (resp *http.Response, err error)
 }
@@ -325,7 +330,7 @@ func (rh *RequestHandler) getThingViaConceptsApi(UUID string, relationships []st
 	}
 	var altLabels []string
 	mappedConcept.ID = convertID(conceptsApiResponse.ID)
-	mappedConcept.APIURL = mapper.APIURL(UUID, []string{extractSpecificType(conceptsApiResponse.Type)}, "")
+	mappedConcept.APIURL = mapper.APIURL(UUID, []string{extractFinalSectionOfString(conceptsApiResponse.Type)}, "")
 	mappedConcept.PrefLabel = conceptsApiResponse.PrefLabel
 	mappedConcept.DirectType = conceptsApiResponse.Type
 	mappedConcept.Types = mapper.FullTypeHierarchy(conceptsApiResponse.Type)
@@ -359,8 +364,8 @@ func (rh *RequestHandler) getThingViaConceptsApi(UUID string, relationships []st
 	return mappedConcept, true, nil
 }
 
-func extractSpecificType(directType string) string {
-	ss := strings.Split(directType, "/")
+func extractFinalSectionOfString(stringToTransform string) string {
+	ss := strings.Split(stringToTransform, "/")
 	return ss[len(ss)-1]
 }
 
@@ -369,11 +374,11 @@ func convertRelationship(relationships []Relationship) []Thing {
 	for _, rc := range relationships {
 		convertedRelationships = append(convertedRelationships, Thing{
 			ID:         convertID(rc.Concept.ID),
-			APIURL:     strings.Replace(rc.Concept.ApiURL, "concepts", "things", 1),
+			APIURL:     mapper.APIURL(extractFinalSectionOfString(rc.Concept.ID), []string{extractFinalSectionOfString(rc.Concept.Type)}, ""),
 			Types:      mapper.FullTypeHierarchy(rc.Concept.Type),
 			DirectType: rc.Concept.Type,
 			PrefLabel:  rc.Concept.PrefLabel,
-			Predicate:  rc.Predicate,
+			Predicate:  mapPredicate(rc.Predicate),
 		})
 	}
 	return convertedRelationships
@@ -387,7 +392,6 @@ func mapTypedValues(concept *Concept, keypair TypedValue) {
 		concept.FacebookPage = keypair.Value
 	case twitterURI:
 		concept.TwitterHandle = keypair.Value
-	//TODO BroaderTransitive?
 	default:
 		logger.Errorf("Type %s not currently supported", keypair.Type)
 	}
@@ -395,4 +399,11 @@ func mapTypedValues(concept *Concept, keypair TypedValue) {
 
 func convertID(conceptsApiID string) string {
 	return strings.Replace(conceptsApiID, ftThing, thingsApiUrl, 1)
+}
+
+func mapPredicate(conceptPredicate string) string {
+	if _, ok := brandPredicateMap[conceptPredicate]; ok {
+		return brandPredicateMap[conceptPredicate]
+	}
+	return conceptPredicate
 }
