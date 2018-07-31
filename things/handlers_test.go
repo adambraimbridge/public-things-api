@@ -508,24 +508,25 @@ var brandAsConcept = `{
 	],
 	"broaderConcepts": [
 		{
+			
+			"predicate": "http://www.ft.com/ontology/subBrandOf",
 			"concept": {
 				"id": "http://api.ft.com/things/58ff7494-8684-4473-a73d-1c02715be17e",
 				"apiUrl": "http://api.ft.com/concepts/58ff7494-8684-4473-a73d-1c02715be17e",
 				"type": "http://www.ft.com/ontology/product/Brand",
 				"prefLabel": "Broader"
-			},
-			"predicate": "http://www.ft.com/ontology/hasSubBrand"
+			}
 		}
 	],
 	"narrowerConcepts": [
 		{
+			"predicate": "http://www.ft.com/ontology/hasSubBrand",
 			"concept": {
 				"id": "http://api.ft.com/things/1c4e60c4-93fc-11e8-8f42-da24cd01f044",
 				"apiUrl": "http://api.ft.com/concepts/1c4e60c4-93fc-11e8-8f42-da24cd01f044",
 				"type": "http://www.ft.com/ontology/product/Brand",
 				"prefLabel": "Narrower"
-			},
-			"predicate": "http://www.ft.com/ontology/subBrandOf"
+			}
 		}
 	]
 }`

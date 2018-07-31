@@ -38,8 +38,8 @@ const (
 )
 
 var brandPredicateMap = map[string]string{
-	"http://www.ft.com/ontology/subBrandOf":  "http://www.w3.org/2004/02/skos/core#narrower",
-	"http://www.ft.com/ontology/hasSubBrand": "http://www.w3.org/2004/02/skos/core#broader",
+	"http://www.ft.com/ontology/subBrandOf":  "http://www.w3.org/2004/02/skos/core#broader",
+	"http://www.ft.com/ontology/hasSubBrand": "http://www.w3.org/2004/02/skos/core#narrower",
 }
 
 type httpClient interface {
