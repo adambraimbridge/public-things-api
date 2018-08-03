@@ -359,7 +359,7 @@ var getConmpleteThingAsConcept = `{
 	],
 	"alternativeLabels": [
 		{
-			"type": "http://www.ft.com/ontology/alias",
+			"type": "http://www.w3.org/2008/05/skos-xl#altLabel",
 			"value": "Brussels Blog"
 		}
 	],
@@ -498,7 +498,7 @@ var brandAsConcept = `{
 	"type":"http://www.ft.com/ontology/product/Brand",
 	"alternativeLabels":[
 		{
-			"type": "http://www.ft.com/ontology/alias",
+			"type": "http://www.w3.org/2008/05/skos-xl#altLabel",
 			"value": "Brussels Blog"
 		},
 		{

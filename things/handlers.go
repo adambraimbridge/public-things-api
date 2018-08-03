@@ -29,7 +29,7 @@ var CacheControlHeader string
 const (
 	validUUID       = "([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$"
 	shortLabelURI   = "http://www.ft.com/ontology/shortLabel"
-	aliasLabelURI   = "http://www.ft.com/ontology/alias"
+	aliasLabelURI   = "http://www.w3.org/2008/05/skos-xl#altLabel"
 	emailAddressURI = "http://www.ft.com/ontology/emailAddress"
 	facebookPageURI = "http://www.ft.com/ontology/facebookPage"
 	twitterURI      = "http://www.ft.com/ontology/twitterHandle"
