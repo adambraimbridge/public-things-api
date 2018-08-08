@@ -1,19 +1,21 @@
 package things
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
+	"github.com/Financial-Times/go-logger"
+	"github.com/stretchr/testify/mock"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
+	"strings"
 	"testing"
 	"time"
 
-	"github.com/Financial-Times/go-fthealth"
+	fthealth "github.com/Financial-Times/go-fthealth/v1_1"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -25,287 +27,244 @@ const (
 	invalidUUID         = "00000000-0000-002a-0000"
 )
 
-var testConcept = Concept{ID: canonicalUUID, APIURL: canonicalUUID, Types: []string{}}
-var testSecondConcept = Concept{ID: secondCanonicalUUID, APIURL: secondCanonicalUUID, Types: []string{}}
-var testThirdConcept = Concept{ID: thirdCanonicalUUID, APIURL: thirdCanonicalUUID, Types: []string{}}
+var testConcept = Thing{ID: canonicalUUID, APIURL: canonicalUUID, Types: []string{}}
+var testSecondConcept = Thing{ID: secondCanonicalUUID, APIURL: secondCanonicalUUID, Types: []string{}}
+var testThirdConcept = Thing{ID: thirdCanonicalUUID, APIURL: thirdCanonicalUUID, Types: []string{}}
 var testRelationships = []string{"testBroader", "testNarrower"}
 
-func TestGetHandlerSuccess(t *testing.T) {
-	expectedBody := `{"id":"` + canonicalUUID + `", "apiUrl":"` + canonicalUUID + `", "types":[]}`
-
-	d := new(mockedDriver)
-	d.On("read", canonicalUUID, []string(nil)).Return(testConcept, true, nil)
-
-	req := newThingHTTPRequest(t, canonicalUUID, nil)
-
-	handler := RequestHandler{ThingsDriver: d,}
-	rec := httptest.NewRecorder()
-	r := mux.NewRouter()
-	r.HandleFunc("/things/{uuid}", handler.GetThing).Methods("GET")
-	r.ServeHTTP(rec, req)
-	assert.Equal(t, http.StatusOK, rec.Code)
-	assert.JSONEq(t, expectedBody, rec.Body.String())
-	assert.Equal(t, "application/json; charset=UTF-8", rec.HeaderMap.Get("Content-Type"))
-}
-func TestGetThingsHandlerSuccess(t *testing.T) {
-	expectedBody := `{"things": {
-						"` + canonicalUUID + `": {"id": "` + canonicalUUID + `", "apiUrl":"` + canonicalUUID + `", "types":[]},
-						"` + secondCanonicalUUID + `": {"id": "` + secondCanonicalUUID + `", "apiUrl":"` + secondCanonicalUUID + `", "types":[]},
-						"` + thirdCanonicalUUID + `": {"id": "` + thirdCanonicalUUID + `", "apiUrl":"` + thirdCanonicalUUID + `", "types":[]}
-						}}`
-
-	d := new(mockedDriver)
-	d.On("read", canonicalUUID, []string(nil)).Return(testConcept, true, nil)
-	d.On("read", secondCanonicalUUID, []string(nil)).Return(testSecondConcept, true, nil)
-	d.On("read", thirdCanonicalUUID, []string(nil)).Return(testThirdConcept, true, nil)
-
-	req := newThingsHTTPRequest(t, []string {canonicalUUID, secondCanonicalUUID, thirdCanonicalUUID}, nil)
-
-	handler := RequestHandler{ThingsDriver: d,}
-	rec := httptest.NewRecorder()
-	r := mux.NewRouter()
-	r.HandleFunc("/things",handler.GetThings).Methods("GET")
-	r.ServeHTTP(rec, req)
-	assert.Equal(t, http.StatusOK, rec.Code)
-	assert.JSONEq(t, expectedBody, rec.Body.String())
-	assert.Equal(t, "application/json; charset=UTF-8", rec.HeaderMap.Get("Content-Type"))
+type mockHTTPClient struct {
+	resp       string
+	statusCode int
+	err        error
 }
 
-func TestGetHandlerSuccessWithRelationships(t *testing.T) {
-	expectedBody := `{"id":"` + canonicalUUID + `", "apiUrl":"` + canonicalUUID + `", "types":[]}`
-
-	d := new(mockedDriver)
-	d.On("read", canonicalUUID, testRelationships).Return(testConcept, true, nil)
-
-	req := newThingHTTPRequest(t, canonicalUUID, testRelationships)
-
-	handler := RequestHandler{ThingsDriver: d,}
-	rec := httptest.NewRecorder()
-	r := mux.NewRouter()
-	r.HandleFunc("/things/{uuid}", handler.GetThing).Methods("GET")
-	r.ServeHTTP(rec, req)
-	assert.Equal(t, http.StatusOK, rec.Code)
-	assert.JSONEq(t, expectedBody, rec.Body.String())
-	assert.Equal(t, "application/json; charset=UTF-8", rec.HeaderMap.Get("Content-Type"))
+type testCase struct {
+	name         string
+	url          string
+	clientCode   int
+	clientBody   string
+	clientError  error
+	expectedCode int
+	expectedBody string
 }
 
-func TestGetHandlerNotFound(t *testing.T) {
-	expectedBody := message("No thing found with uuid " + canonicalUUID + ".")
-
-	d := new(mockedDriver)
-	d.On("read", canonicalUUID, []string(nil)).Return(Concept{}, false, nil)
-
-	req := newThingHTTPRequest(t, canonicalUUID, nil)
-
-	handler := RequestHandler{ThingsDriver: d,}
-	rec := httptest.NewRecorder()
-	r := mux.NewRouter()
-	r.HandleFunc("/things/{uuid}", handler.GetThing).Methods("GET")
-	r.ServeHTTP(rec, req)
-	assert.Equal(t, http.StatusNotFound, rec.Code)
-	assert.JSONEq(t, expectedBody, rec.Body.String())
-	assert.Equal(t, "application/json; charset=UTF-8", rec.HeaderMap.Get("Content-Type"))
+func (mhc *mockHTTPClient) Do(req *http.Request) (resp *http.Response, err error) {
+	cb := ioutil.NopCloser(bytes.NewReader([]byte(mhc.resp)))
+	return &http.Response{Body: cb, StatusCode: mhc.statusCode}, mhc.err
 }
 
-func TestGetThingsHandlerNotFound(t *testing.T) {
-	expectedBody := `{"things":{}}`
+func TestHandlers(t *testing.T) {
+	logger.InitLogger("test service", "debug")
+	var mockClient mockHTTPClient
+	router := mux.NewRouter()
 
-	d := new(mockedDriver)
-	d.On("read", canonicalUUID, []string(nil)).Return(Concept{}, false, nil)
-	d.On("read", secondCanonicalUUID, []string(nil)).Return(Concept{}, false, nil)
-	d.On("read", thirdCanonicalUUID, []string(nil)).Return(Concept{}, false, nil)
+	getThingSuccess := testCase{
+		"GetThing - Basic successful request",
+		"/things/6773e864-78ab-4051-abc2-f4e9ab423ebb",
+		200,
+		getConmpleteThingAsConcept,
+		nil,
+		200,
+		transformedCompleteThing,
+	}
 
-	req := newThingsHTTPRequest(t, []string {canonicalUUID, secondCanonicalUUID, thirdCanonicalUUID}, nil)
+	getThingSuccessWithRelationShip := testCase{
+		"GetThing - Basic successful request with relationship parameter",
+		"/things/6773e864-78ab-4051-abc2-f4e9ab423ebb?showRelationship=related",
+		200,
+		getConmpleteThingWithRelationAsConcept,
+		nil,
+		200,
+		transformedCompleteThingWithRelation,
+	}
 
-	handler := RequestHandler{ThingsDriver: d,}
-	rec := httptest.NewRecorder()
-	r := mux.NewRouter()
-	r.HandleFunc("/things", handler.GetThings).Methods("GET")
-	r.ServeHTTP(rec, req)
-	assert.Equal(t, http.StatusOK, rec.Code)
-	assert.JSONEq(t, expectedBody, rec.Body.String())
-	assert.Equal(t, "application/json; charset=UTF-8", rec.HeaderMap.Get("Content-Type"))
-}
-func TestGetThingsHandlerPartialSuccess(t *testing.T) {
-	expectedBody := `{"things": {
-						"` + canonicalUUID + `": {"id": "` + canonicalUUID + `", "apiUrl":"` + canonicalUUID + `", "types":[]}}}`
+	getThingNotFound := testCase{
+		"GetThing - request is not found",
+		"/things/6773e864-78ab-4051-abc2-f4e9ab423ebc",
+		404,
+		"",
+		nil,
+		404,
+		`{"message":"No thing found with uuid 6773e864-78ab-4051-abc2-f4e9ab423ebc."}`,
+	}
 
-	d := new(mockedDriver)
-	d.On("read", canonicalUUID, []string(nil)).Return(testConcept, true, nil)
-	d.On("read", secondCanonicalUUID, []string(nil)).Return(Concept{}, false, nil)
+	getThingWithInvalidUUID := testCase{
+		"GetThing - bad request due to invalid uuid",
+		"/things/111111111111111111",
+		200,
+		"",
+		nil,
+		400,
+		"invalid/malformed uuid\n",
+	}
 
-	req := newThingsHTTPRequest(t, []string {canonicalUUID, secondCanonicalUUID}, nil)
+	getThingWithConceptsAPIError := testCase{
+		"GetThing - Service Unavailable because of concepts api internal server error",
+		"/things/6773e864-78ab-4051-abc2-f4e9ab423ebc",
+		500,
+		"",
+		errors.New("Internal Server Error"),
+		503,
+		`{"message":"Error getting thing with uuid 6773e864-78ab-4051-abc2-f4e9ab423ebc, err=Internal Server Error"}`,
+	}
 
-	handler := RequestHandler{ThingsDriver: d,}
-	rec := httptest.NewRecorder()
-	r := mux.NewRouter()
-	r.HandleFunc("/things", handler.GetThings).Methods("GET")
-	r.ServeHTTP(rec, req)
-	assert.Equal(t, http.StatusOK, rec.Code)
-	assert.JSONEq(t, expectedBody, rec.Body.String())
-	assert.Equal(t, "application/json; charset=UTF-8", rec.HeaderMap.Get("Content-Type"))
-}
+	getThingWithConceptsAPIInvalidResponse := testCase{
+		"GetThing - Service Unavailable because of concepts api internal server error",
+		"/things/6773e864-78ab-4051-abc2-f4e9ab423ebc",
+		200,
+		`{"foo":bar}`,
+		nil,
+		503,
+		`{"message":"Error getting thing with uuid 6773e864-78ab-4051-abc2-f4e9ab423ebc, err=invalid character 'b' looking for beginning of value"}`,
+	}
 
-func TestGetHandlerReadError(t *testing.T) {
-	expectedBody := message("Error getting thing with uuid " + canonicalUUID + ", err=TEST failing to READ")
+	getThingRedirect := testCase{
+		"GetThing - redirect",
+		"/things/6773e864-78ab-4051-abc2-f4e9ab423ebc",
+		200,
+		getConmpleteThingAsConcept,
+		nil,
+		301,
+		``,
+	}
 
-	d := new(mockedDriver)
-	d.On("read", canonicalUUID, []string(nil)).Return(Concept{}, false, errors.New("TEST failing to READ"))
+	getThingRedirectWithRelationships := testCase{
+		"GetThing - redirect with relationships parameter",
+		"/things/6773e864-78ab-4051-abc2-f4e9ab423ebc?showRelationship=narrower",
+		200,
+		getConmpleteThingAsConcept,
+		nil,
+		301,
+		``,
+	}
 
-	req := newThingHTTPRequest(t, canonicalUUID, nil)
+	getThingsWithoutParams := testCase{
+		"GetThings - request with no query parameter",
+		"/things",
+		400,
+		"",
+		nil,
+		400,
+		`{"message":"at least one uuid query param should be provided for batch operations"}`,
+	}
 
-	handler := RequestHandler{ThingsDriver: d,}
-	rec := httptest.NewRecorder()
-	r := mux.NewRouter()
-	r.HandleFunc("/things/{uuid}", handler.GetThing).Methods("GET")
-	r.ServeHTTP(rec, req)
-	assert.Equal(t, http.StatusServiceUnavailable, rec.Code)
-	assert.JSONEq(t, expectedBody, rec.Body.String())
-	assert.Equal(t, "application/json; charset=UTF-8", rec.HeaderMap.Get("Content-Type"))
-}
-func TestGetThingsHandlerReadError(t *testing.T) {
-	expectedBody := message("Error getting thing with uuid " + secondCanonicalUUID + ", err=TEST failing to READ")
+	getThingsNotFound := testCase{
+		"GetThings - request with valid format UUID, but not exist",
+		"/things?uuid=6773e864-78ab-4051-abc2-f4e9ab423ebc",
+		404,
+		"",
+		nil,
+		200,
+		`{"things":{}}`,
+	}
 
+	getThingsWithInvalidUUID := testCase{
+		"GetThings - request with invalid format UUID",
+		"/things?uuid=6773e864-111178ab-4051-abc2-f4e9ab423ebc",
+		400,
+		"",
+		nil,
+		400,
+		`{"message":"Invalid uuid: 6773e864-111178ab-4051-abc2-f4e9ab423ebc, err: uuid: incorrect UUID length: 6773e864-111178ab-4051-abc2-f4e9ab423ebc"}`,
+	}
 
-	d := new(mockedDriver)
-	d.On("read", secondCanonicalUUID, []string(nil)).Return(Concept{}, false, errors.New("TEST failing to READ"))
-	d.On("read", canonicalUUID, []string(nil)).Return(Concept{}, false, nil)
-	d.On("read", thirdCanonicalUUID, []string(nil)).Return(Concept{}, false, nil)
+	getThingsWithAlternativeUUID := testCase{
+		"GetThings - request with alternative uuid, which returns canonical uuid",
+		"/things?uuid=6773e864-78ab-4051-abc2-f4e9ab423ebc",
+		200,
+		getConmpleteThingAsConcept,
+		nil,
+		200,
+		`{"things":{"6773e864-78ab-4051-abc2-f4e9ab423ebc":` + transformedCompleteThing + `}}`,
+	}
 
-	req := newThingsHTTPRequest(t, []string {canonicalUUID, secondCanonicalUUID, thirdCanonicalUUID}, nil)
+	getBrand := testCase{
+		"",
+		"/things/c3e3fe44-93fb-11e8-8f42-da24cd01f044?showRelationship=broader&showRelationship=narrower",
+		200,
+		brandAsConcept,
+		nil,
+		200,
+		transformedBrand,
+	}
 
-	handler := RequestHandler{ThingsDriver: d,}
-	rec := httptest.NewRecorder()
-	r := mux.NewRouter()
-	r.HandleFunc("/things", handler.GetThings).Methods("GET")
-	r.ServeHTTP(rec, req)
-	assert.Equal(t, http.StatusServiceUnavailable, rec.Code)
-	assert.JSONEq(t, expectedBody, rec.Body.String())
-	assert.Equal(t, "application/json; charset=UTF-8", rec.HeaderMap.Get("Content-Type"))
-}
-func TestGetThingsHandlerInvalidUUIDError(t *testing.T) {
-	expectedBody := message("Invalid uuid: " + invalidUUID + ", err: uuid: incorrect UUID length: " + invalidUUID)
+	testCases := []testCase{
+		getThingSuccess,
+		getThingSuccessWithRelationShip,
+		getThingNotFound,
+		getThingWithInvalidUUID,
+		getThingWithConceptsAPIError,
+		getThingWithConceptsAPIInvalidResponse,
+		getThingRedirect,
+		getThingRedirectWithRelationships,
+		getThingsWithoutParams,
+		getThingsNotFound,
+		getThingsWithInvalidUUID,
+		getThingsWithAlternativeUUID,
+		getBrand,
+	}
+	for _, test := range testCases {
+		mockClient.resp = test.clientBody
+		mockClient.statusCode = test.clientCode
+		mockClient.err = test.clientError
 
-	d := new(mockedDriver)
-	d.On("read", canonicalUUID, []string(nil)).Return(Concept{}, false, nil)
-	d.On("read", thirdCanonicalUUID, []string(nil)).Return(Concept{}, false, nil)
+		handler := NewHandler(&mockClient, "localhost:8080")
+		handler.RegisterHandlers(router)
 
-	req := newThingsHTTPRequest(t, []string{canonicalUUID, secondCanonicalUUID, thirdCanonicalUUID, invalidUUID}, nil)
+		rr := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", test.url, nil)
 
-	handler := RequestHandler{ThingsDriver: d,}
-	rec := httptest.NewRecorder()
-	r := mux.NewRouter()
-	r.HandleFunc("/things", handler.GetThings).Methods("GET")
-	r.ServeHTTP(rec, req)
-	assert.Equal(t, http.StatusBadRequest, rec.Code)
-	assert.JSONEq(t, expectedBody, rec.Body.String())
-	assert.Equal(t, "application/json; charset=UTF-8", rec.HeaderMap.Get("Content-Type"))
-}
-
-func TestGetHandlerRedirect(t *testing.T) {
-	d := new(mockedDriver)
-	d.On("read", alternateUUID, []string(nil)).Return(testConcept, true, nil)
-
-	req := newThingHTTPRequest(t, alternateUUID, nil)
-
-	handler := RequestHandler{ThingsDriver: d,}
-	rec := httptest.NewRecorder()
-	r := mux.NewRouter()
-	r.HandleFunc("/things/{uuid}", handler.GetThing).Methods("GET")
-	r.ServeHTTP(rec, req)
-	assert.Equal(t, http.StatusMovedPermanently, rec.Code)
-	assert.Equal(t, "/things/"+canonicalUUID, rec.HeaderMap.Get("Location"))
-}
-
-func TestGetThingsHandlerRedirect(t *testing.T) {
-	expectedBody := `{"things": {
-						"` + alternateUUID + `": {"id": "` + canonicalUUID + `", "apiUrl":"` + canonicalUUID + `", "types":[]},
-						"` + secondCanonicalUUID + `": {"id": "` + secondCanonicalUUID + `", "apiUrl":"` + secondCanonicalUUID + `", "types":[]},
-						"` + thirdCanonicalUUID + `": {"id": "` + thirdCanonicalUUID + `", "apiUrl":"` + thirdCanonicalUUID + `", "types":[]}
-						}}`
-	d := new(mockedDriver)
-
-	req := newThingsHTTPRequest(t, []string{alternateUUID, secondCanonicalUUID, thirdCanonicalUUID}, nil)
-
-	d.On("read", alternateUUID, []string(nil)).Return(testConcept, true, nil)
-
-	d.On("read", canonicalUUID, []string(nil)).Return(testConcept, true, nil)
-	d.On("read", secondCanonicalUUID, []string(nil)).Return(testSecondConcept, true, nil)
-	d.On("read", thirdCanonicalUUID, []string(nil)).Return(testThirdConcept, true, nil)
-
-	handler := RequestHandler{ThingsDriver: d,}
-	rec := httptest.NewRecorder()
-	r := mux.NewRouter()
-	r.HandleFunc("/things", handler.GetThings).Methods("GET")
-	r.ServeHTTP(rec, req)
-
-	assert.Equal(t, http.StatusOK, rec.Code)
-	assert.Equal(t, "application/json; charset=UTF-8", rec.HeaderMap.Get("Content-Type"))
-	assert.JSONEq(t, expectedBody, rec.Body.String())
-}
-
-func TestGetHandlerRedirectWithRelationships(t *testing.T) {
-	d := new(mockedDriver)
-	d.On("read", alternateUUID, testRelationships).Return(testConcept, true, nil)
-
-	req := newThingHTTPRequest(t, alternateUUID, testRelationships)
-
-	handler := RequestHandler{ThingsDriver: d,}
-	rec := httptest.NewRecorder()
-	r := mux.NewRouter()
-	r.HandleFunc("/things/{uuid}", handler.GetThing).Methods("GET")
-	r.ServeHTTP(rec, req)
-	assert.Equal(t, http.StatusMovedPermanently, rec.Code)
-	assert.Equal(t, "/things/"+canonicalUUID+"?showRelationship=testBroader&showRelationship=testNarrower", rec.HeaderMap.Get("Location"))
-}
-
-func newThingHTTPRequest(t *testing.T, uuid string, relationships []string) *http.Request {
-	rUrl := "/things/" + uuid
-	if len(relationships) > 0 {
-		rUrl += "?"
-		v := url.Values{}
-		for _, r := range relationships {
-			v.Add("showRelationship", r)
+		router.ServeHTTP(rr, req)
+		// assert.Equal(t, "application/json; charset=UTF-8", rr.Header().Get("Content-Type"))
+		assert.Equal(t, test.expectedCode, rr.Code, test.name+" failed: status codes do not match!")
+		if rr.Code == http.StatusOK {
+			assert.Equal(t, transformBody(test.expectedBody), rr.Body.String(), test.name+" failed: status body does not match!")
+			continue
 		}
-		rUrl += v.Encode()
+		assert.Equal(t, test.expectedBody, rr.Body.String(), test.name+" failed: status body does not match!")
 	}
-
-	req, err := http.NewRequest("GET", rUrl, nil)
-	require.NoError(t, err)
-
-	return req
-}
-func newThingsHTTPRequest(t *testing.T, uuids []string, relationships []string) *http.Request {
-
-	rUrl := "/things?"
-	params := url.Values{}
-	for _, uuid := range uuids {
-		params.Add("uuid", uuid)
-	}
-	if len(relationships) > 0 {
-		for _, r := range relationships {
-			params.Add("showRelationship", r)
-		}
-	}
-
-	rUrl += params.Encode()
-
-
-	req, err := http.NewRequest("GET", rUrl, nil)
-	require.NoError(t, err)
-
-	return req
 }
 
-func message(errMsg string) string {
-	return fmt.Sprintf("{\"message\": \"%s\"}\n", errMsg)
+func TestInvalidConcpetsAPIURL(t *testing.T) {
+	logger.InitLogger("test service", "debug")
+	mockClient := mockHTTPClient{
+		resp:       "",
+		statusCode: 200,
+		err:        nil,
+	}
+	router := mux.NewRouter()
+	handler := NewHandler(&mockClient, "://foo.com")
+	handler.RegisterHandlers(router)
+	rr := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/things/6773e864-78ab-4051-abc2-f4e9ab423ebb", nil)
+
+	router.ServeHTTP(rr, req)
+	assert.Equal(t, 503, rr.Code, "TestInvalidConcpetsAPIURL failed: status codes do not match!")
+	assert.Equal(t, `{"message":"Error getting thing with uuid 6773e864-78ab-4051-abc2-f4e9ab423ebb, err=parse ://foo.com: missing protocol scheme"}`, rr.Body.String(), "TestInvalidConceptsAPIURL failed: status body does not match!")
+}
+
+func TestMethodNotAllowed(t *testing.T) {
+	logger.InitLogger("test service", "debug")
+	mockClient := mockHTTPClient{
+		resp:       "",
+		statusCode: 200,
+		err:        nil,
+	}
+	router := mux.NewRouter()
+	handler := NewHandler(&mockClient, "localhost:8080")
+	handler.RegisterHandlers(router)
+	rr := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/things/6773e864-78ab-4051-abc2-f4e9ab423ebb", nil)
+
+	router.ServeHTTP(rr, req)
+	assert.Equal(t, 405, rr.Code, "TestMethodNotAllowed failed: status codes do not match!")
 }
 
 func TestHappyHealthCheck(t *testing.T) {
 	d := new(mockedDriver)
 	d.On("checkConnectivity").Return(nil)
 
-	hs := &HealthService{ThingsDriver:d}
+	hs := &HealthService{ThingsDriver: d}
 
 	rec := httptest.NewRecorder()
 	r := mux.NewRouter()
@@ -330,7 +289,7 @@ func TestUnhappyHealthCheck(t *testing.T) {
 	d := new(mockedDriver)
 	d.On("checkConnectivity").Return(errors.New("computer says no"))
 
-	hs := &HealthService{ThingsDriver:d}
+	hs := &HealthService{ThingsDriver: d}
 
 	rec := httptest.NewRecorder()
 	r := mux.NewRouter()
@@ -349,14 +308,14 @@ func TestUnhappyHealthCheck(t *testing.T) {
 	assert.Len(t, result.Checks, 1)
 	assert.False(t, result.Ok)
 	assert.False(t, result.Checks[0].Ok)
-	assert.Equal(t, "computer says no", result.Checks[0].Output)
+	assert.Equal(t, "computer says no", result.Checks[0].CheckOutput)
 }
 
 func TestHealthCheckTimeout(t *testing.T) {
 	d := new(mockedDriver)
 	d.On("checkConnectivity").Return(nil).After(11 * time.Second)
 
-	hs := &HealthService{ThingsDriver:d}
+	hs := &HealthService{ThingsDriver: d}
 
 	rec := httptest.NewRecorder()
 	r := mux.NewRouter()
@@ -375,6 +334,254 @@ func TestHealthCheckTimeout(t *testing.T) {
 	assert.Len(t, result.Checks, 1)
 	assert.False(t, result.Ok)
 	assert.False(t, result.Checks[0].Ok)
+}
+
+var getConmpleteThingAsConcept = `{
+	"id": "http://www.ft.com/thing/6773e864-78ab-4051-abc2-f4e9ab423ebb",
+	"apiUrl": "http://api.ft.com/concepts/6773e864-78ab-4051-abc2-f4e9ab423ebb",
+	"type": "http://www.ft.com/ontology/product/Brand",
+	"prefLabel": "Brussels blog",
+	"descriptionXML": "This blog covers everything",
+	"imageURL": "http://im.ft-static.com/content/images/2f1be452-02f3-11e6-99cb-83242733f755.png",
+	"account": [
+		{
+			"type": "http://www.ft.com/ontology/twitterHandle",
+			"value": "@ftbrussels"
+		},
+		{
+			"type": "http://www.ft.com/ontology/facebookPage",
+			"value": "https://www.facebook.com/financialtimes/"
+		},
+		{
+			"type": "http://www.ft.com/ontology/emailAddress",
+			"value": "example@example.com"
+		}
+	],
+	"alternativeLabels": [
+		{
+			"type": "http://www.w3.org/2008/05/skos-xl#altLabel",
+			"value": "Brussels Blog"
+		}
+	],
+	"strapline": "Archived"
+}`
+
+var transformedCompleteThing = `{
+	"id":"http://api.ft.com/things/6773e864-78ab-4051-abc2-f4e9ab423ebb",
+	"apiUrl":"http://api.ft.com/brands/6773e864-78ab-4051-abc2-f4e9ab423ebb",
+	"prefLabel":"Brussels blog",
+	"types":[
+		"http://www.ft.com/ontology/core/Thing",
+		"http://www.ft.com/ontology/concept/Concept",
+		"http://www.ft.com/ontology/classification/Classification",
+		"http://www.ft.com/ontology/product/Brand"
+	],
+	"directType":"http://www.ft.com/ontology/product/Brand",
+	"aliases":[
+		"Brussels Blog"
+	],
+	"descriptionXML":"This blog covers everything",
+	"_imageUrl":"http://im.ft-static.com/content/images/2f1be452-02f3-11e6-99cb-83242733f755.png",
+	"emailAddress":"example@example.com",
+	"facebookPage":"https://www.facebook.com/financialtimes/",
+	"twitterHandle":"@ftbrussels"
+}`
+
+var getConmpleteThingWithRelationAsConcept = `{
+	"id": "http://api.ft.com/things/6773e864-78ab-4051-abc2-f4e9ab423ebb",
+	"apiUrl": "http://api.ft.com/brands/6773e864-78ab-4051-abc2-f4e9ab423ebb",
+	"type": "http://www.ft.com/ontology/product/Brand",
+	"prefLabel": "Brussels blog",
+	"descriptionXML": "This blog covers everything",
+	"imageURL": "http://im.ft-static.com/content/images/2f1be452-02f3-11e6-99cb-83242733f755.png",
+	"account": [],
+	"alternativeLabels": [],
+	"relatedConcepts": [
+		{
+			"concept": {
+				"id": "http://api.ft.com/things/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
+				"apiUrl": "http://api.ft.com/things/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
+				"type": "http://www.ft.com/ontology/Topic",
+				"prefLabel": "Neglected tropical diseases",
+				"alternativeLabels": []
+			},
+			"predicate": "http://www.ft.com/ontology/related"
+		}
+	],
+	"broaderConcepts": [
+		{
+			"concept": {
+				"id": "http://api.ft.com/things/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
+				"apiUrl": "http://api.ft.com/things/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
+				"type": "http://www.ft.com/ontology/Topic",
+				"prefLabel": "Broader",
+				"alternativeLabels": []
+			},
+			"predicate": "http://www.ft.com/ontology/broader"
+		}
+	],
+	"narrowerConcepts": [
+		{
+			"concept": {
+				"id": "http://api.ft.com/things/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
+				"apiUrl": "http://api.ft.com/things/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
+				"type": "http://www.ft.com/ontology/Topic",
+				"prefLabel": "Narrower",
+				"alternativeLabels": []
+			},
+			"predicate": "http://www.ft.com/ontology/narrower"
+		}
+	]
+}`
+
+var transformedCompleteThingWithRelation = `{
+	"id":"http://api.ft.com/things/6773e864-78ab-4051-abc2-f4e9ab423ebb",
+	"apiUrl":"http://api.ft.com/brands/6773e864-78ab-4051-abc2-f4e9ab423ebb",
+	"prefLabel":"Brussels blog",
+	"types":[
+		"http://www.ft.com/ontology/core/Thing",
+		"http://www.ft.com/ontology/concept/Concept",
+		"http://www.ft.com/ontology/classification/Classification",
+		"http://www.ft.com/ontology/product/Brand"
+	],
+	"directType":"http://www.ft.com/ontology/product/Brand",
+	"descriptionXML":"This blog covers everything",
+	"_imageUrl":"http://im.ft-static.com/content/images/2f1be452-02f3-11e6-99cb-83242733f755.png",
+	"narrowerConcepts":[
+		{
+			"id":"http://api.ft.com/things/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
+			"apiUrl":"http://api.ft.com/things/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
+			"prefLabel":"Narrower",
+			"types":[
+				"http://www.ft.com/ontology/core/Thing",
+				"http://www.ft.com/ontology/concept/Concept",
+				"http://www.ft.com/ontology/Topic"
+			],
+			"directType":"http://www.ft.com/ontology/Topic",
+			"predicate":"http://www.ft.com/ontology/narrower"
+		}
+	],
+	"broaderConcepts":[
+		{
+			"id":"http://api.ft.com/things/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
+			"apiUrl":"http://api.ft.com/things/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
+			"prefLabel":"Broader",
+			"types":[
+				"http://www.ft.com/ontology/core/Thing",
+				"http://www.ft.com/ontology/concept/Concept",
+				"http://www.ft.com/ontology/Topic"
+			],
+			"directType":"http://www.ft.com/ontology/Topic",
+			"predicate":"http://www.ft.com/ontology/broader"
+		}
+	],
+	"relatedConcepts":[
+		{
+			"id":"http://api.ft.com/things/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
+			"apiUrl":"http://api.ft.com/things/50d8fd9f-c4f3-42ae-9467-84a842c3c829",
+			"prefLabel":"Neglected tropical diseases",
+			"types":[
+				"http://www.ft.com/ontology/core/Thing",
+				"http://www.ft.com/ontology/concept/Concept",
+				"http://www.ft.com/ontology/Topic"
+			],
+			"directType":"http://www.ft.com/ontology/Topic",
+			"predicate":"http://www.ft.com/ontology/related"
+		}
+	]
+}`
+
+var brandAsConcept = `{
+	"id":"http://api.ft.com/things/c3e3fe44-93fb-11e8-8f42-da24cd01f044",
+	"apiUrl":"http://api.ft.com/concepts/c3e3fe44-93fb-11e8-8f42-da24cd01f044",
+	"prefLabel":"Brussels Blog",
+	"type":"http://www.ft.com/ontology/product/Brand",
+	"alternativeLabels":[
+		{
+			"type": "http://www.w3.org/2008/05/skos-xl#altLabel",
+			"value": "Brussels Blog"
+		},
+		{
+			"type": "http://www.ft.com/ontology/shortLabel",
+			"value": "BrusselsBlog"
+		}
+	],
+	"broaderConcepts": [
+		{
+			
+			"predicate": "http://www.ft.com/ontology/subBrandOf",
+			"concept": {
+				"id": "http://api.ft.com/things/58ff7494-8684-4473-a73d-1c02715be17e",
+				"apiUrl": "http://api.ft.com/concepts/58ff7494-8684-4473-a73d-1c02715be17e",
+				"type": "http://www.ft.com/ontology/product/Brand",
+				"prefLabel": "Broader"
+			}
+		}
+	],
+	"narrowerConcepts": [
+		{
+			"predicate": "http://www.ft.com/ontology/hasSubBrand",
+			"concept": {
+				"id": "http://api.ft.com/things/1c4e60c4-93fc-11e8-8f42-da24cd01f044",
+				"apiUrl": "http://api.ft.com/concepts/1c4e60c4-93fc-11e8-8f42-da24cd01f044",
+				"type": "http://www.ft.com/ontology/product/Brand",
+				"prefLabel": "Narrower"
+			}
+		}
+	]
+}`
+
+var transformedBrand = `{
+	"id":"http://api.ft.com/things/c3e3fe44-93fb-11e8-8f42-da24cd01f044",
+	"apiUrl":"http://api.ft.com/brands/c3e3fe44-93fb-11e8-8f42-da24cd01f044",
+	"prefLabel":"Brussels Blog",
+	"types":[
+		"http://www.ft.com/ontology/core/Thing",
+		"http://www.ft.com/ontology/concept/Concept",
+		"http://www.ft.com/ontology/classification/Classification",
+		"http://www.ft.com/ontology/product/Brand"
+	],
+	"directType":"http://www.ft.com/ontology/product/Brand",
+	"aliases":[
+		"Brussels Blog"
+	],
+	"shortLabel":"BrusselsBlog",
+	"narrowerConcepts":[
+		{
+			"id":"http://api.ft.com/things/1c4e60c4-93fc-11e8-8f42-da24cd01f044",
+			"apiUrl":"http://api.ft.com/brands/1c4e60c4-93fc-11e8-8f42-da24cd01f044",
+			"prefLabel":"Narrower",
+			"types":[
+				"http://www.ft.com/ontology/core/Thing",
+				"http://www.ft.com/ontology/concept/Concept",
+				"http://www.ft.com/ontology/classification/Classification",
+				"http://www.ft.com/ontology/product/Brand"
+			],
+			"directType":"http://www.ft.com/ontology/product/Brand",
+			"predicate":"http://www.w3.org/2004/02/skos/core#narrower"
+		}
+	],
+	"broaderConcepts":[
+		{
+			"id":"http://api.ft.com/things/58ff7494-8684-4473-a73d-1c02715be17e",
+			"apiUrl":"http://api.ft.com/brands/58ff7494-8684-4473-a73d-1c02715be17e",
+			"prefLabel":"Broader",
+			"types":[
+				"http://www.ft.com/ontology/core/Thing",
+				"http://www.ft.com/ontology/concept/Concept",
+				"http://www.ft.com/ontology/classification/Classification",
+				"http://www.ft.com/ontology/product/Brand"
+			],
+			"directType":"http://www.ft.com/ontology/product/Brand",
+			"predicate":"http://www.w3.org/2004/02/skos/core#broader"
+		}
+	]
+}`
+
+func transformBody(testBody string) string {
+	stripNewLines := strings.Replace(testBody, "\n", "", -1)
+	stripTabs := strings.Replace(stripNewLines, "\t", "", -1)
+	return stripTabs + "\n"
 }
 
 type mockedDriver struct {

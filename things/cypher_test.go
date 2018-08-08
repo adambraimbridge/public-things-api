@@ -12,6 +12,7 @@ import (
 	"github.com/Financial-Times/base-ft-rw-app-go/baseftrwapp"
 	"github.com/Financial-Times/concepts-rw-neo4j/concepts"
 	"github.com/Financial-Times/content-rw-neo4j/content"
+	"github.com/Financial-Times/go-logger"
 	"github.com/Financial-Times/neo-model-utils-go/mapper"
 	"github.com/Financial-Times/neo-utils-go/neoutils"
 	"github.com/Financial-Times/organisations-rw-neo4j/organisations"
@@ -40,6 +41,7 @@ var db neoutils.NeoConnection
 func init() {
 	// We are initialising a lot of constraints on an empty database therefore we need the database to be fit before
 	// we run tests so initialising the service will create the constraints first
+	logger.InitDefaultLogger("test-service")
 	conf := neoutils.DefaultConnectionConfig()
 	conf.Transactional = false
 	db, _ = neoutils.Connect(neoUrl(), conf)

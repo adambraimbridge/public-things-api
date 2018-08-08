@@ -2,24 +2,62 @@ package things
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 	"sync"
-	"errors"
 
+	"github.com/Financial-Times/go-logger"
+	"github.com/Financial-Times/neo-model-utils-go/mapper"
+	"github.com/Financial-Times/transactionid-utils-go"
 	"github.com/gorilla/mux"
-	log "github.com/sirupsen/logrus"
 	gouuid "github.com/satori/go.uuid"
+	log "github.com/sirupsen/logrus"
+	"io/ioutil"
 )
 
 type RequestHandler struct {
-	ThingsDriver          Driver
-	CacheControllerHeader string
+	HttpClient  httpClient
+	ConceptsURL string
 }
 
-const validUUID = "([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$"
+var CacheControlHeader string
+
+const (
+	validUUID       = "([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$"
+	shortLabelURI   = "http://www.ft.com/ontology/shortLabel"
+	aliasLabelURI   = "http://www.w3.org/2008/05/skos-xl#altLabel"
+	emailAddressURI = "http://www.ft.com/ontology/emailAddress"
+	facebookPageURI = "http://www.ft.com/ontology/facebookPage"
+	twitterURI      = "http://www.ft.com/ontology/twitterHandle"
+	thingsApiUrl    = "http://api.ft.com/things/"
+	ftThing         = "http://www.ft.com/thing/"
+)
+
+var brandPredicateMap = map[string]string{
+	"http://www.ft.com/ontology/subBrandOf":  "http://www.w3.org/2004/02/skos/core#broader",
+	"http://www.ft.com/ontology/hasSubBrand": "http://www.w3.org/2004/02/skos/core#narrower",
+}
+
+type httpClient interface {
+	Do(req *http.Request) (resp *http.Response, err error)
+}
+
+func NewHandler(client httpClient, conceptsURL string) RequestHandler {
+	return RequestHandler{
+		HttpClient:  client,
+		ConceptsURL: conceptsURL,
+	}
+}
+
+func (h *RequestHandler) RegisterHandlers(router *mux.Router) {
+	router.HandleFunc("/things/{uuid}", h.GetThing).Methods("GET")
+	router.HandleFunc("/things", h.GetThings).Methods("GET")
+	router.HandleFunc("/things/{uuid}", h.MethodNotAllowedHandler)
+}
 
 // MethodNotAllowedHandler handles 405
 func (rh *RequestHandler) MethodNotAllowedHandler(w http.ResponseWriter, r *http.Request) {
@@ -32,10 +70,10 @@ func (rh *RequestHandler) MethodNotAllowedHandler(w http.ResponseWriter, r *http
 func (rh *RequestHandler) GetThing(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	uuid := vars["uuid"]
-
+	transID := transactionidutils.GetTransactionIDFromRequest(r)
 	relationships := r.URL.Query()["showRelationship"]
-
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+
 	if uuid == "" {
 		http.Error(w, "uuid required", http.StatusBadRequest)
 		return
@@ -46,7 +84,7 @@ func (rh *RequestHandler) GetThing(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	thng, found, err := rh.ThingsDriver.read(uuid, relationships)
+	thing, found, err := rh.getThingViaConceptsApi(uuid, relationships, transID)
 	if err != nil {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		msg := fmt.Sprintf(`{"message":"Error getting thing with uuid %s, err=%s"}`, uuid, err.Error())
@@ -61,19 +99,19 @@ func (rh *RequestHandler) GetThing(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//if the request was not made for the canonical, but an alternate uuid: redirect
-	if !strings.Contains(thng.ID, uuid) {
+	if !strings.Contains(thing.ID, uuid) {
 		validRegexp := regexp.MustCompile(validUUID)
-		canonicalUUID := validRegexp.FindString(thng.ID)
+		canonicalUUID := validRegexp.FindString(thing.ID)
 		redirectURL := strings.Replace(r.URL.String(), uuid, canonicalUUID, 1)
 		w.Header().Set("Location", redirectURL)
 		w.WriteHeader(http.StatusMovedPermanently)
 		return
 	}
 
-	w.Header().Set("Cache-Control", rh.CacheControllerHeader)
+	w.Header().Set("Cache-Control", CacheControlHeader)
 	w.WriteHeader(http.StatusOK)
 
-	if err = json.NewEncoder(w).Encode(thng); err != nil {
+	if err = json.NewEncoder(w).Encode(thing); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		msg := fmt.Sprintf(`{"message":"Error parsing thing with uuid %s, err=%s"}`, uuid, err.Error())
 		w.Write([]byte(msg))
@@ -102,8 +140,8 @@ func (rh *RequestHandler) GetThing(w http.ResponseWriter, r *http.Request) {
 // 	found things. Since we are handling the resolution of non canonical uuids, returned thing payloads may not have the same
 // 	requested/associated uuid.
 func (rh *RequestHandler) GetThings(w http.ResponseWriter, r *http.Request) {
-
 	queryParams := r.URL.Query()
+	transID := transactionidutils.GetTransactionIDFromRequest(r)
 	relationships := queryParams["showRelationship"]
 	uuids := queryParams["uuid"]
 
@@ -130,7 +168,7 @@ func (rh *RequestHandler) GetThings(w http.ResponseWriter, r *http.Request) {
 
 	// start getting things
 	for _, uuid := range uuids {
-		go rh.getChanneledThing(uuid, relationships, uctCh, errCh, &wg)
+		go rh.getChanneledThing(uuid, relationships, transID, uctCh, errCh, &wg)
 	}
 
 	// start watching the sync bucket and close the channel
@@ -146,7 +184,7 @@ func (rh *RequestHandler) GetThings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Cache-Control", rh.CacheControllerHeader)
+	w.Header().Set("Cache-Control", CacheControlHeader)
 	w.WriteHeader(http.StatusOK)
 
 	result := make(map[string]map[string]Concept)
@@ -159,11 +197,11 @@ func (rh *RequestHandler) GetThings(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (rh *RequestHandler) getChanneledThing(uuid string, relationships []string, uctCh chan *uuidConceptTuple,
+func (rh *RequestHandler) getChanneledThing(uuid string, relationships []string, transID string, uctCh chan *uuidConceptTuple,
 	errCh chan *uuidErrorTuple, wg *sync.WaitGroup) {
 
 	defer wg.Done()
-	thing, found, err := rh.ThingsDriver.read(uuid, relationships)
+	thing, found, err := rh.getThingViaConceptsApi(uuid, relationships, transID)
 
 	if err != nil {
 		errCh <- &uuidErrorTuple{uuid, err}
@@ -178,7 +216,7 @@ func (rh *RequestHandler) getChanneledThing(uuid string, relationships []string,
 		validRegexp := regexp.MustCompile(validUUID)
 
 		canonicalUUID := validRegexp.FindString(thing.ID)
-		thing, found, err = rh.ThingsDriver.read(canonicalUUID, relationships)
+		thing, found, err = rh.getThingViaConceptsApi(canonicalUUID, relationships, transID)
 
 		if err != nil {
 			errCh <- &uuidErrorTuple{uuid, err}
@@ -242,4 +280,130 @@ func validateUUID(uuids ...string) error {
 		}
 	}
 	return nil
+}
+
+func (rh *RequestHandler) getThingViaConceptsApi(UUID string, relationships []string, transID string) (Concept, bool, error) {
+	mappedConcept := Concept{}
+
+	u, err := url.Parse(rh.ConceptsURL)
+	if err != nil {
+		msg := fmt.Sprint("URL of Concepts API is invalid")
+		logger.WithError(err).WithUUID(UUID).WithTransactionID(transID).Error(msg)
+		return mappedConcept, false, err
+	}
+	u.Path = "/concepts/" + UUID
+	q := u.Query()
+	for _, relationship := range relationships {
+		q.Add("showRelationship", relationship)
+	}
+	u.RawQuery = q.Encode()
+	reqURL := u.String()
+	request, err := http.NewRequest("GET", reqURL, nil)
+	if err != nil {
+		msg := fmt.Sprintf("failed to create request to %s", reqURL)
+		logger.WithError(err).WithUUID(UUID).WithTransactionID(transID).Error(msg)
+		return mappedConcept, false, err
+	}
+
+	request.Header.Set("X-Request-Id", transID)
+	resp, err := rh.HttpClient.Do(request)
+	if err != nil {
+		msg := fmt.Sprintf("request to %s returned status: %d", reqURL, resp.StatusCode)
+		logger.WithError(err).WithUUID(UUID).WithTransactionID(transID).Error(msg)
+		return mappedConcept, false, err
+	}
+	if resp.StatusCode == http.StatusNotFound {
+		return mappedConcept, false, nil
+	}
+
+	conceptsApiResponse := ConceptApiResponse{}
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		msg := fmt.Sprintf("failed to read response body: %v", resp.Body)
+		logger.WithError(err).WithUUID(UUID).WithTransactionID(transID).Error(msg)
+		return mappedConcept, false, err
+	}
+	if err = json.Unmarshal(body, &conceptsApiResponse); err != nil {
+		msg := fmt.Sprintf("failed to unmarshal response body: %v", body)
+		logger.WithError(err).WithUUID(UUID).WithTransactionID(transID).Error(msg)
+		return mappedConcept, false, err
+	}
+	var altLabels []string
+	mappedConcept.ID = convertID(conceptsApiResponse.ID)
+	mappedConcept.APIURL = mapper.APIURL(UUID, []string{extractFinalSectionOfString(conceptsApiResponse.Type)}, "")
+	mappedConcept.PrefLabel = conceptsApiResponse.PrefLabel
+	mappedConcept.DirectType = conceptsApiResponse.Type
+	mappedConcept.Types = mapper.FullTypeHierarchy(conceptsApiResponse.Type)
+
+	for _, keypair := range conceptsApiResponse.AlternativeLabels {
+		switch {
+		case keypair.Type == aliasLabelURI:
+			altLabels = append(altLabels, keypair.Value)
+		case keypair.Type == shortLabelURI:
+			mappedConcept.ShortLabel = keypair.Value
+		}
+	}
+	mappedConcept.Aliases = altLabels
+	mappedConcept.DescriptionXML = conceptsApiResponse.DescriptionXML
+	mappedConcept.ImageURL = conceptsApiResponse.ImageURL
+	for _, social := range conceptsApiResponse.Account {
+		mapTypedValues(&mappedConcept, social)
+	}
+	mappedConcept.ScopeNote = conceptsApiResponse.ScopeNote
+
+	if len(conceptsApiResponse.Broader) > 0 {
+		mappedConcept.BroaderConcepts = convertRelationship(conceptsApiResponse.Broader)
+	}
+	if len(conceptsApiResponse.Narrower) > 0 {
+		mappedConcept.NarrowerConcepts = convertRelationship(conceptsApiResponse.Narrower)
+	}
+	if len(conceptsApiResponse.Related) > 0 {
+		mappedConcept.RelatedConcepts = convertRelationship(conceptsApiResponse.Related)
+	}
+
+	return mappedConcept, true, nil
+}
+
+func extractFinalSectionOfString(stringToTransform string) string {
+	ss := strings.Split(stringToTransform, "/")
+	return ss[len(ss)-1]
+}
+
+func convertRelationship(relationships []Relationship) []Thing {
+	var convertedRelationships []Thing
+	for _, rc := range relationships {
+		convertedRelationships = append(convertedRelationships, Thing{
+			ID:         convertID(rc.Concept.ID),
+			APIURL:     mapper.APIURL(extractFinalSectionOfString(rc.Concept.ID), []string{extractFinalSectionOfString(rc.Concept.Type)}, ""),
+			Types:      mapper.FullTypeHierarchy(rc.Concept.Type),
+			DirectType: rc.Concept.Type,
+			PrefLabel:  rc.Concept.PrefLabel,
+			Predicate:  mapPredicate(rc.Predicate),
+		})
+	}
+	return convertedRelationships
+}
+
+func mapTypedValues(concept *Concept, keypair TypedValue) {
+	switch keypair.Type {
+	case emailAddressURI:
+		concept.EmailAddress = keypair.Value
+	case facebookPageURI:
+		concept.FacebookPage = keypair.Value
+	case twitterURI:
+		concept.TwitterHandle = keypair.Value
+	default:
+		logger.Errorf("Type %s not currently supported", keypair.Type)
+	}
+}
+
+func convertID(conceptsApiID string) string {
+	return strings.Replace(conceptsApiID, ftThing, thingsApiUrl, 1)
+}
+
+func mapPredicate(conceptPredicate string) string {
+	if _, ok := brandPredicateMap[conceptPredicate]; ok {
+		return brandPredicateMap[conceptPredicate]
+	}
+	return conceptPredicate
 }
