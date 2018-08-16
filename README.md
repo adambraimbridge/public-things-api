@@ -3,6 +3,8 @@
 # Public API for Things (public-things-api)
 __Provides a public API for Things stored in a Neo4J graph database__
 
+Things are being migrated to be served from the new [Public Concepts API](https://github.com/Financial-Times/public-concepts-api) and as such this API will eventually be deprecated. From July 2018 requests to this service will be redirected via the concepts api then transformed to match the existing contract and returned.
+
 ## Installation
 
 Download the source code, dependencies and test dependencies:
