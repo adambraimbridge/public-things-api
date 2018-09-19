@@ -22,7 +22,7 @@ paths:
       summary: Healthchecks
       description: Runs application healthchecks and returns FT Healthcheck style json.
       produces:
-        - application/json; charset=UTF-8
+        - application/json
       tags:
         - Health
       responses:
