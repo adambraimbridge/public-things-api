@@ -22,7 +22,7 @@ paths:
       summary: Healthchecks
       description: Runs application healthchecks and returns FT Healthcheck style json.
       produces:
-        - application/json
+        - application/json; charset=UTF-8
       tags:
         - Health
       responses:
@@ -55,12 +55,12 @@ paths:
       tags:
         - Health
       produces:
-          - text/plain; charset=US-ASCII
+          - text/plain;  charset=UTF-8
       responses:
         200:
           description: The application is healthy enough to perform all its functions correctly - i.e. good to go.
           examples:
-               text/plain; charset=US-ASCII: OK
+               text/plain;  charset=UTF-8: OK
         503:
           description: >
             One or more of the applications healthchecks have failed,
@@ -91,16 +91,16 @@ paths:
       description: >
         Fetches the thing with the provided uuid
       produces:
-        - application/json
+        - application/json;  charset=UTF-8
       tags:
         - Public API
       parameters:
         - name: uuid
           in: path
           description: The UUID of the things
+          x-example: de5fe64c-eaf8-3232-8a0b-19f9ccdd5bf0
           required: true
           type: string
-          x-example: de5fe64c-eaf8-3232-8a0b-19f9ccdd5bf0
         - name: showRelationship
           in: query
           type: array
@@ -115,8 +115,6 @@ paths:
       responses:
         200:
           description: Get thing response
-          schema:
-            $ref: '#/definitions/concept'
           examples:
             application/json:
               id: http://www.ft.com/thing/de5fe64c-eaf8-3232-8a0b-19f9ccdd5bf0
@@ -125,7 +123,7 @@ paths:
               prefLabel: Professor of the Month
               alternativeLabels: 
                 - type: http://www.w3.org/2008/05/skos-xl#altLabel
-                - value: Professor of the Month  
+                  value: Professor of the Month  
               aliases:
                 - Professor of the Month
               isDeprecated: true
@@ -150,7 +148,7 @@ paths:
               - related
           required: false
       produces:
-        - application/json
+        - application/json;  charset=UTF-8
       tags:
         - Public API
       description: >
@@ -163,106 +161,17 @@ paths:
             properties:
               things:
                 type: object
-                additionalProperties:
-                  $ref: '#/definitions/concept'
           examples:
             application/json:
               things:
-                a11fa00f-777d-484a-9ebc-fbf81b774fc0:
-                  id: http://api.ft.com/things/de5fe64c-eaf8-3232-8a0b-19f9ccdd5bf0
-              apiUrl: http://api.ft.com/brands/de5fe64c-eaf8-3232-8a0b-19f9ccdd5bf0
-              prefLabel: Professor of the Month
-              types:
-                - http://www.ft.com/ontology/core/Thing
-                - http://www.ft.com/ontology/concept/Concept
-                - http://www.ft.com/ontology/classification/Classification
-                - http://www.ft.com/ontology/product/Brand
-              directType: http://www.ft.com/ontology/product/Brand
-              aliases:
-                - Professor of the Month
-definitions:
-  concept:
-    type: object
-    title: Concept
-    properties:
-      id:
-        type: string
-        description: The canonical ID of the concept
-      apiUrl:
-        type: string
-        description: Api url of the concept
-      prefLabel:
-        type: string
-        description: Label
-        x-example: Solar wars
-      types:
-        type: array
-        items:
-          type: string
-          description: Concept types
-      directType:
-        type: string
-        description: Direct type
-      aliases:
-        type: array
-        items:
-          type: string
-      descriptionXML:
-        type: string
-      imageUrl:
-        type: string
-      emailAddress:
-        type: string
-      facebookPage:
-        type: string
-      twitterHandle:
-        type: string
-      scopeNote:
-        type: string
-      shortLabel:
-        type: string
-      narrowerConcepts:
-        type: array
-        items:
-          $ref: '#/definitions/thing'
-      broaderConcepts:
-        type: array
-        items:
-          $ref: '#/definitions/thing'
-      relatedConcepts:
-        type: array
-        items:
-          $ref: '#/definitions/thing'
-    required:
-      - id
-      - apiUrl
-      - types
-  thing:
-    type: object
-    title: Title
-    properties:
-      id:
-        type: string
-        description: The canonical ID of the concept
-      apiUrl:
-        type: string
-        description: Api url of the concept
-      prefLabel:
-        type: string
-        description: Label
-        x-example: Solar wars
-      types:
-        type: array
-        items:
-          type: string
-          description: Concept types
-      directType:
-        type: string
-        description: Direct type
-      predicate:
-        type: string
-    required:
-      - id
-      - apiUrl
-      - types
-
+                id: http://api.ft.com/things/de5fe64c-eaf8-3232-8a0b-19f9ccdd5bf0
+                apiUrl: http://api.ft.com/brands/de5fe64c-eaf8-3232-8a0b-19f9ccdd5bf0
+                prefLabel: Professor of the Month
+                types:
+                  - http://www.ft.com/ontology/core/Thing
+                  - http://www.ft.com/ontology/concept/Concept
+                  - http://www.ft.com/ontology/classification/Classification
+                  - http://www.ft.com/ontology/product/Brand
+                directType: http://www.ft.com/ontology/product/Brand
+                aliases:
+                  - Professor of the Month

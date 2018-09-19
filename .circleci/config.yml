@@ -1,12 +1,6 @@
 version: 2
 workflows:
   version: 2
-  build-docker-image:
-    jobs:
-      - build
-      - dockerfile:
-          requires:
-            - build
   tests_and_docker:
     jobs:
       - build
@@ -98,7 +92,7 @@ jobs:
       - run:
           name: Dredd API Testing
           command: dredd
-  dockerfile:
+  docker_build:
     docker:
       - image: docker:stable-git
     steps:

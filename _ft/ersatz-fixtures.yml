@@ -1,6 +1,6 @@
 version: "1.0.0"
 fixtures:
-  /concepts/de5fe64c-eaf8-3232-8a0b-19f9ccdd5bf0:
+  /things/de5fe64c-eaf8-3232-8a0b-19f9ccdd5bf0:
     get:
       status: 200
       produces:
@@ -13,8 +13,8 @@ fixtures:
         type: http://www.ft.com/ontology/product/Brand
         prefLabel: "Professor of the Month"
         alternativeLabels:
-        - type: http://www.w3.org/2008/05/skos-xl#altLabel
-          value: "Professor of the Mont"
+            - type: http://www.w3.org/2008/05/skos-xl#altLabel
+              value: "Professor of the Month"
         isDeprecated: true
   /__health:
     get:

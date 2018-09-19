@@ -70,7 +70,7 @@ func (h *ThingsHandler) HealthCheck() fthealth.Check {
 		Name:             "Check connectivity to public-concepts-api",
 		PanicGuide:       "https://dewey.ft.com/public-things-api.html",
 		Severity:         2,
-		TechnicalSummary: "Not being able to communicate with public-concepts-api means that requests for organisations cannot be performed.",
+		TechnicalSummary: "Not being able to communicate with public-concepts-api means that requests for things cannot be performed.",
 		Checker:          h.Checker,
 	}
 }
@@ -432,7 +432,7 @@ func (h *ThingsHandler) Checker() (string, error) {
 		return "", err
 	}
 
-	req.Header.Add("User-Agent", "UPP public-organisations-api")
+	req.Header.Add("User-Agent", "UPP public-things-api")
 
 	resp, err := h.client.Do(req)
 	if err != nil {

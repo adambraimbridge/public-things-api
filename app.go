@@ -89,11 +89,11 @@ func main() {
 	})
 
 	logger.InitLogger(*appSystemCode, *logLevel)
-	logger.Infof("[Startup] public-organisations-api is starting ")
+	logger.Infof("[Startup] public-things-api is starting ")
 
 	app.Action = func() {
 		baseftrwapp.OutputMetricsIfRequired(*graphiteTCPAddress, *graphitePrefix, *logMetrics)
-		log.Infof("public-organisations-api will listen on port: %s", *port)
+		log.Infof("public-things-api will listen on port: %s", *port)
 		runServer(*port, *cacheDuration, *env, *publicConceptsApiURL)
 
 	}
