@@ -100,7 +100,7 @@ paths:
           description: The UUID of the things
           required: true
           type: string
-          x-example: 97c97db4-4a93-43a4-87c9-b04d7f5284c1
+          x-example: de5fe64c-eaf8-3232-8a0b-19f9ccdd5bf0
         - name: showRelationship
           in: query
           type: array
@@ -119,55 +119,16 @@ paths:
             $ref: '#/definitions/concept'
           examples:
             application/json:
-              id: http://api.ft.com/things/a11fa00f-777d-484a-9ebc-fbf81b774fc0
-              apiUrl: http://api.ft.com/things/a11fa00f-777d-484a-9ebc-fbf81b774fc0
-              prefLabel: Solar Wars
-              types:
-                - http://www.ft.com/ontology/core/Thing
-                - http://www.ft.com/ontology/concept/Concept
-                - http://www.ft.com/ontology/Topic
-              directType: http://www.ft.com/ontology/Topic
+              id: http://www.ft.com/thing/de5fe64c-eaf8-3232-8a0b-19f9ccdd5bf0
+              apiUrl: http://api.ft.com/concepts/de5fe64c-eaf8-3232-8a0b-19f9ccdd5bf0
+              type: http://www.ft.com/ontology/product/Brand
+              prefLabel: Professor of the Month
+              alternativeLabels: 
+                - type: http://www.w3.org/2008/05/skos-xl#altLabel
+                - value: Professor of the Month  
               aliases:
-                - Solar Wars
-              narrowerConcepts:
-                - id: http://api.ft.com/things/0ff1c1c9-970a-4f05-9f97-c5150f8f907e
-                  apiUrl: http://api.ft.com/things/0ff1c1c9-970a-4f05-9f97-c5150f8f907e
-                  prefLabel: Macroeconomics
-                  types:
-                    - http://www.ft.com/ontology/core/Thing
-                    - http://www.ft.com/ontology/concept/Concept
-                    - http://www.ft.com/ontology/Topic
-                  directType: http://www.ft.com/ontology/Topic
-                  predicate: http://www.w3.org/2004/02/skos/core#narrower
-              broaderConcepts:
-                - id: http://api.ft.com/things/49181791-a1a9-4966-ac30-010846ec76d8
-                  apiUrl: http://api.ft.com/things/49181791-a1a9-4966-ac30-010846ec76d8
-                  prefLabel: Trade disputes
-                  types:
-                    - http://www.ft.com/ontology/core/Thing
-                    - http://www.ft.com/ontology/concept/Concept
-                    - http://www.ft.com/ontology/Topic
-                  directType: http://www.ft.com/ontology/Topic
-                  predicate: http://www.w3.org/2004/02/skos/core#broader
-                - id: http://api.ft.com/things/243243d9-de4b-4869-909b-fab711125624
-                  apiUrl: http://api.ft.com/things/243243d9-de4b-4869-909b-fab711125624
-                  prefLabel: Global Trade
-                  types:
-                    - http://www.ft.com/ontology/core/Thing
-                    - http://www.ft.com/ontology/concept/Concept
-                    - http://www.ft.com/ontology/Topic
-                  directType: http://www.ft.com/ontology/Topic
-                  predicate: http://www.w3.org/2004/02/skos/core#broaderTransitive
-              relatedConcepts:
-                - id: http://api.ft.com/things/86fb0401-ec02-419d-a14e-74078cb8b662
-                  apiUrl: http://api.ft.com/things/86fb0401-ec02-419d-a14e-74078cb8b662
-                  prefLabel: Protectionism
-                  types:
-                    - http://www.ft.com/ontology/core/Thing
-                    - http://www.ft.com/ontology/concept/Concept
-                    - http://www.ft.com/ontology/Topic
-                  directType: http://www.ft.com/ontology/Topic
-                  predicate: http://www.w3.org/2004/02/skos/core#related
+                - Professor of the Month
+              isDeprecated: true
   /things:
     get:
       parameters:
@@ -208,56 +169,17 @@ paths:
             application/json:
               things:
                 a11fa00f-777d-484a-9ebc-fbf81b774fc0:
-                  id: http://api.ft.com/things/a11fa00f-777d-484a-9ebc-fbf81b774fc0
-                  apiUrl: http://api.ft.com/things/a11fa00f-777d-484a-9ebc-fbf81b774fc0
-                  prefLabel: Solar Wars
-                  types:
-                    - http://www.ft.com/ontology/core/Thing
-                    - http://www.ft.com/ontology/concept/Concept
-                    - http://www.ft.com/ontology/Topic
-                  directType: http://www.ft.com/ontology/Topic
-                  aliases:
-                    - Solar Wars
-                  narrowerConcepts:
-                    - id: http://api.ft.com/things/0ff1c1c9-970a-4f05-9f97-c5150f8f907e
-                      apiUrl: http://api.ft.com/things/0ff1c1c9-970a-4f05-9f97-c5150f8f907e
-                      prefLabel: Macroeconomics
-                      types:
-                        - http://www.ft.com/ontology/core/Thing
-                        - http://www.ft.com/ontology/concept/Concept
-                        - http://www.ft.com/ontology/Topic
-                      directType: http://www.ft.com/ontology/Topic
-                      predicate: http://www.w3.org/2004/02/skos/core#narrower
-                  broaderConcepts:
-                    - id: http://api.ft.com/things/49181791-a1a9-4966-ac30-010846ec76d8
-                      apiUrl: http://api.ft.com/things/49181791-a1a9-4966-ac30-010846ec76d8
-                      prefLabel: Trade disputes
-                      types:
-                        - http://www.ft.com/ontology/core/Thing
-                        - http://www.ft.com/ontology/concept/Concept
-                        - http://www.ft.com/ontology/Topic
-                      directType: http://www.ft.com/ontology/Topic
-                      predicate: http://www.w3.org/2004/02/skos/core#broader
-                    - id: http://api.ft.com/things/243243d9-de4b-4869-909b-fab711125624
-                      apiUrl: http://api.ft.com/things/243243d9-de4b-4869-909b-fab711125624
-                      prefLabel: Global Trade
-                      types:
-                        - http://www.ft.com/ontology/core/Thing
-                        - http://www.ft.com/ontology/concept/Concept
-                        - http://www.ft.com/ontology/Topic
-                      directType: http://www.ft.com/ontology/Topic
-                      predicate: http://www.w3.org/2004/02/skos/core#broaderTransitive
-                  relatedConcepts:
-                    - id: http://api.ft.com/things/86fb0401-ec02-419d-a14e-74078cb8b662
-                      apiUrl: http://api.ft.com/things/86fb0401-ec02-419d-a14e-74078cb8b662
-                      prefLabel: Protectionism
-                      types:
-                        - http://www.ft.com/ontology/core/Thing
-                        - http://www.ft.com/ontology/concept/Concept
-                        - http://www.ft.com/ontology/Topic
-                      directType: http://www.ft.com/ontology/Topic
-                      predicate: http://www.w3.org/2004/02/skos/core#related
-
+                  id: http://api.ft.com/things/de5fe64c-eaf8-3232-8a0b-19f9ccdd5bf0
+              apiUrl: http://api.ft.com/brands/de5fe64c-eaf8-3232-8a0b-19f9ccdd5bf0
+              prefLabel: Professor of the Month
+              types:
+                - http://www.ft.com/ontology/core/Thing
+                - http://www.ft.com/ontology/concept/Concept
+                - http://www.ft.com/ontology/classification/Classification
+                - http://www.ft.com/ontology/product/Brand
+              directType: http://www.ft.com/ontology/product/Brand
+              aliases:
+                - Professor of the Month
 definitions:
   concept:
     type: object

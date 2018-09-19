@@ -19,15 +19,17 @@ type Concept struct {
 	NarrowerConcepts []Thing  `json:"narrowerConcepts,omitempty"`
 	BroaderConcepts  []Thing  `json:"broaderConcepts,omitempty"`
 	RelatedConcepts  []Thing  `json:"relatedConcepts,omitempty"`
+	IsDeprecated     bool     `json:"isDeprecated,omitempty"`
 }
 
 type Thing struct {
-	ID         string   `json:"id"`
-	APIURL     string   `json:"apiUrl"`
-	PrefLabel  string   `json:"prefLabel,omitempty"`
-	Types      []string `json:"types"`
-	DirectType string   `json:"directType,omitempty"`
-	Predicate  string   `json:"predicate,omitempty"`
+	ID           string   `json:"id"`
+	APIURL       string   `json:"apiUrl"`
+	PrefLabel    string   `json:"prefLabel,omitempty"`
+	Types        []string `json:"types"`
+	DirectType   string   `json:"directType,omitempty"`
+	Predicate    string   `json:"predicate,omitempty"`
+	IsDeprecated bool     `json:"isDeprecated,omitempty"`
 }
 
 type ConceptApiResponse struct {
@@ -41,6 +43,7 @@ type ConceptApiResponse struct {
 	Broader           []Relationship `json:"broaderConcepts,omitempty"`
 	Narrower          []Relationship `json:"narrowerConcepts,omitempty"`
 	Related           []Relationship `json:"relatedConcepts,omitempty"`
+	IsDeprecated      bool           `json:"isDeprecated,omitempty"`
 }
 
 type TypedValue struct {
@@ -54,8 +57,9 @@ type Relationship struct {
 }
 
 type BasicConcept struct {
-	ID        string `json:"id,omitempty"`
-	ApiURL    string `json:"apiUrl,omitempty"`
-	Type      string `json:"type,omitempty"`
-	PrefLabel string `json:"prefLabel,omitempty"`
+	ID           string `json:"id,omitempty"`
+	ApiURL       string `json:"apiUrl,omitempty"`
+	Type         string `json:"type,omitempty"`
+	PrefLabel    string `json:"prefLabel,omitempty"`
+	IsDeprecated bool   `json:"isDeprecated,omitempty"`
 }

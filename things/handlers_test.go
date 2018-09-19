@@ -4,19 +4,17 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"github.com/Financial-Times/go-logger"
-	"github.com/stretchr/testify/mock"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"time"
 
-	fthealth "github.com/Financial-Times/go-fthealth/v1_1"
+	"github.com/Financial-Times/go-logger"
+	"github.com/stretchr/testify/mock"
+
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -62,7 +60,7 @@ func TestHandlers(t *testing.T) {
 		"GetThing - Basic successful request",
 		"/things/6773e864-78ab-4051-abc2-f4e9ab423ebb",
 		200,
-		getConmpleteThingAsConcept,
+		getCompleteThingAsConcept,
 		nil,
 		200,
 		transformedCompleteThing,
@@ -122,7 +120,7 @@ func TestHandlers(t *testing.T) {
 		"GetThing - redirect",
 		"/things/6773e864-78ab-4051-abc2-f4e9ab423ebc",
 		200,
-		getConmpleteThingAsConcept,
+		getCompleteThingAsConcept,
 		nil,
 		301,
 		``,
@@ -132,7 +130,7 @@ func TestHandlers(t *testing.T) {
 		"GetThing - redirect with relationships parameter",
 		"/things/6773e864-78ab-4051-abc2-f4e9ab423ebc?showRelationship=narrower",
 		200,
-		getConmpleteThingAsConcept,
+		getCompleteThingAsConcept,
 		nil,
 		301,
 		``,
@@ -172,7 +170,7 @@ func TestHandlers(t *testing.T) {
 		"GetThings - request with alternative uuid, which returns canonical uuid",
 		"/things?uuid=6773e864-78ab-4051-abc2-f4e9ab423ebc",
 		200,
-		getConmpleteThingAsConcept,
+		getCompleteThingAsConcept,
 		nil,
 		200,
 		`{"things":{"6773e864-78ab-4051-abc2-f4e9ab423ebc":` + transformedCompleteThing + `}}`,
@@ -208,14 +206,14 @@ func TestHandlers(t *testing.T) {
 		mockClient.statusCode = test.clientCode
 		mockClient.err = test.clientError
 
-		handler := NewHandler(&mockClient, "localhost:8080")
+		handler := NewHandler(&mockClient, "localhost:8080/concepts")
 		handler.RegisterHandlers(router)
 
 		rr := httptest.NewRecorder()
 		req, _ := http.NewRequest("GET", test.url, nil)
 
 		router.ServeHTTP(rr, req)
-		// assert.Equal(t, "application/json; charset=UTF-8", rr.Header().Get("Content-Type"))
+		//assert.Equal(t, "application/json; charset=UTF-8", rr.Header().Get("Content-Type"))
 		assert.Equal(t, test.expectedCode, rr.Code, test.name+" failed: status codes do not match!")
 		if rr.Code == http.StatusOK {
 			assert.Equal(t, transformBody(test.expectedBody), rr.Body.String(), test.name+" failed: status body does not match!")
@@ -225,7 +223,7 @@ func TestHandlers(t *testing.T) {
 	}
 }
 
-func TestInvalidConcpetsAPIURL(t *testing.T) {
+func TestInvalidConceptsAPIURL(t *testing.T) {
 	logger.InitLogger("test service", "debug")
 	mockClient := mockHTTPClient{
 		resp:       "",
@@ -239,7 +237,7 @@ func TestInvalidConcpetsAPIURL(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/things/6773e864-78ab-4051-abc2-f4e9ab423ebb", nil)
 
 	router.ServeHTTP(rr, req)
-	assert.Equal(t, 503, rr.Code, "TestInvalidConcpetsAPIURL failed: status codes do not match!")
+	assert.Equal(t, 503, rr.Code, "TestInvalidConceptsAPIURL failed: status codes do not match!")
 	assert.Equal(t, `{"message":"Error getting thing with uuid 6773e864-78ab-4051-abc2-f4e9ab423ebb, err=parse ://foo.com: missing protocol scheme"}`, rr.Body.String(), "TestInvalidConceptsAPIURL failed: status body does not match!")
 }
 
@@ -260,83 +258,30 @@ func TestMethodNotAllowed(t *testing.T) {
 	assert.Equal(t, 405, rr.Code, "TestMethodNotAllowed failed: status codes do not match!")
 }
 
-func TestHappyHealthCheck(t *testing.T) {
-	d := new(mockedDriver)
-	d.On("checkConnectivity").Return(nil)
+func TestDeprecatedConcept(t *testing.T) {
+	logger.InitLogger("test service", "debug")
+	var js BasicConcept
 
-	hs := &HealthService{ThingsDriver: d}
+	mockClient := mockHTTPClient{
+		resp:       deprecatedBrand,
+		statusCode: 200,
+		err:        nil,
+	}
+	router := mux.NewRouter()
+	handler := NewHandler(&mockClient, "localhost:8080/concepts")
 
-	rec := httptest.NewRecorder()
-	r := mux.NewRouter()
-	r.HandleFunc("/__health", hs.Health()).Methods("GET")
+	handler.RegisterHandlers(router)
 
-	req, err := http.NewRequest("GET", "/__health", nil)
-	require.NoError(t, err)
+	rr := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/things/de5fe64c-eaf8-3232-8a0b-19f9ccdd5bf0", nil)
 
-	r.ServeHTTP(rec, req)
+	router.ServeHTTP(rr, req)
+	_ = json.Unmarshal([]byte(rr.Body.String()), &js)
 
-	assert.Equal(t, http.StatusOK, rec.Code)
-
-	var result fthealth.HealthResult
-	err = json.NewDecoder(rec.Body).Decode(&result)
-	assert.NoError(t, err)
-	assert.Len(t, result.Checks, 1)
-	assert.True(t, result.Ok)
-	assert.True(t, result.Checks[0].Ok)
+	assert.Equal(t, true, js.IsDeprecated, "TestDeprecatedConcept failed: status body does not match!")
 }
 
-func TestUnhappyHealthCheck(t *testing.T) {
-	d := new(mockedDriver)
-	d.On("checkConnectivity").Return(errors.New("computer says no"))
-
-	hs := &HealthService{ThingsDriver: d}
-
-	rec := httptest.NewRecorder()
-	r := mux.NewRouter()
-	r.HandleFunc("/__health", hs.Health()).Methods("GET")
-
-	req, err := http.NewRequest("GET", "/__health", nil)
-	require.NoError(t, err)
-
-	r.ServeHTTP(rec, req)
-
-	assert.Equal(t, http.StatusOK, rec.Code)
-
-	var result fthealth.HealthResult
-	err = json.NewDecoder(rec.Body).Decode(&result)
-	assert.NoError(t, err)
-	assert.Len(t, result.Checks, 1)
-	assert.False(t, result.Ok)
-	assert.False(t, result.Checks[0].Ok)
-	assert.Equal(t, "computer says no", result.Checks[0].CheckOutput)
-}
-
-func TestHealthCheckTimeout(t *testing.T) {
-	d := new(mockedDriver)
-	d.On("checkConnectivity").Return(nil).After(11 * time.Second)
-
-	hs := &HealthService{ThingsDriver: d}
-
-	rec := httptest.NewRecorder()
-	r := mux.NewRouter()
-	r.HandleFunc("/__health", hs.Health()).Methods("GET")
-
-	req, err := http.NewRequest("GET", "/__health", nil)
-	require.NoError(t, err)
-
-	r.ServeHTTP(rec, req)
-
-	assert.Equal(t, http.StatusOK, rec.Code)
-
-	var result fthealth.HealthResult
-	err = json.NewDecoder(rec.Body).Decode(&result)
-	assert.NoError(t, err)
-	assert.Len(t, result.Checks, 1)
-	assert.False(t, result.Ok)
-	assert.False(t, result.Checks[0].Ok)
-}
-
-var getConmpleteThingAsConcept = `{
+var getCompleteThingAsConcept = `{
 	"id": "http://www.ft.com/thing/6773e864-78ab-4051-abc2-f4e9ab423ebb",
 	"apiUrl": "http://api.ft.com/concepts/6773e864-78ab-4051-abc2-f4e9ab423ebb",
 	"type": "http://www.ft.com/ontology/product/Brand",
@@ -576,6 +521,23 @@ var transformedBrand = `{
 			"predicate":"http://www.w3.org/2004/02/skos/core#broader"
 		}
 	]
+}`
+
+var deprecatedBrand = `{
+    "id": "http://api.ft.com/things/de5fe64c-eaf8-3232-8a0b-19f9ccdd5bf0",
+    "apiUrl": "http://api.ft.com/brands/de5fe64c-eaf8-3232-8a0b-19f9ccdd5bf0",
+	"prefLabel": "Professor of the Month",
+	"isDeprecated": true,
+	"types": [
+        "http://www.ft.com/ontology/core/Thing",
+        "http://www.ft.com/ontology/concept/Concept",
+        "http://www.ft.com/ontology/classification/Classification",
+        "http://www.ft.com/ontology/product/Brand"
+    ],
+    "directType": "http://www.ft.com/ontology/product/Brand",
+    "aliases": [
+        "Professor of the Month"
+    ]
 }`
 
 func transformBody(testBody string) string {
