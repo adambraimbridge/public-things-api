@@ -35,9 +35,6 @@ go build .
     Options:
         --neo-url="http://localhost:7474/db/data"   neo4j endpoint URL ($NEO_URL)
         --port="8080"                               Port to listen on ($PORT)
-        --graphiteTCPAddress=""                     Graphite TCP address, e.g. graphite.ft.com:2003. Leave as default if you do NOT want to output to graphite (e.g. if running locally) ($GRAPHITE_ADDRESS)
-        --graphitePrefix=""                         Prefix to use. Should start with content, include the environment, and the host name. e.g. coco.pre-prod.public-things-api.1 ($GRAPHITE_PREFIX)
-        --logMetrics=false                          Whether to log metrics. Set to true if running locally and you want metrics output ($LOG_METRICS)
         --env="local"                               environment this app is running in
         --cache-duration="30s"                      Duration Get requests should be cached for. e.g. 2h45m would set the max-age value to '7440' seconds ($CACHE_DURATION)
         --logLevel="info"                           Log level of the app ($LOG_LEVEL)
