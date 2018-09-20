@@ -1,6 +1,6 @@
 version: "1.0.0"
 fixtures:
-  /things/de5fe64c-eaf8-3232-8a0b-19f9ccdd5bf0:
+  /concepts/de5fe64c-eaf8-3232-8a0b-19f9ccdd5bf0:
     get:
       status: 200
       produces:

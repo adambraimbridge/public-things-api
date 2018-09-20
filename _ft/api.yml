@@ -9,13 +9,10 @@ info:
   contact:
     name: Universal Publishing
     email: universal.publishing@ft.com
-
 host: api.ft.com
-basePath: "/"
 schemes:
-  - http
   - https
-
+basePath: /
 paths:
   /__health:
     get:
@@ -48,6 +45,14 @@ paths:
                   checkOutput: Connectivity to neo4j is ok
                   lastUpdated: 2018-04-30T10:22:50.371968658Z
               ok: true
+        400:
+          description: Bad request if the uuid path parameter is  formatted formed or missing.
+        404:
+          description: Not Found if there is no thing record for the uuid path parameter is found.
+        500:
+          description: Internal Server Error if there was an issue processing the records.
+        503:
+          description: Service Unavailable if it cannot connect to Neo4j.
   # /__gtg:
   #   get:
   #     summary: Good To Go
