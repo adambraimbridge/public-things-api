@@ -93,6 +93,7 @@ jobs:
           name: Dredd API Testing
           command: dredd
   docker_build:
+    working_directory: /public-brands-api
     docker:
       - image: docker:stable-git
     steps:
