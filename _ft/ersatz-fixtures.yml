@@ -11,8 +11,7 @@ fixtures:
         id: http://www.ft.com/thing/de5fe64c-eaf8-3232-8a0b-19f9ccdd5bf0
         apiUrl: http://api.ft.com/concepts/de5fe64c-eaf8-3232-8a0b-19f9ccdd5bf0
         prefLabel: "Professor of the Month"
-        aliases: 
-          - "Professor of the Month"
+        aliases: "Professor of the Month"
         isDeprecated: true
   /__health:
     get:
