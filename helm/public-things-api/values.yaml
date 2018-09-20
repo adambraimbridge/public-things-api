@@ -8,12 +8,6 @@ replicaCount: 2
 image:
   repository: coco/public-things-api
   pullPolicy: IfNotPresent
-#resources:
-#  limits:
-#    memory: 256Mi
-env:
-  graphite:
-    prefix: "coco.services.k8s.public-things-api"
 resources:
   requests:
     memory: 32Mi
