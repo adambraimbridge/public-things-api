@@ -48,23 +48,23 @@ paths:
                   checkOutput: Connectivity to neo4j is ok
                   lastUpdated: 2018-04-30T10:22:50.371968658Z
               ok: true
-  /__gtg:
-    get:
-      summary: Good To Go
-      description: Lightly healthchecks the application, and returns a 200 if it's Good-To-Go.
-      tags:
-        - Health
-      produces:
-          - text/plain;  charset=UTF-8
-      responses:
-        200:
-          description: The application is healthy enough to perform all its functions correctly - i.e. good to go.
-          examples:
-               text/plain;  charset=UTF-8: OK
-        503:
-          description: >
-            One or more of the applications healthchecks have failed,
-            so please do not use the app. See the /__health endpoint for more detailed information.
+  # /__gtg:
+  #   get:
+  #     summary: Good To Go
+  #     description: Lightly healthchecks the application, and returns a 200 if it's Good-To-Go.
+  #     tags:
+  #       - Health
+  #     produces:
+  #         - text/plain;  charset=UTF-8
+  #     responses:
+  #       200:
+  #         description: The application is healthy enough to perform all its functions correctly - i.e. good to go.
+  #         examples:
+  #              text/plain;  charset=UTF-8: OK
+  #       503:
+  #         description: >
+  #           One or more of the applications healthchecks have failed,
+  #           so please do not use the app. See the /__health endpoint for more detailed information.
   /__build-info:
     get:
       summary: Build Information
@@ -127,51 +127,51 @@ paths:
               aliases:
                 - Professor of the Month
               isDeprecated: true
-  /things:
-    get:
-      parameters:
-        - name: uuid
-          in: query
-          required: true
-          type: array
-          items:
-            type: string
-        - name: showRelationship
-          in: query
-          type: array
-          items:
-            type: string
-            enum:
-              - broader
-              - broaderTransitive
-              - narrower
-              - related
-          required: false
-      produces:
-        - application/json;  charset=UTF-8
-      tags:
-        - Public API
-      description: >
-        Fetches the things with the provided uuids collection
-      responses:
-        200:
-          description: Get things response
-          schema:
-            type: object
-            properties:
-              things:
-                type: object
-          examples:
-            application/json:
-              things:
-                id: http://api.ft.com/things/de5fe64c-eaf8-3232-8a0b-19f9ccdd5bf0
-                apiUrl: http://api.ft.com/brands/de5fe64c-eaf8-3232-8a0b-19f9ccdd5bf0
-                prefLabel: Professor of the Month
-                types:
-                  - http://www.ft.com/ontology/core/Thing
-                  - http://www.ft.com/ontology/concept/Concept
-                  - http://www.ft.com/ontology/classification/Classification
-                  - http://www.ft.com/ontology/product/Brand
-                directType: http://www.ft.com/ontology/product/Brand
-                aliases:
-                  - Professor of the Month
+  # /things:
+  #   get:
+  #     parameters:
+  #       - name: uuid
+  #         in: query
+  #         required: true
+  #         type: array
+  #         items:
+  #           type: string
+  #       - name: showRelationship
+  #         in: query
+  #         type: array
+  #         items:
+  #           type: string
+  #           enum:
+  #             - broader
+  #             - broaderTransitive
+  #             - narrower
+  #             - related
+  #         required: false
+  #     produces:
+  #       - application/json;  charset=UTF-8
+  #     tags:
+  #       - Public API
+  #     description: >
+  #       Fetches the things with the provided uuids collection
+  #     responses:
+  #       200:
+  #         description: Get things response
+  #         schema:
+  #           type: object
+  #           properties:
+  #             things:
+  #               type: object
+  #         examples:
+  #           application/json:
+  #             things:
+  #               id: http://api.ft.com/things/de5fe64c-eaf8-3232-8a0b-19f9ccdd5bf0
+  #               apiUrl: http://api.ft.com/brands/de5fe64c-eaf8-3232-8a0b-19f9ccdd5bf0
+  #               prefLabel: Professor of the Month
+  #               types:
+  #                 - http://www.ft.com/ontology/core/Thing
+  #                 - http://www.ft.com/ontology/concept/Concept
+  #                 - http://www.ft.com/ontology/classification/Classification
+  #                 - http://www.ft.com/ontology/product/Brand
+  #               directType: http://www.ft.com/ontology/product/Brand
+  #               aliases:
+  #                 - Professor of the Month
