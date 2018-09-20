@@ -60,12 +60,12 @@ paths:
       tags:
         - Health
       produces:
-          - text/plain;  charset=US-ASCII
+          - text/plain; charset=US-ASCII
       responses:
         200:
           description: The application is healthy enough to perform all its functions correctly - i.e. good to go.
           examples:
-               text/plain;  charset=US-ASCII: OK
+               text/plain; charset=US-ASCII: OK
         503:
           description: >
             One or more of the applications healthchecks have failed,
@@ -96,7 +96,7 @@ paths:
       description: >
         Fetches the thing with the provided uuid
       produces:
-        - application/json;  charset=UTF-8
+        - application/json; charset=UTF-8
       tags:
         - Public API
       parameters:
@@ -149,7 +149,7 @@ paths:
   #             - related
   #         required: false
   #     produces:
-  #       - application/json;  charset=UTF-8
+  #       - application/json; charset=UTF-8
   #     tags:
   #       - Public API
   #     description: >
