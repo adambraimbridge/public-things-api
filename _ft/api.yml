@@ -60,12 +60,12 @@ paths:
       tags:
         - Health
       produces:
-          - text/plain;  charset=UTF-8
+          - text/plain;  charset=US-ASCII
       responses:
         200:
           description: The application is healthy enough to perform all its functions correctly - i.e. good to go.
           examples:
-               text/plain;  charset=UTF-8: OK
+               text/plain;  charset=US-ASCII: OK
         503:
           description: >
             One or more of the applications healthchecks have failed,
