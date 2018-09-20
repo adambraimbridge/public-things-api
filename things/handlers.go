@@ -10,13 +10,14 @@ import (
 	"strings"
 	"sync"
 
+	"io/ioutil"
+
 	"github.com/Financial-Times/go-logger"
 	"github.com/Financial-Times/neo-model-utils-go/mapper"
 	"github.com/Financial-Times/transactionid-utils-go"
 	"github.com/gorilla/mux"
 	gouuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
-	"io/ioutil"
 )
 
 type RequestHandler struct {
@@ -224,14 +225,14 @@ func (rh *RequestHandler) getChanneledThing(uuid string, relationships []string,
 		}
 
 		if !found {
-			log.Error("Referenced canonical uuid : %s is missing in graph store for %s, possible data inconsistency",
+			log.Errorf("Referenced canonical uuid : %s is missing in graph store for %s, possible data inconsistency",
 				canonicalUUID, uuid)
 			return
 		}
 
 		if !strings.Contains(thing.ID, canonicalUUID) {
 			// there should be one level of indirection to the canonical node
-			log.Warn("Multiple level of indirection to canonical node for uuid: %s, giving up traversing", uuid)
+			log.Warnf("Multiple level of indirection to canonical node for uuid: %s, giving up traversing", uuid)
 			return
 		}
 	}

@@ -7,7 +7,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Financial-Times/base-ft-rw-app-go/baseftrwapp"
+	"net"
+
 	httpHandlers "github.com/Financial-Times/http-handlers-go/httphandlers"
 	"github.com/Financial-Times/neo-utils-go/neoutils"
 	"github.com/Financial-Times/public-things-api/things"
@@ -18,7 +19,6 @@ import (
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/rcrowley/go-metrics"
 	log "github.com/sirupsen/logrus"
-	"net"
 )
 
 var httpClient = http.Client{
@@ -44,24 +44,6 @@ func main() {
 		Desc:   "Port to listen on",
 		EnvVar: "PORT",
 	})
-	graphiteTCPAddress := app.String(cli.StringOpt{
-		Name:   "graphiteTCPAddress",
-		Value:  "",
-		Desc:   "Graphite TCP address, e.g. graphite.ft.com:2003. Leave as default if you do NOT want to output to graphite (e.g. if running locally)",
-		EnvVar: "GRAPHITE_ADDRESS",
-	})
-	graphitePrefix := app.String(cli.StringOpt{
-		Name:   "graphitePrefix",
-		Value:  "",
-		Desc:   "Prefix to use. Should start with content, include the environment, and the host name. e.g. coco.pre-prod.public-things-api.1",
-		EnvVar: "GRAPHITE_PREFIX",
-	})
-	logMetrics := app.Bool(cli.BoolOpt{
-		Name:   "logMetrics",
-		Value:  false,
-		Desc:   "Whether to log metrics. Set to true if running locally and you want metrics output",
-		EnvVar: "LOG_METRICS",
-	})
 	env := app.String(cli.StringOpt{
 		Name:  "env",
 		Value: "local",
@@ -86,7 +68,6 @@ func main() {
 		EnvVar: "CONCEPTS_API",
 	})
 	app.Action = func() {
-		baseftrwapp.OutputMetricsIfRequired(*graphiteTCPAddress, *graphitePrefix, *logMetrics)
 		log.Infof("public-things-api will listen on port: %s, connecting to: %s", *port, *neoURL)
 		driver := driverForNeo4j(*neoURL, *env)
 		healthService := &things.HealthService{ThingsDriver: driver}
