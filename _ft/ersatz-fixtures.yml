@@ -1,6 +1,6 @@
 version: "1.0.0"
 fixtures:
-  /concepts/de5fe64c-eaf8-3232-8a0b-19f9ccdd5bf0:
+  /concepts/a11fa00f-777d-484a-9ebc-fbf81b774fc0:
     get:
       status: 200
       produces:
@@ -8,16 +8,95 @@ fixtures:
       headers:
         content-type: application/json; charset=UTF-8 
       body:
-        id: http://www.ft.com/thing/de5fe64c-eaf8-3232-8a0b-19f9ccdd5bf0
-        apiUrl: http://api.ft.com/concepts/de5fe64c-eaf8-3232-8a0b-19f9ccdd5bf0
-        prefLabel: "Professor of the Month"
+        id: http://www.ft.com/thing/a11fa00f-777d-484a-9ebc-fbf81b774fc0
+        apiUrl: http://api.ft.com/concepts/a11fa00f-777d-484a-9ebc-fbf81b774fc0
+        type: http://www.ft.com/ontology/Topic
+        prefLabel: Solar Wars
         alternativeLabels:
           - type: "http://www.w3.org/2008/05/skos-xl#altLabel"
-            value: "Professor of the Month"
+            value: "Solar Wars"
         isDeprecated: true
+  /concepts/a11fa00f-777d-484a-9ebc-fbf81b774fc0?showRelationship=broaderTransitive&showRelationship=related&showRelationship=narrower:
+    get:
+      status: 200
+      produces:
+        - application/json
+      headers:
+        content-type: application/json; charset=UTF-8 
+      body:
+        id: http://www.ft.com/thing/a11fa00f-777d-484a-9ebc-fbf81b774fc0
+        apiUrl: http://api.ft.com/concepts/a11fa00f-777d-484a-9ebc-fbf81b774fc0
+        type: http://www.ft.com/ontology/Topic
+        prefLabel: Solar Wars
+        alternativeLabels:
+          - type": "http://www.w3.org/2008/05/skos-xl#altLabel"
+            value: "Solar Wars"
+        broaderConcepts:
+          - predicate: http://www.w3.org/2004/02/skos/core#broader
+            concept:
+              id: http://www.ft.com/thing/49181791-a1a9-4966-ac30-010846ec76d8
+              apiUrl: http://api.ft.com/concepts/49181791-a1a9-4966-ac30-010846ec76d8
+              type: http://www.ft.com/ontology/Topic
+              prefLabel: Trade disputes
+              alternativeLabels:
+                - type: "http://www.w3.org/2008/05/skos-xl#altLabel"
+                  value: "Trade disputes"
+          - predicate: http://www.w3.org/2004/02/skos/core#broaderTransitive
+            concept:
+              id: http://www.ft.com/thing/82645c31-4426-4ef5-99c9-9df6e0940c00
+              apiUrl: http://api.ft.com/concepts/82645c31-4426-4ef5-99c9-9df6e0940c00
+              type: http://www.ft.com/ontology/Topic
+              prefLabel: World
+              scopeNote: <p><font color=\"#222222\">Geopolitical news and comment from across the globe.</font></p>
+              alternativeLabels:
+                - type: "http://www.w3.org/2008/05/skos-xl#altLabel"
+                  value": "World"
+          - predicate: http://www.w3.org/2004/02/skos/core#broaderTransitive
+            concept:
+              id: http://www.ft.com/thing/29e67a92-a3b8-410c-9139-15abe9b47e12
+              apiUrl: http://api.ft.com/concepts/29e67a92-a3b8-410c-9139-15abe9b47e12
+              type: http://www.ft.com/ontology/Topic
+              prefLabel: Global Economy
+              alternativeLabels:
+                - type: "http://www.w3.org/2008/05/skos-xl#altLabel"
+                  value: "Global Economy"
+          - predicate: http://www.w3.org/2004/02/skos/core#broaderTransitive
+            concept: 
+              id: http://www.ft.com/thing/243243d9-de4b-4869-909b-fab711125624
+              apiUrl: http://api.ft.com/concepts/243243d9-de4b-4869-909b-fab711125624
+              type:   http://www.ft.com/ontology/Topic
+              prefLabel: Global trade
+              alternativeLabels:
+                - type: "http://www.w3.org/2008/05/skos-xl#altLabel"
+                  value: "Global Trade"
+                - type: "http://www.w3.org/2008/05/skos-xl#altLabel"
+                  value: "Global trade"
+        relatedConcepts:
+          - predicate: http://www.w3.org/2004/02/skos/core#related
+            concept:
+              id: http://www.ft.com/thing/29e9fad1-14fc-480b-a89c-cd964750bd80
+              apiUrl: http://api.ft.com/concepts/29e9fad1-14fc-480b-a89c-cd964750bd80
+              type: http://www.ft.com/ontology/Topic
+              prefLabel: Renewable energy
+              alternativeLabels:
+                - type: "http://www.w3.org/2008/05/skos-xl#altLabel"
+                  value: "Renewable energy"
+                - type: "http://www.w3.org/2008/05/skos-xl#altLabel"
+                  value: "Renewable Energy"
+          - predicate: http://www.w3.org/2004/02/skos/core#related
+            concept: 
+              id: http://www.ft.com/thing/86fb0401-ec02-419d-a14e-74078cb8b662
+              apiUrl: http://api.ft.com/concepts/86fb0401-ec02-419d-a14e-74078cb8b662
+              type: http://www.ft.com/ontology/Topic
+              prefLabel: Protectionism
+              alternativeLabels:
+                - type: "http://www.w3.org/2008/05/skos-xl#altLabel"
+                  value: "Protectionism"
   /__health:
     get:
       status: 200
   /__gtg:
     get:
       status: 200
+
+
