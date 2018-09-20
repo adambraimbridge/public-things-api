@@ -10,11 +10,7 @@ fixtures:
       body:
         id: http://www.ft.com/thing/de5fe64c-eaf8-3232-8a0b-19f9ccdd5bf0
         apiUrl: http://api.ft.com/concepts/de5fe64c-eaf8-3232-8a0b-19f9ccdd5bf0
-        type: http://www.ft.com/ontology/product/Brand
         prefLabel: "Professor of the Month"
-        alternativeLabels:
-            - type: http://www.w3.org/2008/05/skos-xl#altLabel
-              value: "Professor of the Month"
         isDeprecated: true
   /__health:
     get:

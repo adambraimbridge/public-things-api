@@ -53,23 +53,23 @@ paths:
           description: Internal Server Error if there was an issue processing the records.
         503:
           description: Service Unavailable if it cannot connect to Neo4j.
-  # /__gtg:
-  #   get:
-  #     summary: Good To Go
-  #     description: Lightly healthchecks the application, and returns a 200 if it's Good-To-Go.
-  #     tags:
-  #       - Health
-  #     produces:
-  #         - text/plain;  charset=UTF-8
-  #     responses:
-  #       200:
-  #         description: The application is healthy enough to perform all its functions correctly - i.e. good to go.
-  #         examples:
-  #              text/plain;  charset=UTF-8: OK
-  #       503:
-  #         description: >
-  #           One or more of the applications healthchecks have failed,
-  #           so please do not use the app. See the /__health endpoint for more detailed information.
+  /__gtg:
+    get:
+      summary: Good To Go
+      description: Lightly healthchecks the application, and returns a 200 if it's Good-To-Go.
+      tags:
+        - Health
+      produces:
+          - text/plain;  charset=UTF-8
+      responses:
+        200:
+          description: The application is healthy enough to perform all its functions correctly - i.e. good to go.
+          examples:
+               text/plain;  charset=UTF-8: OK
+        503:
+          description: >
+            One or more of the applications healthchecks have failed,
+            so please do not use the app. See the /__health endpoint for more detailed information.
   /__build-info:
     get:
       summary: Build Information
@@ -121,14 +121,10 @@ paths:
         200:
           description: Get thing response
           examples:
-            application/json:
+            application/json; charset=UTF-8:
               id: http://www.ft.com/thing/de5fe64c-eaf8-3232-8a0b-19f9ccdd5bf0
               apiUrl: http://api.ft.com/concepts/de5fe64c-eaf8-3232-8a0b-19f9ccdd5bf0
-              type: http://www.ft.com/ontology/product/Brand
-              prefLabel: Professor of the Month
-              alternativeLabels: 
-                - type: http://www.w3.org/2008/05/skos-xl#altLabel
-                  value: Professor of the Month  
+              prefLabel: Professor of the Month 
               aliases:
                 - Professor of the Month
               isDeprecated: true
