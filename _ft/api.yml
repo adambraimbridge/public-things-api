@@ -120,6 +120,8 @@ paths:
       responses:
         200:
           description: Get thing response
+          schema:
+            $ref: '#/definitions/concept'
           examples:
             application/json; charset=UTF-8:
               id: http://api.ft.com/things/a11fa00f-777d-484a-9ebc-fbf81b774fc0
@@ -133,105 +135,196 @@ paths:
               aliases:
                 - Solar Wars
               isDeprecated: true
-  /things:
-    get:
-      parameters:
-        - name: uuid
-          in: query
-          required: true
-          type: array
-          items:
-            type: string
-        - name: showRelationship
-          in: query
-          type: array
-          items:
-            type: string
-            enum:
-              - broader
-              - broaderTransitive
-              - narrower
-              - related
-          required: false
-      produces:
-        - application/json; charset=UTF-8
-      tags:
-        - Public API
-      description: >
-        Fetches the things with the provided uuids collection
-      responses:
-        200:
-          description: Get things response
-          schema:
-            type: object
-            properties:
-              things:
-                type: object
-          examples:
-            application/json; charset=UTF-8:
-              id: http://api.ft.com/things/a11fa00f-777d-484a-9ebc-fbf81b774fc0
-              apiUrl: http://api.ft.com/things/a11fa00f-777d-484a-9ebc-fbf81b774fc0
-              prefLabel: Solar Wars
-              types:
-                - http://www.ft.com/ontology/core/Thing
-                - http://www.ft.com/ontology/concept/Concept
-                - http://www.ft.com/ontology/Topic
-              directType: http://www.ft.com/ontology/Topic
-              aliases:
-                - Solar Wars
-              broaderConcepts:
-                - id: http://api.ft.com/things/49181791-a1a9-4966-ac30-010846ec76d8
-                  apiUrl: http://api.ft.com/things/49181791-a1a9-4966-ac30-010846ec76d8
-                  prefLabel: Trade disputes
-                  types:
-                    - http://www.ft.com/ontology/core/Thing
-                    - http://www.ft.com/ontology/concept/Concept
-                    - http://www.ft.com/ontology/Topic
-                  directType: http://www.ft.com/ontology/Topic
-                  predicate: http://www.w3.org/2004/02/skos/core#broader
-                - id: http://api.ft.com/things/82645c31-4426-4ef5-99c9-9df6e0940c00
-                  apiUrl: http://api.ft.com/things/82645c31-4426-4ef5-99c9-9df6e0940c00
-                  prefLabel: World
-                  types:
-                    - http://www.ft.com/ontology/core/Thing
-                    - http://www.ft.com/ontology/concept/Concept
-                    - http://www.ft.com/ontology/Topic
-                  directType: http://www.ft.com/ontology/Topic
-                  predicate: http://www.w3.org/2004/02/skos/core#broaderTransitive
-                - id: http://api.ft.com/things/29e67a92-a3b8-410c-9139-15abe9b47e12
-                  apiUrl: http://api.ft.com/things/29e67a92-a3b8-410c-9139-15abe9b47e12
-                  prefLabel: Global Economy
-                  types:
-                    - http://www.ft.com/ontology/core/Thing
-                    - http://www.ft.com/ontology/concept/Concept
-                    - http://www.ft.com/ontology/Topic
-                  directType: http://www.ft.com/ontology/Topic
-                  predicate: http://www.w3.org/2004/02/skos/core#broaderTransitive
-                - id: http://api.ft.com/things/243243d9-de4b-4869-909b-fab711125624
-                  apiUrl: http://api.ft.com/things/243243d9-de4b-4869-909b-fab711125624
-                  prefLabel: Global trade
-                  types:
-                    - http://www.ft.com/ontology/core/Thing
-                    - http://www.ft.com/ontology/concept/Concept
-                    - http://www.ft.com/ontology/Topic
-                  directType: http://www.ft.com/ontology/Topic
-                  predicate: http://www.w3.org/2004/02/skos/core#broaderTransitive
-              relatedConcepts:
-                - id: http://api.ft.com/things/29e9fad1-14fc-480b-a89c-cd964750bd80
-                  apiUrl: http://api.ft.com/things/29e9fad1-14fc-480b-a89c-cd964750bd80
-                  prefLabel: Renewable energy
-                  types:
-                    - http://www.ft.com/ontology/core/Thing
-                    - http://www.ft.com/ontology/concept/Concept
-                    - http://www.ft.com/ontology/Topic
-                  directType: http://www.ft.com/ontology/Topic
-                  predicate: http://www.w3.org/2004/02/skos/core#related
-                - id: http://api.ft.com/things/86fb0401-ec02-419d-a14e-74078cb8b662
-                  apiUrl: http://api.ft.com/things/86fb0401-ec02-419d-a14e-74078cb8b662
-                  prefLabel: Protectionism
-                  types:
-                    - http://www.ft.com/ontology/core/Thing
-                    - http://www.ft.com/ontology/concept/Concept
-                    - http://www.ft.com/ontology/Topic
-                  directType: http://www.ft.com/ontology/Topic
-                  predicate: http://www.w3.org/2004/02/skos/core#related
+  # /things:
+  #   get:
+  #     parameters:
+  #       - name: uuid
+  #         in: query
+  #         required: true
+  #         x-example: a11fa00f-777d-484a-9ebc-fbf81b774fc0
+  #         type: array
+  #         collectionFormat: multi
+  #         items:
+  #           type: string
+  #       - name: showRelationship
+  #         in: query
+  #         type: array
+  #         collectionFormat: multi
+  #         items:
+  #           type: string
+  #           enum:
+  #             - broader
+  #             - broaderTransitive
+  #             - narrower
+  #             - related
+  #         required: false
+  #     produces:
+  #       - application/json; charset=UTF-8
+  #     tags:
+  #       - Public API
+  #     description: >
+  #       Fetches the things with the provided uuids collection
+  #     responses:
+  #       200:
+  #         description: Get things response
+  #         schema:
+  #           type: object
+  #           properties:
+  #             things:
+  #               type: object
+  #               additionalProperties:
+  #                 $ref: '#/definitions/concept'
+  #         examples:
+  #           application/json; charset=UTF-8:
+  #             id: http://api.ft.com/things/a11fa00f-777d-484a-9ebc-fbf81b774fc0
+  #             apiUrl: http://api.ft.com/things/a11fa00f-777d-484a-9ebc-fbf81b774fc0
+  #             prefLabel: Solar Wars
+  #             types:
+  #               - http://www.ft.com/ontology/core/Thing
+  #               - http://www.ft.com/ontology/concept/Concept
+  #               - http://www.ft.com/ontology/Topic
+  #             directType: http://www.ft.com/ontology/Topic
+  #             aliases:
+  #               - Solar Wars
+  #             broaderConcepts:
+  #               - id: http://api.ft.com/things/49181791-a1a9-4966-ac30-010846ec76d8
+  #                 apiUrl: http://api.ft.com/things/49181791-a1a9-4966-ac30-010846ec76d8
+  #                 prefLabel: Trade disputes
+  #                 types:
+  #                   - http://www.ft.com/ontology/core/Thing
+  #                   - http://www.ft.com/ontology/concept/Concept
+  #                   - http://www.ft.com/ontology/Topic
+  #                 directType: http://www.ft.com/ontology/Topic
+  #                 predicate: http://www.w3.org/2004/02/skos/core#broader
+  #               - id: http://api.ft.com/things/82645c31-4426-4ef5-99c9-9df6e0940c00
+  #                 apiUrl: http://api.ft.com/things/82645c31-4426-4ef5-99c9-9df6e0940c00
+  #                 prefLabel: World
+  #                 types:
+  #                   - http://www.ft.com/ontology/core/Thing
+  #                   - http://www.ft.com/ontology/concept/Concept
+  #                   - http://www.ft.com/ontology/Topic
+  #                 directType: http://www.ft.com/ontology/Topic
+  #                 predicate: http://www.w3.org/2004/02/skos/core#broaderTransitive
+  #               - id: http://api.ft.com/things/29e67a92-a3b8-410c-9139-15abe9b47e12
+  #                 apiUrl: http://api.ft.com/things/29e67a92-a3b8-410c-9139-15abe9b47e12
+  #                 prefLabel: Global Economy
+  #                 types:
+  #                   - http://www.ft.com/ontology/core/Thing
+  #                   - http://www.ft.com/ontology/concept/Concept
+  #                   - http://www.ft.com/ontology/Topic
+  #                 directType: http://www.ft.com/ontology/Topic
+  #                 predicate: http://www.w3.org/2004/02/skos/core#broaderTransitive
+  #               - id: http://api.ft.com/things/243243d9-de4b-4869-909b-fab711125624
+  #                 apiUrl: http://api.ft.com/things/243243d9-de4b-4869-909b-fab711125624
+  #                 prefLabel: Global trade
+  #                 types:
+  #                   - http://www.ft.com/ontology/core/Thing
+  #                   - http://www.ft.com/ontology/concept/Concept
+  #                   - http://www.ft.com/ontology/Topic
+  #                 directType: http://www.ft.com/ontology/Topic
+  #                 predicate: http://www.w3.org/2004/02/skos/core#broaderTransitive
+  #             relatedConcepts:
+  #               - id: http://api.ft.com/things/29e9fad1-14fc-480b-a89c-cd964750bd80
+  #                 apiUrl: http://api.ft.com/things/29e9fad1-14fc-480b-a89c-cd964750bd80
+  #                 prefLabel: Renewable energy
+  #                 types:
+  #                   - http://www.ft.com/ontology/core/Thing
+  #                   - http://www.ft.com/ontology/concept/Concept
+  #                   - http://www.ft.com/ontology/Topic
+  #                 directType: http://www.ft.com/ontology/Topic
+  #                 predicate: http://www.w3.org/2004/02/skos/core#related
+  #               - id: http://api.ft.com/things/86fb0401-ec02-419d-a14e-74078cb8b662
+  #                 apiUrl: http://api.ft.com/things/86fb0401-ec02-419d-a14e-74078cb8b662
+  #                 prefLabel: Protectionism
+  #                 types:
+  #                   - http://www.ft.com/ontology/core/Thing
+  #                   - http://www.ft.com/ontology/concept/Concept
+  #                   - http://www.ft.com/ontology/Topic
+  #                 directType: http://www.ft.com/ontology/Topic
+  #                 predicate: http://www.w3.org/2004/02/skos/core#related
+definitions:
+  concept:
+    type: object
+    title: Concept
+    properties:
+      id:
+        type: string
+        description: The canonical ID of the concept
+      apiUrl:
+        type: string
+        description: Api url of the concept
+      prefLabel:
+        type: string
+        description: Label
+        x-example: Solar wars
+      types:
+        type: array
+        items:
+          type: string
+          description: Concept types
+      directType:
+        type: string
+        description: Direct type
+      aliases:
+        type: array
+        items:
+          type: string
+      descriptionXML:
+        type: string
+      imageUrl:
+        type: string
+      emailAddress:
+        type: string
+      facebookPage:
+        type: string
+      twitterHandle:
+        type: string
+      scopeNote:
+        type: string
+      shortLabel:
+        type: string
+      narrowerConcepts:
+        type: array
+        items:
+          $ref: '#/definitions/thing'
+      broaderConcepts:
+        type: array
+        items:
+          $ref: '#/definitions/thing'
+      relatedConcepts:
+        type: array
+        items:
+          $ref: '#/definitions/thing'
+    required:
+      - id
+      - apiUrl
+      - types
+  thing:
+    type: object
+    title: Title
+    properties:
+      id:
+        type: string
+        description: The canonical ID of the concept
+      apiUrl:
+        type: string
+        description: Api url of the concept
+      prefLabel:
+        type: string
+        description: Label
+        x-example: Solar wars
+      types:
+        type: array
+        items:
+          type: string
+          description: Concept types
+      directType:
+        type: string
+        description: Direct type
+      predicate:
+        type: string
+    required:
+      - id
+      - apiUrl
+      - types
+  
