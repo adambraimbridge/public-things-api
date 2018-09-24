@@ -9,6 +9,7 @@ import (
 
 	"net"
 
+	fthealth "github.com/Financial-Times/go-fthealth/v1_1"
 	log "github.com/Financial-Times/go-logger"
 	"github.com/Financial-Times/http-handlers-go/httphandlers"
 	"github.com/Financial-Times/public-things-api/things"
@@ -94,6 +95,19 @@ func runServer(port string, cacheDuration string, env string, publicConceptsApiU
 	servicesRouter := mux.NewRouter()
 
 	handler := things.NewHandler(&httpClient, publicConceptsApiURL)
+
+	// Healthchecks and standards first
+	healthCheck := fthealth.TimedHealthCheck{
+		HealthCheck: fthealth.HealthCheck{
+			SystemCode:  "public-things-api",
+			Name:        "PublicThingsRead Healthcheck",
+			Description: "Checks downstream services health",
+			Checks:      []fthealth.Check{handler.HealthCheck()},
+		},
+		Timeout: 10 * time.Second,
+	}
+
+	servicesRouter.HandleFunc("/__health", fthealth.Handler(healthCheck))
 
 	// Then API specific ones:
 	handler.RegisterHandlers(servicesRouter)

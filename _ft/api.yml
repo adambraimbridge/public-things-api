@@ -51,6 +51,32 @@ paths:
               revision: 0cd10bc814ca820e3fe181be0fc05124971c7169
               builder: go version go1.10.1 linux/amd64
               dateTime: "20180420102900"
+  /__health:
+    get:
+      summary: Healthchecks
+      description: Runs application healthchecks and returns FT Healthcheck style json.
+      produces:
+        - application/json
+      tags:
+        - Health
+      responses:
+        200:
+          description: Should always return 200 along with the output of the healthchecks - regardless of whether the healthchecks failed or not. Please inspect the overall `ok` property to see whether or not the application is healthy.
+          examples:
+            application/json:
+              checks:
+                - businessImpact: "Unable to respond to Public Things api requests"
+                  checkOutput: "OK"
+                  lastUpdated: "2018-09-04T07:54:23.117495772Z"
+                  name: "Check connectivity to public-concepts-api"
+                  ok: true
+                  panicGuide: "https://dewey.in.ft.com/view/system/public-things-api"
+                  severity: 1
+                  technicalSummary: "Not being able to communicate with public-concepts-api means that requests for organisations cannot be performed. "
+              description: "Public API for serving information on Things within UPP"
+              name: "Public Things API"
+              ok: true
+              schemaVersion: 1
   /things/{uuid}:
     get:
       summary: Get a thing
