@@ -235,8 +235,6 @@ Admin endpoints are:
 * `/__build-info`
 * `/__ping`
 
-At the moment the `/__health` and `/__gtg` check the the connectivity to a neo4j database.
-
 ### Logging
 
 * The application uses [logrus](https://github.com/sirupsen/logrus); the log file is initialised in [main.go](main.go).
