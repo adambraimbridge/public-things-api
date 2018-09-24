@@ -9,8 +9,7 @@ import (
 
 	"net"
 
-	fthealth "github.com/Financial-Times/go-fthealth/v1_1"
-	"github.com/Financial-Times/go-logger"
+	log "github.com/Financial-Times/go-logger"
 	"github.com/Financial-Times/http-handlers-go/httphandlers"
 	"github.com/Financial-Times/public-things-api/things"
 	status "github.com/Financial-Times/service-status-go/httphandlers"
@@ -18,7 +17,6 @@ import (
 	"github.com/jawher/mow.cli"
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/rcrowley/go-metrics"
-	log "github.com/sirupsen/logrus"
 )
 
 var httpClient = http.Client{
@@ -69,17 +67,19 @@ func main() {
 		EnvVar: "CONCEPTS_API",
 	})
 
-	logger.InitLogger(*appSystemCode, *logLevel)
-	logger.Infof("[Startup] public-things-api is starting ")
+	log.InitLogger(*appSystemCode, *logLevel)
+	log.Infof("[Startup] public-things-api is starting ")
 
 	app.Action = func() {
 		log.Infof("public-things-api will listen on port: %s", *port)
 		runServer(*port, *cacheDuration, *env, *publicConceptsApiURL)
 
 	}
-	log.SetFormatter(&log.TextFormatter{DisableColors: true})
-	log.SetLevel(log.InfoLevel)
-	log.Infof("Application started with args %s", os.Args)
+	log.InitLogger(*appSystemCode, *logLevel)
+	log.WithFields(map[string]interface{}{
+		"CACHE_DURATION": *cacheDuration,
+		"LOG_LEVEL":      *logLevel,
+	}).Info("Starting app with arguments")
 	app.Run(os.Args)
 }
 
@@ -91,34 +91,21 @@ func runServer(port string, cacheDuration string, env string, publicConceptsApiU
 		things.CacheControlHeader = fmt.Sprintf("max-age=%s, public", strconv.FormatFloat(duration.Seconds(), 'f', 0, 64))
 	}
 
-	// The following endpoints should not be monitored or logged (varnish calls one of these every second, depending on config)
-	// The top one of these build info endpoints feels more correct, but the lower one matches what we have in Dropwizard,
-	// so it's what apps expect currently same as ping, the content of build-info needs more definition
-	// Healthchecks and standards first
-
 	servicesRouter := mux.NewRouter()
 
 	handler := things.NewHandler(&httpClient, publicConceptsApiURL)
-
-	// Healthchecks and standards first
-	healthCheck := fthealth.TimedHealthCheck{
-		HealthCheck: fthealth.HealthCheck{
-			SystemCode:  "public-things-api",
-			Name:        "PublicThingsRead Healthcheck",
-			Description: "Checks downstream services health",
-			Checks:      []fthealth.Check{handler.HealthCheck()},
-		},
-		Timeout: 10 * time.Second,
-	}
-
-	servicesRouter.HandleFunc("/__health", fthealth.Handler(healthCheck))
 
 	// Then API specific ones:
 	handler.RegisterHandlers(servicesRouter)
 
 	var monitoringRouter http.Handler = servicesRouter
-	monitoringRouter = httphandlers.TransactionAwareRequestLoggingHandler(log.StandardLogger(), monitoringRouter)
+	monitoringRouter = httphandlers.TransactionAwareRequestLoggingHandler(log.Logger(), monitoringRouter)
 	monitoringRouter = httphandlers.HTTPMetricsHandler(metrics.DefaultRegistry, monitoringRouter)
+
+	// The following endpoints should not be monitored or logged (varnish calls one of these every second, depending on config)
+	// The top one of these build info endpoints feels more correct, but the lower one matches what we have in Dropwizard,
+	// so it's what apps expect currently same as ping, the content of build-info needs more definition
+	// Healthchecks and standards first
 
 	http.HandleFunc(status.BuildInfoPath, status.BuildInfoHandler)
 	http.HandleFunc(status.BuildInfoPathDW, status.BuildInfoHandler)
