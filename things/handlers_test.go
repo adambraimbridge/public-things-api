@@ -215,7 +215,6 @@ func TestHandlers(t *testing.T) {
 		req, _ := http.NewRequest("GET", test.url, nil)
 
 		router.ServeHTTP(rr, req)
-		//assert.Equal(t, "application/json; charset=UTF-8", rr.Header().Get("Content-Type"))
 		assert.Equal(t, test.expectedCode, rr.Code, test.name+" failed: status codes do not match!")
 		if rr.Code == http.StatusOK {
 			assert.Equal(t, transformBody(test.expectedBody), rr.Body.String(), test.name+" failed: status body does not match!")

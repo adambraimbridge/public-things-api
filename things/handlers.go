@@ -60,7 +60,6 @@ func (h *ThingsHandler) RegisterHandlers(router *mux.Router) {
 	logger.Info("Registering handlers")
 	router.HandleFunc("/things/{uuid}", h.GetThing).Methods("GET")
 	router.HandleFunc("/things", h.GetThings).Methods("GET")
-	router.HandleFunc("/things/{uuid}", h.MethodNotAllowedHandler)
 }
 
 func (h *ThingsHandler) HealthCheck() fthealth.Check {
@@ -73,12 +72,6 @@ func (h *ThingsHandler) HealthCheck() fthealth.Check {
 		TechnicalSummary: "Not being able to communicate with public-concepts-api means that requests for things cannot be performed.",
 		Checker:          h.Checker,
 	}
-}
-
-// MethodNotAllowedHandler handles 405
-func (rh *ThingsHandler) MethodNotAllowedHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusMethodNotAllowed)
-	return
 }
 
 // GetThing handler directly returns the concept/thing if it's a canonical
@@ -240,14 +233,14 @@ func (rh *ThingsHandler) getChanneledThing(uuid string, relationships []string, 
 		}
 
 		if !found {
-			logger.Error("Referenced canonical uuid : %s is missing in graph store for %s, possible data inconsistency",
+			logger.Errorf("Referenced canonical uuid : %s is missing in graph store for %s, possible data inconsistency",
 				canonicalUUID, uuid)
 			return
 		}
 
 		if !strings.Contains(thing.ID, canonicalUUID) {
 			// there should be one level of indirection to the canonical node
-			logger.Warn("Multiple level of indirection to canonical node for uuid: %s, giving up traversing", uuid)
+			logger.Warnf("Multiple level of indirection to canonical node for uuid: %s, giving up traversing", uuid)
 			return
 		}
 	}
