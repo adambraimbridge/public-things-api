@@ -346,6 +346,27 @@ func TestDeprecatedConcept(t *testing.T) {
 	assert.Equal(t, true, js.IsDeprecated, "TestDeprecatedConcept failed: status body does not match!")
 }
 
+func TestSupersedesConcept(t *testing.T) {
+	logger.InitLogger("test service", "debug")
+
+	mockClient := mockHTTPClient{
+		resp:       supersedesConcept,
+		statusCode: 200,
+		err:        nil,
+	}
+	router := mux.NewRouter()
+	handler := NewHandler(&mockClient, "localhost:8080/concepts")
+
+	handler.RegisterHandlers(router)
+
+	rr := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/things/af42a8b7-a1f6-4c86-9df6-41e74266f541?showRelationship=related&showRelationship=broader", nil)
+
+	router.ServeHTTP(rr, req)
+
+	assert.Contains(t, rr.Body.String(), "http://www.ft.com/ontology/supersedes", "TestSuperseededConcept failed!")
+}
+
 var getCompleteThingAsConcept = `{
 	"id": "http://www.ft.com/thing/6773e864-78ab-4051-abc2-f4e9ab423ebb",
 	"apiUrl": "http://api.ft.com/concepts/6773e864-78ab-4051-abc2-f4e9ab423ebb",
@@ -602,6 +623,48 @@ var deprecatedBrand = `{
     "directType": "http://www.ft.com/ontology/product/Brand",
     "aliases": [
         "Professor of the Month"
+    ]
+}`
+
+var supersedesConcept = `{
+    "id": "http://api.ft.com/things/af42a8b7-a1f6-4c86-9df6-41e74266f541",
+    "apiUrl": "http://api.ft.com/things/af42a8b7-a1f6-4c86-9df6-41e74266f541",
+    "prefLabel": "Agriculture",
+    "types": [
+        "http://www.ft.com/ontology/core/Thing",
+        "http://www.ft.com/ontology/concept/Concept",
+        "http://www.ft.com/ontology/Topic"
+    ],
+    "directType": "http://www.ft.com/ontology/Topic",
+    "aliases": [
+        "Agriculture"
+    ],
+    "relatedConcepts": [
+        {
+            "id": "http://api.ft.com/things/9d4881fa-f11b-4bb8-9746-2a8271b14a4f",
+            "apiUrl": "http://api.ft.com/things/9d4881fa-f11b-4bb8-9746-2a8271b14a4f",
+            "prefLabel": "Agricultural commodities",
+            "types": [
+                "http://www.ft.com/ontology/core/Thing",
+                "http://www.ft.com/ontology/concept/Concept",
+                "http://www.ft.com/ontology/Topic"
+            ],
+            "directType": "http://www.ft.com/ontology/Topic",
+            "predicate": "http://www.w3.org/2004/02/skos/core#related"
+        },
+        {
+            "id": "http://api.ft.com/things/414f547c-9768-4adc-ac6d-d7cf7f62b315",
+            "apiUrl": "http://api.ft.com/things/414f547c-9768-4adc-ac6d-d7cf7f62b315",
+            "prefLabel": "EU agriculture",
+            "types": [
+                "http://www.ft.com/ontology/core/Thing",
+                "http://www.ft.com/ontology/concept/Concept",
+                "http://www.ft.com/ontology/Topic"
+            ],
+            "directType": "http://www.ft.com/ontology/Topic",
+            "predicate": "http://www.ft.com/ontology/supersedes",
+            "isDeprecated": true
+        }
     ]
 }`
 
