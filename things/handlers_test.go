@@ -9,7 +9,9 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
+	fthealth "github.com/Financial-Times/go-fthealth/v1_1"
 	"github.com/Financial-Times/go-logger"
 	"github.com/stretchr/testify/mock"
 
@@ -256,6 +258,70 @@ func TestMethodNotAllowed(t *testing.T) {
 
 	router.ServeHTTP(rr, req)
 	assert.Equal(t, 405, rr.Code, "TestMethodNotAllowed failed: status codes do not match!")
+}
+
+func TestHealthCheck(t *testing.T) {
+	logger.InitLogger("test service", "debug")
+
+	mockClient := mockHTTPClient{
+		statusCode: 200,
+		err:        nil,
+	}
+	handler := NewHandler(&mockClient, "localhost:8080")
+
+	healthCheck := fthealth.TimedHealthCheck{
+		HealthCheck: fthealth.HealthCheck{
+			SystemCode:  "public-things-api",
+			Name:        "PublicThingsRead Healthcheck",
+			Description: "Checks downstream services health",
+			Checks:      []fthealth.Check{handler.HealthCheck()},
+		},
+		Timeout: 10 * time.Second,
+	}
+	router := mux.NewRouter()
+	router.HandleFunc("/__health", fthealth.Handler(healthCheck))
+
+	handler.RegisterHandlers(router)
+
+	rr := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/__health", nil)
+
+	logger.InitLogger("test service", "debug")
+
+	router.ServeHTTP(rr, req)
+	assert.Equal(t, http.StatusOK, rr.Code)
+}
+
+func TestGtgCheck(t *testing.T) {
+	logger.InitLogger("test service", "debug")
+
+	mockClient := mockHTTPClient{
+		statusCode: 200,
+		err:        nil,
+	}
+	handler := NewHandler(&mockClient, "localhost:8080")
+
+	healthCheck := fthealth.TimedHealthCheck{
+		HealthCheck: fthealth.HealthCheck{
+			SystemCode:  "public-things-api",
+			Name:        "PublicThingsRead Healthcheck",
+			Description: "Checks downstream services health",
+			Checks:      []fthealth.Check{handler.HealthCheck()},
+		},
+		Timeout: 10 * time.Second,
+	}
+	router := mux.NewRouter()
+	router.HandleFunc("/__GTG", fthealth.Handler(healthCheck))
+
+	handler.RegisterHandlers(router)
+
+	rr := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/__GTG", nil)
+
+	logger.InitLogger("test service", "debug")
+
+	router.ServeHTTP(rr, req)
+	assert.Equal(t, http.StatusOK, rr.Code)
 }
 
 func TestDeprecatedConcept(t *testing.T) {
