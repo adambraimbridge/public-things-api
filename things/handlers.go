@@ -12,18 +12,15 @@ import (
 
 	"io/ioutil"
 
+	fthealth "github.com/Financial-Times/go-fthealth/v1_1"
 	"github.com/Financial-Times/go-logger"
 	"github.com/Financial-Times/neo-model-utils-go/mapper"
+	"github.com/Financial-Times/service-status-go/gtg"
 	"github.com/Financial-Times/transactionid-utils-go"
 	"github.com/gorilla/mux"
-	gouuid "github.com/satori/go.uuid"
-	log "github.com/sirupsen/logrus"
-)
 
-type RequestHandler struct {
-	HttpClient  httpClient
-	ConceptsURL string
-}
+	gouuid "github.com/satori/go.uuid"
+)
 
 var CacheControlHeader string
 
@@ -43,32 +40,43 @@ var brandPredicateMap = map[string]string{
 	"http://www.ft.com/ontology/hasSubBrand": "http://www.w3.org/2004/02/skos/core#narrower",
 }
 
-type httpClient interface {
+type HttpClient interface {
 	Do(req *http.Request) (resp *http.Response, err error)
 }
 
-func NewHandler(client httpClient, conceptsURL string) RequestHandler {
-	return RequestHandler{
-		HttpClient:  client,
-		ConceptsURL: conceptsURL,
+type ThingsHandler struct {
+	client      HttpClient
+	conceptsURL string
+}
+
+func NewHandler(client HttpClient, conceptsURL string) ThingsHandler {
+	return ThingsHandler{
+		client,
+		conceptsURL,
 	}
 }
 
-func (h *RequestHandler) RegisterHandlers(router *mux.Router) {
+func (h *ThingsHandler) RegisterHandlers(router *mux.Router) {
+	logger.Info("Registering handlers")
 	router.HandleFunc("/things/{uuid}", h.GetThing).Methods("GET")
 	router.HandleFunc("/things", h.GetThings).Methods("GET")
-	router.HandleFunc("/things/{uuid}", h.MethodNotAllowedHandler)
 }
 
-// MethodNotAllowedHandler handles 405
-func (rh *RequestHandler) MethodNotAllowedHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusMethodNotAllowed)
-	return
+func (h *ThingsHandler) HealthCheck() fthealth.Check {
+	return fthealth.Check{
+		ID:               "public-concepts-api-check",
+		BusinessImpact:   "Unable to respond to Public Things api requests",
+		Name:             "Check connectivity to public-concepts-api",
+		PanicGuide:       "https://dewey.ft.com/public-things-api.html",
+		Severity:         2,
+		TechnicalSummary: "Not being able to communicate with public-concepts-api means that requests for things cannot be performed.",
+		Checker:          h.Checker,
+	}
 }
 
 // GetThing handler directly returns the concept/thing if it's a canonical
 // or provides redirect URL via Location http header within the response.
-func (rh *RequestHandler) GetThing(w http.ResponseWriter, r *http.Request) {
+func (rh *ThingsHandler) GetThing(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	uuid := vars["uuid"]
 	transID := transactionidutils.GetTransactionIDFromRequest(r)
@@ -140,7 +148,7 @@ func (rh *RequestHandler) GetThing(w http.ResponseWriter, r *http.Request) {
 // 	is simply to provide a convenient way to the caller for making the correlation between requested uuids with respect to
 // 	found things. Since we are handling the resolution of non canonical uuids, returned thing payloads may not have the same
 // 	requested/associated uuid.
-func (rh *RequestHandler) GetThings(w http.ResponseWriter, r *http.Request) {
+func (rh *ThingsHandler) GetThings(w http.ResponseWriter, r *http.Request) {
 	queryParams := r.URL.Query()
 	transID := transactionidutils.GetTransactionIDFromRequest(r)
 	relationships := queryParams["showRelationship"]
@@ -193,12 +201,12 @@ func (rh *RequestHandler) GetThings(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewEncoder(w).Encode(result); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		msg := fmt.Sprintf(`{"message":"Error marshalling the result %s, err=%s"}`, result, err.Error())
+		msg := fmt.Sprintf(`{"message":"Error marshalling the result %s, err=%s"}`, w, err.Error())
 		w.Write([]byte(msg))
 	}
 }
 
-func (rh *RequestHandler) getChanneledThing(uuid string, relationships []string, transID string, uctCh chan *uuidConceptTuple,
+func (rh *ThingsHandler) getChanneledThing(uuid string, relationships []string, transID string, uctCh chan *uuidConceptTuple,
 	errCh chan *uuidErrorTuple, wg *sync.WaitGroup) {
 
 	defer wg.Done()
@@ -225,14 +233,14 @@ func (rh *RequestHandler) getChanneledThing(uuid string, relationships []string,
 		}
 
 		if !found {
-			log.Errorf("Referenced canonical uuid : %s is missing in graph store for %s, possible data inconsistency",
+			logger.Errorf("Referenced canonical uuid : %s is missing in graph store for %s, possible data inconsistency",
 				canonicalUUID, uuid)
 			return
 		}
 
 		if !strings.Contains(thing.ID, canonicalUUID) {
 			// there should be one level of indirection to the canonical node
-			log.Warnf("Multiple level of indirection to canonical node for uuid: %s, giving up traversing", uuid)
+			logger.Warnf("Multiple level of indirection to canonical node for uuid: %s, giving up traversing", uuid)
 			return
 		}
 	}
@@ -283,10 +291,10 @@ func validateUUID(uuids ...string) error {
 	return nil
 }
 
-func (rh *RequestHandler) getThingViaConceptsApi(UUID string, relationships []string, transID string) (Concept, bool, error) {
+func (rh *ThingsHandler) getThingViaConceptsApi(UUID string, relationships []string, transID string) (Concept, bool, error) {
 	mappedConcept := Concept{}
 
-	u, err := url.Parse(rh.ConceptsURL)
+	u, err := url.Parse(rh.conceptsURL)
 	if err != nil {
 		msg := fmt.Sprint("URL of Concepts API is invalid")
 		logger.WithError(err).WithUUID(UUID).WithTransactionID(transID).Error(msg)
@@ -307,7 +315,7 @@ func (rh *RequestHandler) getThingViaConceptsApi(UUID string, relationships []st
 	}
 
 	request.Header.Set("X-Request-Id", transID)
-	resp, err := rh.HttpClient.Do(request)
+	resp, err := rh.client.Do(request)
 	if err != nil {
 		msg := fmt.Sprintf("request to %s returned status: %d", reqURL, resp.StatusCode)
 		logger.WithError(err).WithUUID(UUID).WithTransactionID(transID).Error(msg)
@@ -333,6 +341,7 @@ func (rh *RequestHandler) getThingViaConceptsApi(UUID string, relationships []st
 	mappedConcept.ID = convertID(conceptsApiResponse.ID)
 	mappedConcept.APIURL = mapper.APIURL(UUID, []string{extractFinalSectionOfString(conceptsApiResponse.Type)}, "")
 	mappedConcept.PrefLabel = conceptsApiResponse.PrefLabel
+	mappedConcept.IsDeprecated = conceptsApiResponse.IsDeprecated
 	mappedConcept.DirectType = conceptsApiResponse.Type
 	mappedConcept.Types = mapper.FullTypeHierarchy(conceptsApiResponse.Type)
 
@@ -374,12 +383,13 @@ func convertRelationship(relationships []Relationship) []Thing {
 	var convertedRelationships []Thing
 	for _, rc := range relationships {
 		convertedRelationships = append(convertedRelationships, Thing{
-			ID:         convertID(rc.Concept.ID),
-			APIURL:     mapper.APIURL(extractFinalSectionOfString(rc.Concept.ID), []string{extractFinalSectionOfString(rc.Concept.Type)}, ""),
-			Types:      mapper.FullTypeHierarchy(rc.Concept.Type),
-			DirectType: rc.Concept.Type,
-			PrefLabel:  rc.Concept.PrefLabel,
-			Predicate:  mapPredicate(rc.Predicate),
+			ID:           convertID(rc.Concept.ID),
+			APIURL:       mapper.APIURL(extractFinalSectionOfString(rc.Concept.ID), []string{extractFinalSectionOfString(rc.Concept.Type)}, ""),
+			Types:        mapper.FullTypeHierarchy(rc.Concept.Type),
+			DirectType:   rc.Concept.Type,
+			PrefLabel:    rc.Concept.PrefLabel,
+			IsDeprecated: rc.Concept.IsDeprecated,
+			Predicate:    mapPredicate(rc.Predicate),
 		})
 	}
 	return convertedRelationships
@@ -407,4 +417,40 @@ func mapPredicate(conceptPredicate string) string {
 		return brandPredicateMap[conceptPredicate]
 	}
 	return conceptPredicate
+}
+
+func (h *ThingsHandler) Checker() (string, error) {
+	req, err := http.NewRequest("GET", h.conceptsURL+"/__gtg", nil)
+	if err != nil {
+		return "", err
+	}
+
+	req.Header.Add("User-Agent", "UPP public-things-api")
+
+	resp, err := h.client.Do(req)
+	if err != nil {
+		return "", err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("health check returned a non-200 HTTP status: %v", resp.StatusCode)
+	}
+	return "Public Concepts API is healthy", nil
+
+}
+
+func (h *ThingsHandler) GTG() gtg.Status {
+	statusCheck := func() gtg.Status {
+		return gtgCheck(h.Checker)
+	}
+	return gtg.FailFastParallelCheck([]gtg.StatusChecker{statusCheck})()
+}
+
+func gtgCheck(handler func() (string, error)) gtg.Status {
+	if _, err := handler(); err != nil {
+		return gtg.Status{GoodToGo: false, Message: err.Error()}
+	}
+	return gtg.Status{GoodToGo: true}
 }
