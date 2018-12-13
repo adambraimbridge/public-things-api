@@ -327,6 +327,7 @@ func (rh *ThingsHandler) getThingViaConceptsApi(UUID string, relationships []str
 
 	conceptsApiResponse := ConceptApiResponse{}
 	body, err := ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close()
 	if err != nil {
 		msg := fmt.Sprintf("failed to read response body: %v", resp.Body)
 		logger.WithError(err).WithUUID(UUID).WithTransactionID(transID).Error(msg)
