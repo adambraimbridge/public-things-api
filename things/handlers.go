@@ -316,8 +316,14 @@ func (rh *ThingsHandler) getThingViaConceptsApi(UUID string, relationships []str
 
 	request.Header.Set("X-Request-Id", transID)
 	resp, err := rh.client.Do(request)
+	if resp != nil && resp.Body != nil{
+		defer resp.Body.Close()
+	}
 	if err != nil {
-		msg := fmt.Sprintf("request to %s returned status: %d", reqURL, resp.StatusCode)
+		msg := fmt.Sprintf("request to %s was unsuccessful", reqURL)
+		if resp != nil {
+			msg = fmt.Sprintf("request to %s returned status: %d", reqURL, resp.StatusCode)
+		}
 		logger.WithError(err).WithUUID(UUID).WithTransactionID(transID).Error(msg)
 		return mappedConcept, false, err
 	}
@@ -327,7 +333,6 @@ func (rh *ThingsHandler) getThingViaConceptsApi(UUID string, relationships []str
 
 	conceptsApiResponse := ConceptApiResponse{}
 	body, err := ioutil.ReadAll(resp.Body)
-	defer resp.Body.Close()
 	if err != nil {
 		msg := fmt.Sprintf("failed to read response body: %v", resp.Body)
 		logger.WithError(err).WithUUID(UUID).WithTransactionID(transID).Error(msg)
