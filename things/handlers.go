@@ -315,6 +315,8 @@ func (rh *ThingsHandler) getThingViaConceptsApi(UUID string, relationships []str
 	}
 
 	request.Header.Set("X-Request-Id", transID)
+	request.Header.Set("User-Agent", "UPP public-things-api")
+
 	resp, err := rh.client.Do(request)
 	if err != nil {
 		msg := fmt.Sprintf("request to %s was unsuccessful", reqURL)
