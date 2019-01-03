@@ -2,6 +2,17 @@
 
 
 [[projects]]
+  digest = "1:1c88bd70d3ac8f9e843571d4227261e1f7f7ba13d78a3942b95f41f0c726aedf"
+  name = "github.com/Financial-Times/go-ft-http"
+  packages = [
+    "fthttp",
+    "transport",
+  ]
+  pruneopts = "UT"
+  revision = "5a93c30a228457c72254f628da251ef540ffcad2"
+  version = "0.0.4"
+
+[[projects]]
   digest = "1:3b7e921b3c7c81a1ea711e8d515d99e8cf0a12905ab5dafb962b51bac2741aaf"
   name = "github.com/Financial-Times/go-fthealth"
   packages = ["v1_1"]
@@ -194,6 +205,7 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/Financial-Times/go-ft-http/fthttp",
     "github.com/Financial-Times/go-fthealth/v1_1",
     "github.com/Financial-Times/go-logger",
     "github.com/Financial-Times/http-handlers-go/httphandlers",

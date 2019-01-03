@@ -2,12 +2,11 @@ package main
 
 import (
 	"fmt"
+	"github.com/Financial-Times/go-ft-http/fthttp"
 	"net/http"
 	"os"
 	"strconv"
 	"time"
-
-	"net"
 
 	fthealth "github.com/Financial-Times/go-fthealth/v1_1"
 	log "github.com/Financial-Times/go-logger"
@@ -19,16 +18,6 @@ import (
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/rcrowley/go-metrics"
 )
-
-var httpClient = http.Client{
-	Transport: &http.Transport{
-		MaxIdleConnsPerHost: 128,
-		DialContext: (&net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}).DialContext,
-	},
-}
 
 func main() {
 	app := cli.App("public-things-api", "A public RESTful API for accessing Things in neo4j")
@@ -71,9 +60,10 @@ func main() {
 	log.InitLogger(*appSystemCode, *logLevel)
 	log.Infof("[Startup] public-things-api is starting ")
 
+	httpClient := fthttp.NewClient(30*time.Second, "PAC", *appSystemCode)
 	app.Action = func() {
 		log.Infof("public-things-api will listen on port: %s", *port)
-		runServer(*port, *cacheDuration, *env, *publicConceptsApiURL)
+		runServer(*port, *cacheDuration, *env, *publicConceptsApiURL, httpClient)
 
 	}
 	log.InitLogger(*appSystemCode, *logLevel)
@@ -84,7 +74,8 @@ func main() {
 	app.Run(os.Args)
 }
 
-func runServer(port string, cacheDuration string, env string, publicConceptsApiURL string) {
+func runServer(port string, cacheDuration string, env string, publicConceptsApiURL string,
+	httpClient *http.Client) {
 
 	if duration, durationErr := time.ParseDuration(cacheDuration); durationErr != nil {
 		log.Fatalf("Failed to parse cache duration string, %v", durationErr)
@@ -94,7 +85,7 @@ func runServer(port string, cacheDuration string, env string, publicConceptsApiU
 
 	servicesRouter := mux.NewRouter()
 
-	handler := things.NewHandler(&httpClient, publicConceptsApiURL)
+	handler := things.NewHandler(httpClient, publicConceptsApiURL)
 
 	// Healthchecks and standards first
 	healthCheck := fthealth.TimedHealthCheck{
