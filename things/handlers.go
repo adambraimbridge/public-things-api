@@ -315,12 +315,16 @@ func (rh *ThingsHandler) getThingViaConceptsApi(UUID string, relationships []str
 	}
 
 	request.Header.Set("X-Request-Id", transID)
+
 	resp, err := rh.client.Do(request)
 	if err != nil {
-		msg := fmt.Sprintf("request to %s returned status: %d", reqURL, resp.StatusCode)
+		msg := fmt.Sprintf("request to %s was unsuccessful", reqURL)
 		logger.WithError(err).WithUUID(UUID).WithTransactionID(transID).Error(msg)
 		return mappedConcept, false, err
 	}
+
+	defer resp.Body.Close()
+
 	if resp.StatusCode == http.StatusNotFound {
 		return mappedConcept, false, nil
 	}
@@ -424,8 +428,6 @@ func (h *ThingsHandler) Checker() (string, error) {
 	if err != nil {
 		return "", err
 	}
-
-	req.Header.Add("User-Agent", "UPP public-things-api")
 
 	resp, err := h.client.Do(req)
 	if err != nil {
