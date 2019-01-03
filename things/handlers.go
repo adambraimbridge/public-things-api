@@ -315,7 +315,6 @@ func (rh *ThingsHandler) getThingViaConceptsApi(UUID string, relationships []str
 	}
 
 	request.Header.Set("X-Request-Id", transID)
-	request.Header.Set("User-Agent", "UPP public-things-api")
 
 	resp, err := rh.client.Do(request)
 	if err != nil {
@@ -429,8 +428,6 @@ func (h *ThingsHandler) Checker() (string, error) {
 	if err != nil {
 		return "", err
 	}
-
-	req.Header.Add("User-Agent", "UPP public-things-api")
 
 	resp, err := h.client.Do(req)
 	if err != nil {
